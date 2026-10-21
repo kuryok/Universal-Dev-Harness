@@ -1,0 +1,29 @@
+{
+  "result": "PASS",
+  "candidate_commit": "bfb2cbbd5644a08ae868c326a399283118b57a6e",
+  "source_hashes": {
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "35c2199d6c990d9e0f02f6250929ae6c1088cd9fb340f04cc930f22fa11c9f8e",
+    "udh/domain.py": "da32490a19dd0d3d5b3611d3fff4116297de3f0aee3ef652fb944a1d0be9c16a",
+    "udh/policy.py": "a9e67014098b84f0fe8ad4269190c77c7d94ff7d84ceac8fbded321342906d1b",
+    "udh/service.py": "38b5419f7a906e0e4e6300e35ac2cbc627ea7e5e1cf8d91ea5471b2ccfebfcf0",
+    "udh/store.py": "9e65b7fb9d0efac8a23407d9171c4a7cd19da9a58ba73a7ab0b1c46fc44dae20"
+  },
+  "policy_at_version": "sha256:438ce43f70e0137115f2c30920623eabf5bfd042035958951fdaafa151e41f3f",
+  "core_at_version": "sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704",
+  "complementary_tests": 16,
+  "policy_acceptance_tests": 11,
+  "policy_isolated_calls": 55,
+  "core_acceptance_tests": 10,
+  "core_isolated_calls": 49,
+  "independent_review": "P7 PASS",
+  "I1_I7": "PASS",
+  "T1_T8": "PASS",
+  "skipped": [],
+  "not_run": [
+    "harness fast/full: ausente",
+    "OpenSpec CLI: ausente"
+  ],
+  "official_product_acceptance": false,
+  "slice1_complete": false
+}
