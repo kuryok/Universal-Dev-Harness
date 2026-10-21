@@ -1,6 +1,6 @@
 # Handoff proposto — migração e bloqueio
 
-Estado: preparado após aprovação do contrato funcional; a extensão concreta de infraestrutura abaixo aguarda autorização específica antes de editar AT/controladores. Não modifica o contrato aprovado ou arquivos v1/v2 protegidos.
+Estado: extensão de infraestrutura explicitamente aprovada pelo usuário em 21/10/2026 ("Aprovado, se não há regressão faça!"). A aprovação não dispensa o contrato específico de observação M3/B4 previsto abaixo. Não modifica o contrato aprovado ou arquivos v1/v2 protegidos.
 
 ## Arquivos e responsabilidades
 

@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "methods": {
+    "BlockAcceptance.test_b1_persisted_block_and_v2_reader": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "B1"
+      ]
+    },
+    "BlockAcceptance.test_b3_exact_replay_and_payload_conflicts": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "B3"
+      ]
+    },
+    "BlockAcceptance.test_b3_equal_concurrent_requests": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "B3"
+      ]
+    },
+    "BlockAcceptance.test_b3_distinct_concurrent_requests": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "B3"
+      ]
+    },
+    "BlockAcceptance.test_b5_common_policy_and_unsupported_targets_no_effect": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "B5"
+      ]
+    },
+    "MigrationAcceptance.test_m1_empty_and_populated_preserve_and_replay": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "M1"
+      ]
+    },
+    "MigrationAcceptance.test_m2_missing_rejected_without_creation": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "M2"
+      ]
+    },
+    "MigrationAcceptance.test_m2_invalid_database_unchanged": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "M2"
+      ]
+    },
+    "MigrationAcceptance.test_r1_v1_formats_and_common_refusal": {
+      "baseline_expected": "EXISTING_PASS",
+      "scenarios": [
+        "R1"
+      ]
+    },
+    "BlockAcceptance.test_b2_adversary_isolation_and_claims": {
+      "baseline_expected": "EXISTING_PASS",
+      "scenarios": [
+        "B2"
+      ]
+    },
+    "BlockAcceptance.test_b4_instrumented_interruption_and_replay": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "B4"
+      ],
+      "baseline_failure_contract": "A descoberta deve retornar resultado funcional do operador. Ausência do módulo no baseline fixado é NEW_FAILURE; timeout, transporte ou ausência de markers após sucesso nunca satisfazem baseline negativo.",
+      "limits": "Launcher instrumentado protegido; bytes do Core inalterados. Não é black-box, queda de energia ou hardware."
+    },
+    "MigrationAcceptance.test_m3_concurrent_migration": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "M3"
+      ]
+    },
+    "MigrationAcceptance.test_m3_instrumented_interruption_and_replay": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "M3"
+      ],
+      "baseline_failure_contract": "A descoberta deve retornar resultado funcional do operador. Ausência do módulo no baseline fixado é NEW_FAILURE; timeout, transporte ou ausência de markers após sucesso nunca satisfazem baseline negativo.",
+      "limits": "Launcher instrumentado protegido; bytes do Core inalterados. Não é black-box, queda de energia ou hardware."
+    }
+  },
+  "pending": {
+    "R1": {
+      "status": "CHECK_EXTERNAL",
+      "blocks_publication": true,
+      "blocks_functional_execution": false,
+      "reason": "Executar regressões anteriores e verificadores de selos preservados."
+    },
+    "R2": {
+      "status": "CHECK_EXTERNAL",
+      "blocks_publication": true,
+      "blocks_functional_execution": false,
+      "reason": "Revisão independente vinculada aos hashes exatos."
+    }
+  }
+}
