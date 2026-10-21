@@ -1,6 +1,6 @@
 # Slice 1 — tarefa 2: consulta determinística de política
 
-Estado: especificação preparada; pendente de aprovação humana antes de implementar. O pedido de prosseguir autoriza esta preparação; não presume aprovação de um contrato ainda não apresentado.
+Estado: contrato aprovado pelo usuário em 21/10/2026 ("Aprovo!"). Implementação aguarda o preparo independente de AT e selo, conforme dependência abaixo. A extensão protegida está delimitada em [acceptance-handoff.md](acceptance-handoff.md) e aguarda autorização específica.
 
 ## Objetivo e decisão de escopo
 
