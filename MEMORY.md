@@ -6,8 +6,8 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 ## Estado
 - Slice 0 encerrada para VM Linux/API gratuita; produto completo não certificado.
 - Pi e OpenCode receberam resposta real via OpenRouter; chave só no gateway externo, agentes sem egress IP. Custos normais reportados: zero.
-- Não há Core, SQLite operacional, harness/gates ou AT implementados.
-- Próximo passo: aprovar a [tarefa 1 da Slice 1](openspec/changes/slice1-core-state/proposal.md): proposta revisada de bootstrap SQLite modular, com repetição idempotente. Início bloqueado: AT independentes ou exceção explícita de protótipo; validação OpenSpec ou exceção manual.
+- Não há Core, SQLite operacional, harness/gates ou AT executáveis. CLI OpenSpec ausente; validação não executada.
+- Slice 1: [cenários independentes](openspec/changes/slice1-core-state/acceptance.md) preparados, pendentes aprovação. Depois gerar AT em contexto independente, provar baseline negativo e proteger AT/runner antes de implementar. Sem exceção de protótipo presumida.
 
 ## Fontes sob demanda
 - [Resultado, limites e reprodução](SPIKE-SLICE0-RESULTADOS.md).

@@ -10,11 +10,11 @@ Referência: arquitetura consolidada v2.5.1, ADR-011 e F-03, arquivo local `UDH-
 
 ## Condições para iniciar
 
-B4.2 exige cenários aprovados e AT independentes antes de iniciar ticket de produto. Eles ainda não existem. Portanto esta proposta não autoriza iniciar produto apenas com testes complementares. Para este primeiro recorte, propõe-se **protótipo de bootstrap explicitamente rotulado**, mediante aprovação humana dessa exceção conforme B4.2/ADR-028. Se a exceção não for aprovada, primeiro preparar os AT em contexto independente e sua proteção; não implementar este recorte.
+B4.2 exige cenários aprovados e AT independentes antes de iniciar ticket de produto. A rota proposta é cumprir esse contrato, sem presumir exceção de protótipo. Os [cenários independentes](acceptance.md) são a entrada de aceite e aguardam aprovação humana; não são AT executáveis nem um selo de aceite.
 
-O protótipo não registra estado oficial de projetos reais, não executa agentes e não é promovido automaticamente a produto. A promoção exige nova decisão documentada, AT protegidos, executor e verificações da fundação. Isso não altera a ordem Core + SQLite + policy + executor/AT.
+Antes de implementar: aprovar os cenários, gerar AT em contexto independente do implementador, comprovar a linha de base negativa e proteger testes/runner/manifesto no domínio confiável conforme B4.4–B4.6. O implementador não pode escrever ou alterar esses AT. Se a fundação ainda não permitir isso, registrar bloqueio e decidir explicitamente o bootstrap, sem iniciar produto apenas com testes complementares.
 
-A CLI OpenSpec está ausente. Não alegar validação ou handoff OpenSpec concluído: antes de implementar, validar com versão/sintaxe suportadas ou obter autorização explícita para revisão documental manual apenas neste bootstrap. Não instalar ferramenta implicitamente. Aprovação da proposta deve registrar quais dessas condições foram satisfeitas ou excepcionadas.
+A CLI OpenSpec está ausente: validação por ela não executada. A regra de bloqueio de handoff na seção de integração de `grill-me-with-docs` não será generalizada para esta preparação manual, que não incorpora a skill. Não alegar validação strict; eventual instalação depende de proposta e aprovação de dependência. A revisão documental não substitui aprovação semântica nem os AT.
 
 ## Escopo proposto
 
@@ -24,10 +24,10 @@ Python 3 e biblioteca padrão (sqlite3, argparse, unittest), sem dependências, 
 - `python3 -m udh create --db CAMINHO --spec-id ID --spec-version V --request-id ID`: criar UUID, referência não vazia à especificação e estado PENDING. Referenciar uma spec não comprova sua aprovação; nenhuma execução de trabalho será permitida nesta tarefa.
 - `python3 -m udh show --db CAMINHO --run-id UUID`: consultar execução e seu evento inicial. Banco inexistente e execução desconhecida falham; consulta/criação não inicializam banco implicitamente.
 - `request-id` é obrigatório e não vazio: repetição com a mesma referência retorna a execução existente sem novo evento; reutilização com referência diferente falha sem alterar dados. Unicidade é garantida no SQLite, inclusive entre processos concorrentes. Não generaliza idempotência de efeitos externos.
-- Sucesso retorna JSON; erro retorna mensagem em pt-BR no stderr e código diferente de zero. Não mostrar traceback como saída normal.
-- Bancos e fixtures desta tarefa ficam dentro do projeto, em diretórios temporários de teste ou caminho local explicitamente informado. Não reutilizar bancos pessoais existentes. Esta é restrição operacional dos comandos e testes deste bootstrap, não uma proteção implementada pela CLI contra caminhos externos/symlinks. Não alegar sandbox por causa dela.
+- Contrato de saída e cenários: [aceite independente](acceptance.md), seção Contrato público proposto. Sucesso retorna JSON; erro retorna mensagem em pt-BR no stderr e código diferente de zero. Não mostrar traceback como saída normal.
+- Bancos e fixtures desta tarefa ficam dentro do projeto, em diretórios temporários de teste ou caminho local explicitamente informado. Não reutilizar bancos pessoais existentes. Esta é restrição operacional dos comandos e testes deste recorte, não uma proteção implementada pela CLI contra caminhos externos/symlinks. Não alegar sandbox por causa dela.
 
-A CLI é interface técnica interna para este bootstrap, não a experiência final do iniciante. O banco temporário não será montado para agente algum. No produto, SQLite operacional pertence ao domínio confiável do Core, fora do workspace gravável por agentes; persistir um arquivo nesta etapa não demonstra essa proteção.
+A CLI é interface técnica interna para este recorte, não a experiência final do iniciante. O banco temporário não será montado para agente algum. No produto, SQLite operacional pertence ao domínio confiável do Core, fora do workspace gravável por agentes; persistir um arquivo nesta etapa não demonstra essa proteção.
 
 ## Core modular
 
@@ -66,7 +66,7 @@ Testes do implementador são complementares; não criar ou modificar AT independ
 
 ## Arquivos permitidos após aprovação
 
-Somente os cinco módulos acima, `tests/test_core_state.py`, `tests/__init__.py`, esta proposta e `MEMORY.md`. Bancos temporários não entram no Git. Não tocar em arquivos protegidos do harness nem promover scripts do spike a produto.
+Somente os cinco módulos acima, `tests/test_core_state.py`, `tests/__init__.py`, esta proposta e `MEMORY.md`. O documento de cenários é preparado separadamente nesta etapa; testes oficiais e runner não pertencem à lista de escrita do implementador. Bancos temporários não entram no Git. Não tocar em arquivos protegidos do harness nem promover scripts do spike a produto.
 
 ## Sequência e pronto
 
@@ -74,10 +74,10 @@ Somente os cinco módulos acima, `tests/test_core_state.py`, `tests/__init__.py`
 2. Serviço e CLI; verificar C2/C4/C8 em processos distintos e revisar C7.
 3. Executar `python3 -m unittest discover -s tests -v` e `git diff --check`; atualizar memória e fazer commit pequeno.
 
-Registrar commit candidato, comandos e resultados da sessão; obter revisão em contexto independente antes de promover o recorte. Conclusão técnica do protótipo exige verificações passando na sessão; não permite declarar ACCEPTED/DELIVERED. Sem tools/harness.py: fast/full não executados. Sem CLI OpenSpec: validação por ela não executada.
+Registrar commit candidato, comandos e resultados da sessão; obter revisão em contexto independente antes de promover o recorte. Conclusão técnica deste recorte exige verificações passando na sessão; não permite declarar ACCEPTED/DELIVERED. Sem tools/harness.py: fast/full não executados. Sem CLI OpenSpec: validação por ela não executada.
 
 ## Fora de escopo e próximo passo
 
-Policy, autorizações, executor confiável, AT protegidos, isolamento do Core, transições, checkpoints completos, efeitos UNKNOWN, integração Git, agentes, gateway, UI, Memorix, Judge e instalador.
+A implementação de policy, autorizações, executor confiável, store protegida e isolamento do Core, transições, checkpoints completos, efeitos UNKNOWN, integração Git, agentes, gateway, UI, Memorix, Judge e instalador.
 
-Próximo recorte: especificar policy e transições autorizadas, fronteira de confiança e AT independentes antes de executar agentes. A Slice 1 completa continua Core + SQLite + policy + executor/AT.
+Próximo recorte após esta tarefa: especificar policy e transições autorizadas antes de executar agentes. A proteção e autoria independente dos AT desta tarefa são pré-condições, não algo adiado para depois da implementação. A Slice 1 completa continua Core + SQLite + policy + executor/AT.
