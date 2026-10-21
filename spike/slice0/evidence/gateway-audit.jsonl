@@ -86,3 +86,19 @@
 {"run_id": "95eb4d57326c4866b58a77fd7994a327", "has_tools": false, "messages_count": 2}
 {"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 10165.819556224}
 {"run_id": "95eb4d57326c4866b58a77fd7994a327", "has_tools": false, "messages_count": 2}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 12321.257003429}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "has_tools": false, "messages_count": 0}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 12321.409743644}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 12321.410977462}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 403, "verdict": "purpose_denied", "peer_uid": 1000, "time_monotonic": 12321.413380498}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 401, "verdict": "capability_denied", "peer_uid": 1000, "time_monotonic": 12321.414329561}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 403, "verdict": "model_or_mode_denied", "peer_uid": 1000, "time_monotonic": 12321.415349265}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 400, "verdict": "messages_denied", "peer_uid": 1000, "time_monotonic": 12321.416389425}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 413, "verdict": "size_denied", "peer_uid": 1000, "time_monotonic": 12321.421893343}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 12321.613585658}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 12321.616487075}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 400, "verdict": "unsupported_framing", "peer_uid": 1000, "time_monotonic": 12321.790959573}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 12325.195052318}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "has_tools": false, "messages_count": 2}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 12325.986244963}
+{"run_id": "626c700ccc4a461080a67127a74f0a58", "has_tools": false, "messages_count": 2}

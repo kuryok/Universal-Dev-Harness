@@ -92,6 +92,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.reject(403, 'model_or_mode_denied')
         if not isinstance(body.get('messages'), list):
             return self.reject(400, 'messages_denied')
+        if getattr(self.server, 'forward', None):
+            return self.server.forward(self, body)
         self.audit(200, 'synthetic_stream')
         with self.server.audit.open('a') as output:
             output.write(json.dumps({'run_id': self.server.run_id,

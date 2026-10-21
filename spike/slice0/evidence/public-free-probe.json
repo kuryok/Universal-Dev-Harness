@@ -1,0 +1,58 @@
+[
+  {
+    "kind": "source",
+    "installed_version": "1.18.35",
+    "documentation": "https://opencode.ai/docs/zen",
+    "endpoint": "https://opencode.ai/zen/v1/chat/completions",
+    "public_authorization_origin": "Fallback apiKey public do binário instalado; nenhuma credencial pessoal",
+    "documentation_may_differ_from_installed_version": true,
+    "tls_verified": true,
+    "personal_credentials_read": false,
+    "prompt": "Responda UDH_REAL_PROBE_OK",
+    "max_tokens": 64
+  },
+  {
+    "kind": "attempt",
+    "model": "big-pickle",
+    "time_utc": "2026-10-21T15:38:06.369705+00:00",
+    "http_status": 403,
+    "response_bytes_capped": 175,
+    "error_type": "FreeTierError",
+    "marker_received": false,
+    "returned_choices": false,
+    "result": "falhou",
+    "elapsed_seconds": 0.486
+  },
+  {
+    "kind": "source",
+    "installed_version": "1.18.35",
+    "documentation": "https://opencode.ai/v2/docs/console/models/",
+    "public_catalog": "https://opencode.ai/zen/v1/models",
+    "catalog_confirmed_model": "deepseek-v4.1-flash-free",
+    "documented_price_input_output": "Free / Free",
+    "authorization_scope": "Nova tentativa específica autorizada pelo usuário; Big Pickle recusado permanece evidência separada",
+    "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions",
+    "public_authorization_origin": "Fallback apiKey public do binário instalado; nenhuma credencial pessoal",
+    "documentation_may_differ_from_installed_version": true,
+    "tls_verified": true,
+    "personal_credentials_read": false,
+    "prompt": "Responda UDH_REAL_PROBE_OK",
+    "max_tokens": 64,
+    "catalog_http_status": 200,
+    "catalog_model_owned_by": "opencode",
+    "free_price_source": "Tabela oficial: DeepSeek V4.1 Flash Free = Free/Free"
+  },
+  {
+    "kind": "attempt",
+    "model": "deepseek-v4.1-flash-free",
+    "time_utc": "2026-10-21T15:45:41.477419+00:00",
+    "http_status": 403,
+    "response_bytes_capped": 175,
+    "error_type": "FreeTierError",
+    "error_reason_category": "free_tier_rejected",
+    "marker_received": false,
+    "returned_choices": false,
+    "result": "falhou",
+    "elapsed_seconds": 0.459
+  }
+]

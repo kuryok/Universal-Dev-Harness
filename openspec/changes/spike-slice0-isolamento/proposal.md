@@ -1,6 +1,6 @@
 # Spike Slice 0 — ambiente e isolamento
 
-Estado: recortes experimentais A–F aprovados pelo usuário em 21/10/2026. Rodada local encerrada com conclusão parcial e 29 perguntas classificadas; inferência real, autenticação e comparação WSL2 permanecem pendentes conforme `SPIKE-SLICE0-RESULTADOS.md`.
+Estado: recortes experimentais A–F aprovados pelo usuário em 21/10/2026. Rodada Linux/API gratuita encerrada com 29 perguntas classificadas; C1/D2 reais comprovados na continuação aprovada e assinatura/WSL2 ainda não executados, conforme `SPIKE-SLICE0-RESULTADOS.md`.
 
 ## Objetivo
 
@@ -40,7 +40,7 @@ Não existe `tools/harness.py` nem configuração de lint/testes neste repositó
 
 ## Fora de escopo
 
-Core de produto, interface, instalador, Judge, memória, novos agentes instalados e testes de aceite reais. C–F foram incluídos como experimentos descartáveis na continuação aprovada. Inferência/autenticação reais e comparação WSL2 não foram executadas por falta dos respectivos recursos neste recorte.
+Core de produto, interface, instalador, Judge, memória, novos agentes instalados e testes de aceite reais. C–F foram incluídos como experimentos descartáveis na continuação aprovada. Inferência API real foi incluída na continuação gratuita aprovada abaixo. Autenticação por assinatura e comparação WSL2 não foram executadas por falta dos respectivos recursos.
 
 ## Riscos e autorizações
 
@@ -67,4 +67,25 @@ Sem dependências novas nem download previstos. Se Pi e seu runtime instalado fo
 
 ## Encerramento da rodada local
 
-Experimentos A–F possíveis sem credenciais executados; todas as perguntas A–G classificadas no relatório, com casos não executados justificados. Pi e OpenCode consumiram resposta sintética por UDS, sem rede externa no contêiner. Foram preservadas falhas de configuração e OOM; não houve instalação de dependências. Evidências e limites em `SPIKE-SLICE0-RESULTADOS.md`. C1/D2 reais, D3 e comparação WSL2 seguem pendentes; nenhum selo de produto ou autorização automática para Slice 1.
+Experimentos A–F possíveis sem credenciais executados; todas as perguntas A–G classificadas no relatório, com casos não executados justificados. Pi e OpenCode consumiram resposta sintética por UDS, sem rede externa no contêiner. Foram preservadas falhas de configuração e OOM; não houve instalação de dependências. Evidências e limites em `SPIKE-SLICE0-RESULTADOS.md`. Ao final da rodada sintética, C1/D2 reais ainda estavam pendentes; foram exercitados na continuação gratuita abaixo. D3 e comparação WSL2 seguem não executados; nenhum selo de produto.
+
+
+## Continuação aprovada — modelos gratuitos reais
+
+O usuário solicitou explicitamente usar modelos free em OpenCode e Pi e autorizou usar a credencial OpenRouter já configurada, se existir. Os requisitos permanecem no mesmo OpenSpec: provar C1/D2/C3/C5 com resposta real mantendo agentes network=none e credenciais somente no mediador externo.
+
+Arquivos permitidos: roteiros/gateway descartáveis e evidências em `spike/slice0/`, esta proposta e relatório de resultados. Sem alterações em AT, arquitetura, harness ou credenciais/configuração pessoal. Sem novas dependências.
+
+- Selecionar apenas endpoint/modelo gratuito confirmado em fonte primária/catálogo. Sem fallback para modelo pago, sem cadastro, compra ou assinatura.
+- No Pi, o gateway externo pode resolver a entrada OpenRouter existente em memória sem imprimir, copiar, devolver ao agente ou registrar a chave. Usar o resolvedor oficial do Pi em modo somente leitura/no-refresh, capturando a resposta apenas no gateway; não criar scripts de credencial nem expor valores. Se ausente/inválida, registrar somente esse estado sem abrir outros stores.
+- No OpenCode, experimentar acesso anônimo aos modelos free disponibilizados pelo provedor. Respeitar recusas, sem simular identidade ou contornar restrições. Pode usar o mesmo provedor free autenticado externamente como alternativa técnica, identificando-a no resultado.
+- Gateway com destino HTTPS fixo em allowlist, TLS validado, timeouts/limites de chamadas, tokens e tamanho; agente só recebe capacidade local. Requisições reais usam somente prompt sintético, sem código ou dados do projeto.
+- Evidência deve separar origem do modelo, resposta real, erro do provedor, streaming, identidade do run e ausência da chave em logs/mounts/ambiente do agente. Testar retorno proibido e evitar registrar corpo de erro bruto que possa conter cabeçalhos.
+- Sem login por assinatura ou teste WSL2 nesta VM. A autorização de uso da credencial não é autorização para exibi-la nem alterá-la.
+
+
+## Resultado da continuação gratuita
+
+Pi e OpenCode receberam resposta real do modelo gratuito nvidia/nemotron-3-ultra-550b-a55b:free via OpenRouter, com network=none nos agentes. O catálogo foi verificado antes da rodada; não há fallback pago e os custos reportados das chamadas normais foram zero. Credencial existente resolvida pelo CLI oficial Pi auth check --credentials --no-refresh só em memória externa, sem alteração de stores/configuração pessoal ou instalação de outra cópia dos agentes.
+
+Auditoria por agente, término normal, código de saída e marcador foram conferidos juntos. Corte real entregue após texto parcial encerrou o Pi com erro sem timeout, ainda com exit0. Respostas públicas403 do provedor nativo OpenCode e tentativas anteriores insuficientes foram preservadas. C1/D2/C3/C5 agora possuem prova real no escopo descrito. D3/WSL2 permanecem não executados e justificados; recomendação é especificar Slice1 para Linux/API, sem certificar produto nem perfil Developer.

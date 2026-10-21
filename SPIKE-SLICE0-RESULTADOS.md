@@ -1,8 +1,10 @@
 # Slice 0 — resultado do spike na VM
 
-Data: 21/10/2026. **Experimento descartável; conclusão parcial da fundação.**
+Data: 21/10/2026. **Experimento descartável; rodada Linux/API gratuita concluída, com escopo explícito.**
 
-A rodada local foi executada e todas as 29 perguntas receberam um resultado. **Não há autorização técnica para declarar a Slice 0 integralmente validada ou avançar automaticamente à Slice 1:** C1 não recebeu uma resposta de modelo real, D2 não exercitou injeção de credencial real pelo gateway e D3 não exercitou assinatura. A comparação WSL2 fica pendente para outro ambiente. Os demais resultados abaixo valem somente para os perfis e casos efetivamente testados.
+A rodada local foi executada e todas as 29 perguntas receberam resultado. **C1 e D2 agora têm prova real:** Pi e OpenCode receberam resposta do modelo gratuito `nvidia/nemotron-3-ultra-550b-a55b:free`, via OpenRouter, com agentes em `network=none` e chave somente no gateway externo. A auditoria registrou custo zero nas três chamadas normais da rodada final. O corte durante uma quarta chamada real encerrou o Pi com erro estruturado, sem timeout; essa chamada interrompida não possui recibo final de uso.
+
+**Decisão: seguir para a especificação da Slice 1 no perfil Linux/API**, usando Pi 1.2.0 como primeiro agente recomendado. Assinatura, Windows/WSL2 e produto completo não foram certificados. A3/B5 mantêm limites explícitos; não foram convertidos em garantia universal de isolamento. A recomendação não autoriza implementação fora de uma tarefa/spec aprovada.
 
 ## Ambiente e identidade
 
@@ -10,7 +12,7 @@ A rodada local foi executada e todas as 29 perguntas receberam um resultado. **N
 - Podman 5.4.2 rootless, cgroup v2. Memória, processos e CPU foram exercitados; a lista de controladores do `podman info`, isoladamente, não demonstrava todos os limites efetivos.
 - Imagem local: Alpine 3.20, digest `sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc`. Nenhuma imagem ou dependência foi baixada.
 - Pi 1.2.0 e Node 22.23.3 já instalados; OpenCode 1.18.35 encontrado fora do PATH. Binários/bibliotecas e runtime Pi foram montados somente leitura. Os hashes estão nas evidências. Isso é uma composição experimental sobre a imagem Alpine, não uma imagem final de agente empacotada para produto.
-- Sem home pessoal, credenciais reais ou configuração pessoal montados. Apenas fixtures, prompts e capacidade de autenticação inteiramente sintéticos. Nenhum CLI local de modelo foi encontrado entre `ollama`, `llama-server` e `vllm` no PATH; isso não é inventário de todos os serviços possíveis.
+- Sem home pessoal, credenciais reais ou configuração pessoal montados nos contêineres. Nos contêineres há apenas fixtures, prompt de teste e capacidade local sintética; a credencial OpenRouter real é resolvida exclusivamente pelo processo externo do gateway. Nenhum CLI local de modelo foi encontrado entre `ollama`, `llama-server` e `vllm` no PATH; isso não é inventário de todos os serviços possíveis.
 
 ## Matriz preenchida
 
@@ -28,16 +30,16 @@ As perguntas e seus critérios originais permanecem em `SPIKE-SLICE0-PERGUNTAS.m
 | B3 | passou | Socket do Podman existe no host e não aparece nos caminhos testados do contêiner; sem bind do runtime. `results.json`. |
 | B4 | passou | No perfil testado: network=none, somente loopback, TCP/UDP IPv4/IPv6 externos retornam ENETUNREACH e DNS ECONNREFUSED. O mesmo cliente Node recebe controles positivos locais TCP/UDP. Receptores do host não recebem marcadores do contêiner. `agent-probe.json`, B4-E1-E2-network; `network-probe.json`. Não prova resistência a comprometimento do kernel. |
 | B5 | parcial | Escrita persistente nos caminhos comuns fora do workspace foi recusada; raiz RO e tmpfs automáticos desativados. /proc e dispositivos especiais existem; não foi provada impossibilidade de qualquer escrita fora do workspace. |
-| B6 | passou | Variável sintética ausente também em /proc/1/environ; arquivo sintético externo inacessível diretamente e por symlink. `results.json`. Não foram lidas credenciais reais. |
-| C1 | não executado | Nenhum provedor ou modelo real foi configurado. SPIKE_SYNTHETIC_OK é resposta programada, não inferência. |
+| B6 | passou | Variável sintética ausente também em /proc/1/environ; arquivo sintético externo inacessível diretamente e por symlink. `results.json`. O ensaio sintético B6 não usou credenciais reais; os agentes isolados não leram stores pessoais. |
+| C1 | passou | Resposta REAL UDH_REAL_PROBE_OK recebida por Pi e OpenCode via gateway/UDS com network=none. `free-models-probe.json`: término normal estruturado, exit0 e auditoria completa por agente; `free-gateway-audit.jsonl`, modelo :free selecionado e custo reportado0. Não é resposta sintética. |
 | C2 | passou | `agent-probe.json`: rota/método/finalidade/modelo recusados, capacidade incorreta 401, corpo excedente 413, schema/framing inválidos 400. Rota/método/finalidade recusados também pela ponte. Socket 0600, diretório 0700 e peer UID verificado. Mediador sintético; limites adicionais abaixo. |
-| C3 | passou | Pi recebeu SPIKE_ e SYNTHETIC_OK em eventos separados; SSE direto mostra partes separadas por aproximadamente 150 ms. OpenCode também completou resposta sintética. `agent-probe.json` e `opencode-probe.json`. |
-| C4 | passou | Mediador realmente morto após primeira parte. Pi encerra sem timeout e registra stopReason:error/errorMessage:terminated. **Exit do Pi é 0 mesmo no erro.** `agent-probe.json`, C4-mediator-killed. |
-| C5 | parcial | Auditoria por run_id não contém o marcador sintético de autenticação; registra apenas campos permitidos. Redação com chave real/injeção do provedor não exercitada. `gateway-audit.jsonl` e checks do Pi. |
-| D1 | passou | Pi e OpenCode consumiram endpoint customizado atrás da ponte/UDS com network=none. Resposta sintética; compatibilidade com provedor real ainda não provada. |
-| D2 | parcial | Ambos funcionaram sem chave real no contêiner, usando capacidade sintética. Não houve injeção de credencial real fora do sandbox ou inferência autenticada. |
-| D3 | não executado | Sem login/assinatura fornecido ao mediador. Nenhum auth store pessoal foi lido. Não afirmar suporte nem incompatibilidade. |
-| D4 | passou | Alternativa mínima descrita: primeiro integrar API pelo gateway com credencial mantida pelo operador fora do sandbox, ou modelo local; assinatura permanece indisponível até prova própria. Descrição, não autenticação validada. |
+| C3 | passou | Streaming sintético e REAL exercitados. Pi/OpenCode receberam eventos do modelo real; auditoria contém múltiplos eventos SSE e encerramento completo. `agent-probe.json`, `free-models-probe.json` e `free-gateway-audit.jsonl`. |
+| C4 | passou | Mediador morto tanto no ensaio sintético quanto no real, depois de texto parcial efetivamente entregue. Pi registra stopReason:error, sem timeout, embora retorne exit0. `free-models-probe.json`, pi-free-mediatorkilled: received_partial_text=true, mediator_returncode=-9, cleanup0. |
+| C5 | passou | Resolvedor oficial do Pi entrega a chave apenas à memória do gateway. Scan opaco verificou ausência exata da chave nos artefatos examinados; não são registrados cabeçalhos, auth store ou erros brutos do provedor. `free-models-probe.json`, secret_scan, e `free-secret-scan.json`. Não prova ausência de toda forma de exfiltração. |
+| D1 | passou | Pi e OpenCode consumiram endpoint customizado real pelo mesmo gateway externo, sem egress IP próprio. Provedor OpenRouter/modelo gratuito, distinto do acesso público nativo OpenCode. `free-models-probe.json`. |
+| D2 | passou | Credencial OpenRouter resolvida externamente pelo CLI oficial do Pi em modo readonly/no-refresh, injetada somente no HTTPS upstream. Nos agentes há só capacidade local sintética. Ambos receberam resposta real; inspeções/mounts/ambiente e scan em `free-models-probe.json`. |
+| D3 | não executado | Autenticação por assinatura não exercitada. Nenhum auth store pessoal foi montado nos agentes; somente o resolvedor oficial externo consultou a credencial OpenRouter existente. Não afirmar suporte nem incompatibilidade de assinatura. |
+| D4 | passou | Caminho mínimo agora exercitado: API OpenRouter com modelo :free, chave mantida pelo gateway e capacidade local nos agentes. Assinatura não testada permanece fora do escopo declarado; nenhum fallback pago é permitido. |
 | E1 | passou | Perfil Pi sem ferramentas expostas ao modelo e sem egress IP; clientes reais dentro do mesmo perfil confirmam bloqueio. Não foi feita busca web real. |
 | E2 | passou | Pi offline/telemetria desligada no perfil e egress IP bloqueado. OpenCode aceita autoupdate=false e flags disable*; isso não certifica ausência universal de canais de exfiltração por inferência. |
 | E3 | passou | Perfil Pi com no-mcp/no-extensions/no-skills/no-tools; auditoria recebe has_tools=false. OpenCode tem plugins vazios/pure e flags restritivas, mas uma requisição ainda declara ferramentas: não foi certificado como perfil sem ferramentas. |
@@ -50,13 +52,16 @@ As perguntas e seus critérios originais permanecem em `SPIKE-SLICE0-PERGUNTAS.m
 
 ## Decisão e riscos que sobraram
 
-**Primeiro candidato: Pi 1.2.0**, pela prova explícita de endpoint, UDS, streaming, interrupção e configuração protegida neste perfil. É candidato à próxima prova, não agente declarado conforme. OpenCode também completou o transporte sintético; não foi instalado segundo agente de produto.
+**Primeiro agente recomendado para a Slice 1: Pi 1.2.0**, pelas provas de endpoint real, UDS, streaming, interrupção real e configuração protegida neste perfil. OpenCode 1.18.35 também completou inferência real pelo OpenRouter. Não foi integrado segundo agente de produto nem certificado um perfil Developer completo: o gateway deste spike só encaminha o prompt fixo de teste, sem contexto/código recebido do agente.
 
-- **C1/D2/D3:** inferência real e autenticação continuam pendentes. A documentação oficial atual do [OpenCode Console](https://opencode.ai/v2/docs/console/models/) orienta autenticação por chave; listar modelos gratuitos no catálogo local não prova acesso anônimo. Nenhuma chamada paga ou autenticada foi feita.
+- **C1/D2 resolvidos neste perfil:** modelo :free confirmado por preço de prompt/completion zero no [catálogo público OpenRouter](https://openrouter.ai/api/v1/models) antes da rodada; teto max_price=0, sem fallback pago, até quatro chamadas por processo e prompt/token/tempo limitados. A chave existente foi usada pelo resolvedor oficial do Pi, sem atualizar ou copiar instalações/configurações pessoais. D3 permanece não executado: isso não certifica login por assinatura.
+- **OpenCode nativo versus experimento:** o usuário demonstrou DeepSeek V4.1 Flash Free funcionando em seu terminal. As tentativas HTTP públicas separadas de Big Pickle e DeepSeek retornaram403/FreeTierError, com evidência em `public-free-probe.json`. Isso não invalida seu CLI ou todos os modelos free; o perfil e os atributos de acesso são diferentes. A prova real bem-sucedida dos dois agentes foi feita pelo OpenRouter.
+- **Roteamento genérico gratuito:** uma primeira rodada usou openrouter/free, que escolheu um classificador em uma chamada OpenCode e não satisfez o marcador esperado. Preservada em `free-router-attempt.json`; não foi contada como sucesso dos dois agentes. A rodada final fixou um modelo gratuito de conversa e verificou término estruturado, exit0, marcador, auditoria por agente e custo reportado0.
+- **Corte real e recibo:** uma tentativa inicial sinalizou o corte antes do flush do evento de texto; a verificação de texto parcial detectou a insuficiência e falhou. Preservada em `free-cut-before-flush.json`. O perfil final sinaliza depois de entregar evento SSE completo; received_partial_text=true e erro estruturado confirmados. Não há recibo final da chamada morta por SIGKILL; somente as chamadas normais têm custo reportado zero.
 - **C4/F1:** o adaptador futuro deve conferir os eventos estruturados do Pi; exit0 não demonstra conclusão de inferência. O spike não implementa esse adaptador de produto.
 - **E4:** arquivos RO dentro de diretório renomeável não bastam. A configuração experimental corrigida protege o mountpoint e permite locks no workspace. O Pi falhou inicialmente quando todo o diretório de configuração era RO, pois precisa criar settings.json.lock/auth.json.lock; essa falha foi preservada em `pi-readonly-directory-failure.json`.
 - **A2/OpenCode:** listagem models falhou com OOM em 256 MiB e passou em 768 MiB; inferência sintética passou em 768 MiB. Pi passou em 384 MiB. Não foi medido mínimo exato nem benchmark comparável de consumo entre agentes.
-- **C2:** protótipo com limite de corpo, oito conexões simultâneas e timeout de inatividade de 3 s. Não há prazo absoluto contra envio lento; cliente que pinga bytes pode ocupar slots. Não é gateway pronto para uso com segredos ou tráfego de produção.
+- **C2:** protótipo com limite de corpo, oito conexões simultâneas e timeout de inatividade de 3 s. O encaminhamento HTTPS real tem deadline de60s, destino fixo, TLS verificado e limite de resposta; a leitura inicial de cabeçalhos continua sem prazo absoluto contra envio lento. Não é gateway de produção. A prova com credencial real foi restrita ao prompt fixo e aos controles descritos, não ao envio de código/contexto arbitrário.
 - **F1–F3:** evidências ficam fora dos mounts graváveis dos contêineres, porém são editáveis pelo usuário/assistente no host. Não são store selada, executor oficial ou aprovação independente do produto. Nenhum AT real foi criado ou alterado.
 - **G:** resultados da VM não certificam máquina física nem WSL2. O erro inicial de filesystem RO no runtime não se repetiu após a mudança de permissões da sessão.
 
@@ -73,16 +78,21 @@ python3 spike/slice0/agent_probe.py
 python3 spike/slice0/evidence_probe.py
 python3 spike/slice0/opencode_probe.py --memory-mib 256
 python3 spike/slice0/opencode_probe.py --memory-mib 768 --synthetic-inference
+python3 spike/slice0/free_models_probe.py --verify-only
+# Nova inferência real gratuita usa a credencial Pi/OpenRouter, sem exibi-la:
+python3 spike/slice0/free_models_probe.py
 python3 -m py_compile spike/slice0/*.py
 git diff --check
 ```
 
 Executar sem concorrência entre roteiros: alguns arquivos de evidência são atualizados a cada rodada. O retorno137 de memória, o retorno2 do teste de processos e o OOM do catálogo OpenCode em 256 MiB são resultados esperados dos experimentos, não gates de produto aprovados. A listagem de processos da VM e stores de credenciais pessoais não precisam ser lidas.
 
-Os roteiros foram executados; compilação e checks das evidências passaram. Houve revisão em contexto separado; os achados de configuração, framing e limpeza foram incorporados ou mantidos como limite explícito. O Podman já remove cidfiles na limpeza: falhas iniciais de remoção duplicada foram corrigidas e repetidas com sucesso. O caminho longo de UDS foi corrigido com caminho relativo no processo servidor. Nenhuma dependência foi instalada.
+Os roteiros foram executados; compilação e checks das evidências passaram. Uma varredura ampla encontrou PermissionError em fixtures/workspaces dos ensaios e não foi considerada concluída; a abordagem foi alterada para fontes e evidências de entrega, com 30 arquivos examinados e ausência da chave confirmada. Limite registrado em `free-secret-scan.json` e `secret-scan-attempts.json`; isso não é varredura completa do filesystem. Houve revisão em contexto separado; os achados de configuração, framing e limpeza foram incorporados ou mantidos como limite explícito. O Podman já remove cidfiles na limpeza: falhas iniciais de remoção duplicada foram corrigidas e repetidas com sucesso. O caminho longo de UDS foi corrigido com caminho relativo no processo servidor. Nenhuma dependência foi instalada.
 
 `tools/harness.py` e gates do projeto não existem: fast/full **não executados**. OpenSpec CLI ausente: validação pela CLI **não executada**. A emenda ADR-018 A não foi ratificada e não foi necessária para estes ensaios exclusivos de inferência. Exclusão do baseline antigo e arquivo de arquitetura novo, preexistentes, foram preservados sem entrar nos commits desta tarefa.
 
 ## Próximo passo
 
-**Completar C1/D2 com um modelo real atrás do gateway**, mantendo network=none no agente e sem colocar credenciais no workspace. Pode ser endpoint local sem autenticação ou gateway externo configurado pelo operador. Repetir streaming/interrupção nesse caminho, registrar decisão por agente e então avaliar a liberação para Slice 1. D3 e WSL2 exigem provas próprias; eventual escopo Linux/API deve ser assumido explicitamente, sem declarar esses casos como aprovados.
+**Especificar a primeira tarefa da Slice 1: Core mínimo + SQLite**, preservando a separação entre estado, política e evidências, com objetivo/arquivos/critérios aprovados antes de implementar. Incorporar os achados do spike: conferir eventos em vez de confiar só no exit0 do Pi, proteger o diretório de configuração contra rename e manter credenciais fora do sandbox. O gateway descartável com prompt fixo não deve ser promovido diretamente a componente de produto.
+
+Manter assinatura e WSL2 como não executados até provas próprias. Ampliar a conformance quando houver perfil Developer, ferramenta de escrita e gateway de contexto real; não presumir que a prova de transporte sozinha aceita software gerado.
