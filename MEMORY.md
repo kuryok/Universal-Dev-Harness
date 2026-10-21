@@ -7,7 +7,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 - Slice 0 encerrada para VM Linux/API gratuita; produto completo não certificado.
 - Pi e OpenCode receberam resposta real via OpenRouter; chave só no gateway externo, agentes sem egress IP. Custos normais reportados: zero.
 - Não há Core, SQLite operacional, harness/gates ou AT implementados.
-- Próximo passo: especificar Core mínimo + SQLite no OpenSpec; Slice 1 ainda sem spec aprovada. Não implementar antes da aprovação.
+- Próximo passo: aprovar a [tarefa 1 da Slice 1](openspec/changes/slice1-core-state/proposal.md): criação/consulta PENDING + SQLite transacional. Implementação ainda não autorizada.
 
 ## Fontes sob demanda
 - [Resultado, limites e reprodução](SPIKE-SLICE0-RESULTADOS.md).
@@ -20,7 +20,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- Memorix/ai-memory não instalados; nenhuma nova escolha de arquitetura feita.
+- Core modular: domínio, armazenamento, serviço e CLI; autoridade única não significa arquivo monolítico. Memorix/ai-memory não instalados.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.

@@ -44,7 +44,7 @@ Um sistema local-first que leva uma pessoa que não sabe programar de uma ideia 
 
 A Slice 0 foi encerrada no perfil experimental Linux/API testado. O próximo passo é especificar Core mínimo + SQLite no OpenSpec e obter aprovação antes de implementar; consulte MEMORY.md para limites e evidências.
 
-Esta fase é **descartável**. O objetivo é responder perguntas com experimento, não produzir código de produto. Siga o arquivo de perguntas do spike. Registre cada resultado como passou, falhou, parcial ou não executado, sempre com evidência. Não tente "consertar" um resultado ruim para que ele pareça bom: um resultado ruim é a informação que procuramos.
+O código da Slice 0 permanece **descartável**, com os limites registrados no relatório. Na Slice 1, siga o recorte aprovado no OpenSpec. Um Core só significa autoridade única, com módulos separados por responsabilidade; não concentrar todo o sistema em um arquivo.
 
 ## Quando parar e perguntar
 
