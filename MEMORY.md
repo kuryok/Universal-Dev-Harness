@@ -20,7 +20,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- Core modular: domínio, armazenamento, serviço e CLI. Memorix/ai-memory não instalados. Próximo: proteção/selo/executor dos AT antes de implementar produto; exceção de protótipo não autorizada.
+- Core modular: domínio, armazenamento, serviço e CLI. Memorix/ai-memory não instalados. Próximo: aprovar o [recorte de isolamento](openspec/changes/slice1-core-state/bootstrap-executor.md), depois provar a fronteira externa e integrar AT. Produto permanece bloqueado; sem exceção presumida.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.
