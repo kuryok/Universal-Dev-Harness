@@ -1,13 +1,13 @@
 # UDH — retomada curta
 
-Atualizado: 21/10/2026. Código de referência: `518d9b0`.
+Atualizado: 21/10/2026. Código de referência do spike: `518d9b0`.
 Nota contextual: conferir Git e fontes; não é requisito, autorização ou aceite.
 
 ## Estado
 - Slice 0 encerrada para VM Linux/API gratuita; produto completo não certificado.
 - Pi e OpenCode receberam resposta real via OpenRouter; chave só no gateway externo, agentes sem egress IP. Custos normais reportados: zero.
 - Não há Core, SQLite operacional, harness/gates ou AT implementados.
-- Próximo passo: aprovar a [tarefa 1 da Slice 1](openspec/changes/slice1-core-state/proposal.md): criação/consulta PENDING + SQLite transacional. Implementação ainda não autorizada.
+- Próximo passo: aprovar a [tarefa 1 da Slice 1](openspec/changes/slice1-core-state/proposal.md): proposta revisada de bootstrap SQLite modular, com repetição idempotente. Início bloqueado: AT independentes ou exceção explícita de protótipo; validação OpenSpec ou exceção manual.
 
 ## Fontes sob demanda
 - [Resultado, limites e reprodução](SPIKE-SLICE0-RESULTADOS.md).

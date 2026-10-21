@@ -1,6 +1,6 @@
 # Slice 1 — tarefa 1: estado persistente mínimo
 
-Estado: aguardando aprovação humana antes de implementar.
+Estado: revisada em 21/10/2026; aguardando aprovação humana. Handoff para implementação bloqueado pelas condições abaixo.
 
 ## Objetivo
 
@@ -8,15 +8,26 @@ Criar e consultar uma execução local em SQLite, preservando identidade e event
 
 Referência: arquitetura consolidada v2.5.1, ADR-011 e F-03, arquivo local `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md`. Não ratifica ADR-018 A nem incorpora alterações preexistentes ao Git.
 
+## Condições para iniciar
+
+B4.2 exige cenários aprovados e AT independentes antes de iniciar ticket de produto. Eles ainda não existem. Portanto esta proposta não autoriza iniciar produto apenas com testes complementares. Para este primeiro recorte, propõe-se **protótipo de bootstrap explicitamente rotulado**, mediante aprovação humana dessa exceção conforme B4.2/ADR-028. Se a exceção não for aprovada, primeiro preparar os AT em contexto independente e sua proteção; não implementar este recorte.
+
+O protótipo não registra estado oficial de projetos reais, não executa agentes e não é promovido automaticamente a produto. A promoção exige nova decisão documentada, AT protegidos, executor e verificações da fundação. Isso não altera a ordem Core + SQLite + policy + executor/AT.
+
+A CLI OpenSpec está ausente. Não alegar validação ou handoff OpenSpec concluído: antes de implementar, validar com versão/sintaxe suportadas ou obter autorização explícita para revisão documental manual apenas neste bootstrap. Não instalar ferramenta implicitamente. Aprovação da proposta deve registrar quais dessas condições foram satisfeitas ou excepcionadas.
+
 ## Escopo proposto
 
 Python 3 e biblioteca padrão (sqlite3, argparse, unittest), sem dependências, rede ou credenciais. Nesta máquina usar `python3`.
 
-- `python3 -m udh init --db CAMINHO`: inicializar esquema versão 1; repetição preserva dados. Versão desconhecida é recusada sem migração automática.
-- `python3 -m udh create --db CAMINHO --spec-id ID --spec-version V`: criar UUID, referência não vazia à especificação e estado PENDING. Referenciar uma spec não comprova sua aprovação; nenhuma execução de trabalho será permitida nesta tarefa.
+- `python3 -m udh init --db CAMINHO`: inicializar esquema versão 1 em caminho novo ou banco vazio; repetição preserva dados. Banco não vazio sem esquema UDH reconhecido, esquema incompatível ou versão desconhecida é recusado sem alterações/migração automática. Inicialização do esquema e da versão é transacional.
+- `python3 -m udh create --db CAMINHO --spec-id ID --spec-version V --request-id ID`: criar UUID, referência não vazia à especificação e estado PENDING. Referenciar uma spec não comprova sua aprovação; nenhuma execução de trabalho será permitida nesta tarefa.
 - `python3 -m udh show --db CAMINHO --run-id UUID`: consultar execução e seu evento inicial. Banco inexistente e execução desconhecida falham; consulta/criação não inicializam banco implicitamente.
+- `request-id` é obrigatório e não vazio: repetição com a mesma referência retorna a execução existente sem novo evento; reutilização com referência diferente falha sem alterar dados. Unicidade é garantida no SQLite, inclusive entre processos concorrentes. Não generaliza idempotência de efeitos externos.
 - Sucesso retorna JSON; erro retorna mensagem em pt-BR no stderr e código diferente de zero. Não mostrar traceback como saída normal.
-- Bancos e fixtures desta tarefa ficam dentro do projeto, em diretórios temporários de teste ou caminho local explicitamente informado. Não reutilizar bancos pessoais existentes.
+- Bancos e fixtures desta tarefa ficam dentro do projeto, em diretórios temporários de teste ou caminho local explicitamente informado. Não reutilizar bancos pessoais existentes. Esta é restrição operacional dos comandos e testes deste bootstrap, não uma proteção implementada pela CLI contra caminhos externos/symlinks. Não alegar sandbox por causa dela.
+
+A CLI é interface técnica interna para este bootstrap, não a experiência final do iniciante. O banco temporário não será montado para agente algum. No produto, SQLite operacional pertence ao domínio confiável do Core, fora do workspace gravável por agentes; persistir um arquivo nesta etapa não demonstra essa proteção.
 
 ## Core modular
 
@@ -34,7 +45,7 @@ CLI sem SQL; domínio sem SQLite. Não criar módulos vazios, plugins ou classes
 
 ## Contrato persistente
 
-Versão em PRAGMA user_version. Tabela runs: id, spec_id, spec_version, state, created_at UTC. Tabela events: sequência inteira, run_id com chave estrangeira, kind RUN_CREATED e created_at UTC. Habilitar chaves estrangeiras em cada conexão. O esquema só permite estado PENDING neste recorte.
+Versão em PRAGMA user_version. Tabela runs: id (chave primária), request_id (único), spec_id, spec_version, state, created_at UTC. Campos obrigatórios usam NOT NULL; referências e request_id rejeitam texto vazio ou só espaços, preservando os bytes válidos sem normalização silenciosa. Tabela events: sequência inteira, run_id com chave estrangeira, kind RUN_CREATED e created_at UTC; um único RUN_CREATED por execução. Habilitar chaves estrangeiras em cada conexão. O esquema só permite estado PENDING neste recorte.
 
 Criar execução e evento na mesma transação; retornar sucesso somente após commit. Falha em qualquer inserção reverte ambos. Consultar eventos por sequência. Não oferecer atualização, exclusão ou promoção de estado. Integridade transacional não equivale a armazenamento protegido contra agentes nem implementa reconciliação Git/evidências de F-03.
 
@@ -42,13 +53,14 @@ Criar execução e evento na mesma transação; retornar sucesso somente após c
 
 | ID | Critério | Verificação prevista |
 | --- | --- | --- |
-| C1 | Inicialização repetível e versão desconhecida recusada | Inicializar duas vezes preservando execução; fixture com versão superior mantém versão/dados após recusa |
+| C1 | Inicialização repetível e versão desconhecida recusada | Inicializar duas vezes preservando execução; fixtures com versão superior, esquema alheio e versão 1 incompleta conservam esquema, versão e dados após recusa |
 | C2 | Execução e evento duráveis | Criar por subprocesso e consultar em outro; conferir UUID, spec, PENDING e único evento |
 | C3 | Falha entre inserções é atômica | Trigger de fixture rejeita evento; criação falha e SQL confirma zero registros novos em ambas as tabelas |
 | C4 | Entradas inválidas não criam estado | Campos vazios, execução ausente e banco ausente retornam erro; conferir dados e ausência de banco implícito |
 | C5 | Referências são dados | Referência com aspas/metacaracteres volta literalmente; tabelas íntegras |
 | C6 | Sem promoção/aceite | Comando de promoção recusado; esquema rejeita estado diferente de PENDING |
 | C7 | Responsabilidades separadas | Revisar imports e casos de uso: CLI sem SQL, domínio sem persistência |
+| C8 | Repetição segura | Repetir request-id em processos separados e concorrentes: um run/evento; payload divergente falha sem alterar o original |
 
 Testes do implementador são complementares; não criar ou modificar AT independentes. Estes testes não certificam aceite oficial do produto.
 
@@ -58,11 +70,11 @@ Somente os cinco módulos acima, `tests/test_core_state.py`, `tests/__init__.py`
 
 ## Sequência e pronto
 
-1. Após aprovação: domínio e persistência; verificar C1, C3, C5 e C6.
-2. Serviço e CLI; verificar C2/C4 em processos distintos e revisar C7.
+1. Após satisfazer as condições para iniciar e registrar aprovação: domínio e persistência; verificar C1, C3, C5 e C6.
+2. Serviço e CLI; verificar C2/C4/C8 em processos distintos e revisar C7.
 3. Executar `python3 -m unittest discover -s tests -v` e `git diff --check`; atualizar memória e fazer commit pequeno.
 
-Conclusão exige verificações passando na sessão; não permite declarar ACCEPTED/DELIVERED. Sem tools/harness.py: fast/full não executados. Sem CLI OpenSpec: validação por ela não executada.
+Registrar commit candidato, comandos e resultados da sessão; obter revisão em contexto independente antes de promover o recorte. Conclusão técnica do protótipo exige verificações passando na sessão; não permite declarar ACCEPTED/DELIVERED. Sem tools/harness.py: fast/full não executados. Sem CLI OpenSpec: validação por ela não executada.
 
 ## Fora de escopo e próximo passo
 
