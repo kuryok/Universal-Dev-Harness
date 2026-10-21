@@ -30,3 +30,6 @@ class CoreService:
     def policy(self, run_id: str, action: str) -> dict:
         require_text(action, 'Ação da política')
         return evaluate(self.show(run_id), action)
+
+    def migrate(self) -> dict:
+        return self.store.migrate()

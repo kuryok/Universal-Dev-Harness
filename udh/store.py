@@ -4,7 +4,8 @@ from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
 
-from .domain import CoreError, Event, Run
+from .domain import CoreError, Event, BlockedEvent, Run
+from . import migrations
 
 
 _NONEMPTY = "length(trim({field}, char(9)||char(10)||char(11)||char(12)||char(13)||' ')) > 0"
@@ -63,8 +64,12 @@ class SQLiteStore:
                 connection.close()
 
     @staticmethod
-    def _validate_schema(connection: sqlite3.Connection) -> None:
+    def _validate_schema(connection: sqlite3.Connection, *, v1_only=False) -> int:
         version = connection.execute('PRAGMA user_version').fetchone()[0]
+        if version == 2 and not v1_only:
+            migrations.validate_schema(connection)
+            migrations.check_integrity(connection, SQLiteStore, 2)
+            return 2
         if version != 1:
             raise CoreError('Banco não inicializado ou versão do esquema incompatível.')
         objects = connection.execute(
@@ -83,6 +88,11 @@ class SQLiteStore:
         ) for row in objects):
             raise CoreError('Banco contém objetos incompatíveis com o esquema UDH.')
 
+        return 1
+
+    def migrate(self) -> dict:
+        return migrations.migrate(self)
+
     def initialize(self) -> int:
         with self._connection('rwc') as connection:
             connection.execute('BEGIN IMMEDIATE')
@@ -94,7 +104,7 @@ class SQLiteStore:
                     connection.execute(_EVENTS_SQL)
                     connection.execute('PRAGMA user_version = 1')
                 else:
-                    self._validate_schema(connection)
+                    self._validate_schema(connection, v1_only=True)
                 connection.commit()
             except BaseException:
                 connection.rollback()
@@ -102,7 +112,9 @@ class SQLiteStore:
         return 1
 
     @staticmethod
-    def _load(connection: sqlite3.Connection, run_id: str) -> Run:
+    def _load(connection: sqlite3.Connection, run_id: str, *, version=None) -> Run:
+        if version is None:
+            version = connection.execute('PRAGMA user_version').fetchone()[0]
         row = connection.execute('SELECT * FROM runs WHERE id = ?', (run_id,)).fetchone()
         if row is None:
             raise CoreError('Execução não encontrada.')
@@ -110,13 +122,26 @@ class SQLiteStore:
             'SELECT sequence, kind, created_at FROM events WHERE run_id = ? ORDER BY sequence',
             (run_id,),
         ).fetchall()
-        if len(events) != 1 or events[0]['kind'] != 'RUN_CREATED':
+        if not events or events[0]['kind'] != 'RUN_CREATED' or (version == 1 and len(events) != 1):
             raise CoreError('Execução com evento inicial ausente ou inválido.')
+        parsed = [Event(sequence=events[0]['sequence'], kind=events[0]['kind'], created_at=events[0]['created_at'])]
+        if version == 2:
+            requests = connection.execute('SELECT * FROM block_requests WHERE run_id = ?', (run_id,)).fetchall()
+            if len(events) == 2 and len(requests) == 1:
+                event, request = events[1], requests[0]
+                if (event['kind'] != 'RUN_BLOCKED' or request['event_sequence'] != event['sequence']
+                        or request['expected_revision'] != 0 or request['controller_route'] != 'OPERATOR_LOCAL'
+                        or request['authorization_rule_version'] != 1):
+                    raise CoreError('Vínculo de autorização inconsistente.')
+                parsed.append(BlockedEvent(sequence=event['sequence'], created_at=event['created_at'],
+                    reason=request['reason'], request_id=request['request_id'], authorization_id=request['authorization_id']))
+            elif len(events) != 1 or requests:
+                raise CoreError('Journal v2 ou pedido de bloqueio inconsistente.')
         return Run(
             run_id=row['id'], request_id=row['request_id'], spec_id=row['spec_id'],
             spec_version=row['spec_version'], state=row['state'], created_at=row['created_at'],
-            events=tuple(Event(sequence=e['sequence'], kind=e['kind'], created_at=e['created_at'])
-                         for e in events),
+            events=tuple(parsed), schema_version=version,
+            revision=row['revision'] if version == 2 else None,
         )
 
     def create(self, *, run_id: str, request_id: str, spec_id: str,
@@ -124,7 +149,7 @@ class SQLiteStore:
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
-                self._validate_schema(connection)
+                version = self._validate_schema(connection)
                 existing = connection.execute(
                     'SELECT id, spec_id, spec_version FROM runs WHERE request_id = ?',
                     (request_id,),
@@ -134,9 +159,10 @@ class SQLiteStore:
                         raise CoreError('Requisição já utilizada com outra referência de especificação.')
                     result = self._load(connection, existing['id'])
                 else:
+                    extra_column, extra_value = (', revision', ', 0') if version == 2 else ('', '')
                     connection.execute(
-                        'INSERT INTO runs (id, request_id, spec_id, spec_version, state, created_at) '
-                        "VALUES (?, ?, ?, ?, 'PENDING', ?)",
+                        f'INSERT INTO runs (id, request_id, spec_id, spec_version, state, created_at{extra_column}) '
+                        f"VALUES (?, ?, ?, ?, 'PENDING', ?{extra_value})",
                         (run_id, request_id, spec_id, spec_version, created_at),
                     )
                     connection.execute(
