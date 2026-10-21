@@ -26,7 +26,8 @@ def parser() -> Parser:
     options.add_argument('-h', '--help', action='help', help='mostrar esta ajuda e sair')
     commands = result.add_subparsers(dest='command', required=True, title='comandos')
     descriptions = {'init': 'inicializar banco local', 'create': 'criar execução PENDING',
-                    'show': 'consultar execução persistida'}
+                    'show': 'consultar execução persistida',
+                    'policy': 'consultar política de uma execução'}
     for command, description in descriptions.items():
         subcommand = commands.add_parser(command, add_help=False, help=description,
                                         description=description)
@@ -37,23 +38,30 @@ def parser() -> Parser:
             group.add_argument('--spec-id', required=True, help='identificador da especificação')
             group.add_argument('--spec-version', required=True, help='versão da especificação')
             group.add_argument('--request-id', required=True, help='identificador idempotente da requisição')
-        elif command == 'show':
+        elif command in ('show', 'policy'):
             group.add_argument('--run-id', required=True, help='UUID da execução')
+            if command == 'policy':
+                group.add_argument('--action', required=True, help='identificador exato da ação')
     return result
 
 
 def main(argv=None) -> int:
-    args = parser().parse_args(argv)
+    arguments = parser()
+    args = arguments.parse_args(argv)
+    if args.command == 'policy' and not args.action.strip():
+        arguments.error('Ação da política vazia')
     try:
         core = CoreService(SQLiteStore(args.db))
         if args.command == 'init':
             payload = {'schema_version': core.initialize()}
         elif args.command == 'create':
             payload = core.create(args.spec_id, args.spec_version, args.request_id).to_dict()
+        elif args.command == 'policy':
+            payload = core.policy(args.run_id, args.action)
         else:
             payload = core.show(args.run_id).to_dict()
         print(json.dumps(payload, ensure_ascii=False))
-        return 0
+        return 3 if args.command == 'policy' and payload['decision'] == 'DENY' else 0
     except (CoreError, OSError) as error:
         print('Não foi possível concluir a operação: ' + str(error), file=sys.stderr)
         return 1

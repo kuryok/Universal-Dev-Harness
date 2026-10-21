@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from .domain import Run, require_run_id, require_text
 from .store import SQLiteStore
+from .policy import evaluate
 
 
 class CoreService:
@@ -25,3 +26,7 @@ class CoreService:
 
     def show(self, run_id: str) -> Run:
         return self.store.get(require_run_id(run_id))
+
+    def policy(self, run_id: str, action: str) -> dict:
+        require_text(action, 'Ação da política')
+        return evaluate(self.show(run_id), action)
