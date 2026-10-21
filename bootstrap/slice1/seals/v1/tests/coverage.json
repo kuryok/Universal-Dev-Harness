@@ -1,0 +1,148 @@
+{
+  "status": "AT transitórios integrados; aguardam selo externo e execução identificada",
+  "sources": [
+    "openspec/changes/slice1-core-state/proposal.md",
+    "openspec/changes/slice1-core-state/acceptance.md"
+  ],
+  "criteria": {
+    "C1": {
+      "scenarios": [
+        "A1",
+        "A2"
+      ],
+      "classification": "behavior"
+    },
+    "C2": {
+      "scenarios": [
+        "A3"
+      ],
+      "classification": "behavior"
+    },
+    "C3": {
+      "scenarios": [
+        "A4"
+      ],
+      "classification": "behavior"
+    },
+    "C4": {
+      "scenarios": [
+        "A5"
+      ],
+      "classification": "behavior"
+    },
+    "C5": {
+      "scenarios": [
+        "A6"
+      ],
+      "classification": "behavior"
+    },
+    "C6": {
+      "scenarios": [
+        "A7"
+      ],
+      "classification": "behavior"
+    },
+    "C7": {
+      "scenarios": [
+        "A8"
+      ],
+      "classification": "check"
+    },
+    "C8": {
+      "scenarios": [
+        "A9",
+        "A10"
+      ],
+      "classification": "behavior"
+    }
+  },
+  "scenarios": {
+    "A1": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a1_reinitialization_preserves_run"
+      ]
+    },
+    "A2": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a2_incompatible_fixtures_unchanged"
+      ]
+    },
+    "A3": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a3_durable_across_processes"
+      ]
+    },
+    "A4": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a4_event_failure_rolls_back"
+      ]
+    },
+    "A5": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a5_invalid_inputs_and_missing_database"
+      ]
+    },
+    "A6": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a6_literal_references"
+      ]
+    },
+    "A7": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a7_no_promotion_and_persistent_state_constraint"
+      ]
+    },
+    "A9": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a9_idempotence_and_conflicting_payload"
+      ]
+    },
+    "A10": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a10_concurrent_identical_requests",
+        "CoreStateAcceptance.test_a10_concurrent_divergent_requests"
+      ]
+    },
+    "A8": {
+      "classification": "check",
+      "executable": false,
+      "review": "Revisão independente de domínio, store, serviço, CLI e pacote, sobre commit/digest identificado; sem SQL na CLI, sem SQLite no domínio, casos de uso no serviço e nenhum módulo vazio de antecipação.",
+      "status": "não executada"
+    }
+  },
+  "limits": [
+    "A8 exige revisão independente sobre snapshot identificável; não executada por esta suíte.",
+    "Idioma pt-BR das mensagens exige inspeção humana: a suíte verifica stderr não vazio, stdout vazio e ausência de traceback; não impõe texto literal.",
+    "Integração transitória no workspace não demonstra store protegida, selo ou aceite oficial; depende de controlador externo confiável e da autorização de bootstrap.",
+    "Concorrência sincroniza disparo de processos, sem instrumentar o candidato; não prova todas as intercalações possíveis."
+  ],
+  "infrastructure": {
+    "required_environment": [
+      "UDH_CANDIDATE_ROOT",
+      "UDH_TEST_WORK_ROOT",
+      "UDH_CLI_PREFIX_JSON"
+    ],
+    "error_type": "InfrastructureError para preparação inválida, spawn/decodificação, timeout de transporte ou retorno reservado 125 do controlador (infraestrutura, timeout, limite de saída, término desconhecido ou política); nunca fallback ao candidato no host",
+    "temporary_files": "Somente sob UDH_TEST_WORK_ROOT; runner deve fornecer diretório ou mount exclusivo dentro do projeto",
+    "cli_timeout_seconds": 15,
+    "candidate_imported": false,
+    "cli_transport": "Lista JSON obrigatória de argumentos; executa prefixo + command --db HOST_DB_PATH args, cwd UDH_TEST_WORK_ROOT; candidato não importado no host"
+  },
+  "execution": "Não executado contra produto; validações estruturais e do transporte registradas separadamente pelo controlador.",
+  "provenance": {
+    "original_files": {
+      "bootstrap/slice1/acceptance/test_core_state.py": "01a8c8477026f2a2444e41cfdff965ef54a6db221da77a0535cd564dd2c5c3c0",
+      "bootstrap/slice1/acceptance/coverage.json": "05b816c6467025201ba77d93ff669c2a07a60e577dac175bcd28b7768599d471"
+    },
+    "adaptation": "Somente transporte CLI obrigatório pelo controlador externo; cenários, helpers comportamentais e assertivas preservados."
+  }
+}

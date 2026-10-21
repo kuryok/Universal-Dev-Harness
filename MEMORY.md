@@ -6,8 +6,8 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 ## Estado
 - Slice 0 encerrada para VM Linux/API gratuita; produto completo não certificado.
 - Pi e OpenCode receberam resposta real via OpenRouter; chave só no gateway externo, agentes sem egress IP. Custos normais reportados: zero.
-- Core/harness oficiais ausentes. CLI OpenSpec ausente; validação não executada. [Fronteira transitória](bootstrap/slice1/evidence/boundary.json): T1–T8 PASS, revisão independente, contêineres removidos.
-- Slice 1: cenários/preparo transitório aprovados; candidatos independentes em `bootstrap/slice1/acceptance/`. [Baseline](bootstrap/slice1/evidence/baseline.json): 10 testes, 18 falhas esperadas, zero erros; não é aceite.
+- Core/SQLite operacional ausentes. [Integração externa](openspec/changes/slice1-core-state/integration-results.md): I1–I7 PASS, regressão T1–T8 PASS e revisão independente.
+- Selo bootstrap v1 em `bootstrap/slice1/seals/v1/`; originais preservados, variante independente em integrated_acceptance. Baseline: 10 métodos, 18 falhas esperadas, zero erros; não é aceite. CLI OpenSpec/harness ausentes.
 
 ## Fontes sob demanda
 - [Resultado, limites e reprodução](SPIKE-SLICE0-RESULTADOS.md).
@@ -20,7 +20,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- Core modular: domínio, armazenamento, serviço e CLI. Memorix/ai-memory não instalados. Próximo: integrar AT ao controlador externo e definir aprovação/selo da primeira versão; depois Core + SQLite. A prova não protege contra esta sessão no host nem concede aceite oficial.
+- Próximo: Core mínimo + SQLite modular, conforme proposta. Não editar AT/selo; não atualizar hashes silenciosamente. A proteção cobre o candidato contido, não esta sessão no host. Memorix/ai-memory não instalados.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.

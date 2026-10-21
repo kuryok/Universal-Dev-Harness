@@ -1,6 +1,6 @@
 # Slice 1 — tarefa 1: estado persistente mínimo
 
-Estado: cenários e preparo transitório aprovados em 21/10/2026. Candidatos/baseline e fronteira transitória verificados; implementação de produto ainda bloqueada até integrar AT e definir selo/aprovação oficiais.
+Estado: cenários e preparo transitório aprovados em 21/10/2026. Integração externa e selo inicial do bootstrap verificados; próximo recorte é Core mínimo + SQLite, sujeito às condições de implementação e revisão abaixo.
 
 ## Objetivo
 
@@ -97,8 +97,10 @@ Critério deste preparo: cobertura documentada, candidatos sintaticamente válid
 - Resultado negativo final: 10 testes executados, 18 falhas de assertiva (incluem subtestes), zero erros de infraestrutura, exit 1 esperado. O stub retorna sucesso sem persistir, aceita banco incompatível e permite ACCEPTED; as falhas detectam esses comportamentos incompletos. Não são testes de produto passando.
 - Evidência com hashes dos candidatos/stub e comando: [baseline final](../../../bootstrap/slice1/evidence/baseline.json). Primeira execução preservada em `bootstrap/slice1/evidence/baseline-initial.json`; ResourceWarning de conexões foi corrigido pelo autor independente sem mudar critérios. Revisão independente também levou à validação estrita RFC 3339 e `--pull=never`; evidência regenerada após ajustes.
 - Limite: cada método pode parar na primeira falha. O stub não prova que todas as assertivas discriminam cada defeito, especialmente persistência parcial em A4 e normalização/SQL em A6. Não foi criada implementação de referência para simular aceite.
-- Ainda ausentes: Core de produto, linha de base de produto, store selada, manifesto/at_version aprovado e executor confiável. Fontes RO no contêiner não protegem contra esta sessão com escrita no host; teste e stub compartilham namespace. Nenhum resultado oficial de ACCEPTED/DELIVERED.
+- Na conclusão daquele preparo, estavam ausentes Core de produto, linha de base de produto, store selada, manifesto/at_version aprovado e executor confiável. Fontes RO no contêiner não protegem contra esta sessão com escrita no host; teste e stub compartilham namespace. Nenhum resultado oficial de ACCEPTED/DELIVERED.
 
-Próximo passo concreto: resolver a fronteira de confiança para armazenar/selar candidatos e executar verificações fora do alcance do implementador antes de iniciar o ticket de produto. Se for necessário desenvolver a primeira fundação como protótipo sem esses mecanismos, isso exige autorização humana explícita; o “Prossiga” deste preparo não foi usado como dispensa de B4.2/B4.6.
+Encaminhamento daquele preparo: resolver a fronteira de confiança para armazenar/selar candidatos e executar verificações fora do alcance do implementador antes de iniciar o ticket de produto. Se for necessário desenvolver a primeira fundação como protótipo sem esses mecanismos, isso exige autorização humana explícita; o “Prossiga” deste preparo não foi usado como dispensa de B4.2/B4.6.
 
-Continuação aprovada em 21/10/2026: [fronteira do bootstrap](bootstrap-executor.md) implementada e verificada, T1–T8 PASS, revisão independente registrada. A integração dos AT ao controlador externo e o selo oficial ainda não foram realizados; esta prova não libera automaticamente produto.
+Continuação aprovada em 21/10/2026: [fronteira do bootstrap](bootstrap-executor.md) implementada e verificada, T1–T8 PASS, revisão independente registrada. A integração externa e o selo inicial do bootstrap foram concluídos na continuação registrada abaixo; nenhuma dessas provas libera automaticamente produto.
+
+Integração autorizada e concluída em 21/10/2026: [resultado e selo inicial](integration-results.md), I1–I7 PASS com regressão T1–T8 PASS. O selo identifica os testes/componentes do bootstrap; não equivale a ACCEPTED do produto. Não modificar a especificação selada para anexar logs; resultados permanecem no documento próprio.

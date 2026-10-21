@@ -1,0 +1,29 @@
+{
+  "review_id": "contexto independente F02 /root/review_at_integration — 2026-10-21",
+  "status": "PASS",
+  "files": {
+    "tests/test_core_state.py": "5e560e6875a2ab75f6bcfb3e9dbe6b42d6baec4665ba8fe15ca53ff66baf5591",
+    "tests/coverage.json": "9cbc8672c03a0594f66c14e2b937137e012e2718c9465345ff90c0a552c2c314",
+    "controller/cli_bridge.py": "9e5f5ca00a9a04973dc28731c2610e32859596c7097577bd6ae074a66f48860e",
+    "controller/isolated_process.py": "f3fc10740b69dfc8bfd42de8a26ba2cc5c45e31d8313c426af2eaf921e6c1c3e",
+    "controller/seal_version.py": "8ca410e2cdd4211cbd5dab2cd8fa14ee9e7193e17ca09be7016c9f50bfa6d851",
+    "controller/integrate_acceptance.py": "d7b19117dc11b779d4eda80c203eba6e2717c2db59a66f983182e6ca69a3e215"
+  },
+  "unresolved_findings": [],
+  "baseline_gate": {
+    "status": "PASS",
+    "tests_run": 10,
+    "infrastructure_errors": 0,
+    "assertion_failures": 18,
+    "evidence_run_id": "76ef15924c2942e3aa5050f66a786633"
+  },
+  "observations": [
+    "Diff independente dos AT: mesmos dez métodos, cenários e assertivas; mudanças em cli/setUpClass restritas ao transporte e InfrastructureError. Mapeamento de cobertura preservado.",
+    "Host importa somente AT previamente verificados; candidato só é importado pelo entrypoint fixo dentro do contêiner. Configuração, selo e auditoria ficam fora das montagens.",
+    "Guard de dados recusa symlinks e arquivos especiais antes/depois da execução; caminho de banco absoluto é restrito a work; runtime encerra e remove contêiner antes da inspeção no host.",
+    "Selo geração 1/predecessor nulo canônico e determinístico; verificação de lista fixa e hashes; renameat2 RENAME_NOREPLACE impede sobrescrita, inclusive de diretório existente vazio.",
+    "Draft conferido: I2/I3/I4/I5/I7 PASS, I1/I6 NOT_RUN somente por revisão/publicação ausente; 38 auditorias funcionais, dez métodos, 18 falhas de assertiva, zero erros, temporários removidos.",
+    "Arquivos AT originais, baseline, isolated_process.py e check_boundary.py comparados aos commits dc848ba/de2b70d e preservados. Hashes atuais dos seis arquivos coincidem com manifesto draft.",
+    "Aprovação limitada ao bootstrap autorizado: sem assinatura contra proprietário do host, sem aceite do Core, sem promoção de estados operacionais. Publicação/reexecução final permanece responsabilidade do controlador."
+  ]
+}
