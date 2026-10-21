@@ -45,3 +45,21 @@ Grupos C–G, escolha definitiva de agente, inferência real, credenciais, Core,
 ## Riscos e autorizações
 
 O runtime usa armazenamento e diretórios fora do projeto. Essa operação e eventual download exigem autorização explícita conforme AGENTS.md. Download só depois de identificar imagem e origem; não está autorizado por esta proposta ainda. Não instalar OpenSpec nesta etapa: o executável não foi encontrado; validação pela CLI não executada. Os requisitos deste recorte ficam exclusivamente nesta mudança OpenSpec, sem spec paralela.
+
+## Continuação proposta em 21/10/2026 — C–F e fechamento
+
+Estado deste acréscimo: aguardando aprovação do recorte concreto. O usuário solicitou continuar até finalizar a Slice 0, com auxiliares em paralelo e sem skills globais.
+
+Objetivo: preencher todas as linhas da matriz com resultado e evidência, experimentando o Pi 1.2.0 já instalado, sem credenciais reais. Fechar o relatório não significa passar todos os critérios nem autorizar Slice 1.
+
+Arquivos permitidos adicionais: scripts, configuração sintética, fixtures e evidências em `spike/slice0/`; seções C–G e decisão em `SPIKE-SLICE0-RESULTADOS.md`. A arquitetura e testes de aceite reais permanecem intocados.
+
+- Completar B4/B6 com preflight de ferramentas, receptores locais controlados IPv4/IPv6 TCP/UDP, fixture de credencial sintética e configuração somente leitura. Verificar eventos nos receptores, não apenas exit codes dos clientes.
+- C2–C5: experimentar mediador descartável de inferência por Unix socket com allowlist de rota/método/finalidade, limites de entrada e tempo, fluxo SSE sintético, interrupção e auditoria sem cabeçalhos sensíveis. Verificar recusa de rota indevida, partes entregues, encerramento limitado e ausência do marcador sintético nos logs. Sem comunicação externa.
+- D1/D2 e E: rodar Pi existente em contêiner `network=none`, com configuração sintética e runtime somente leitura, sem home real, sem MCP/extensões/skills/atualização. Usar endpoint local ligado ao Unix socket. Verificar que uma resposta sintética chega, que tools externas ficam desativadas e que o arquivo de configuração não pode ser alterado. Registros de processo e configuração, sem tratar flags isoladas como prova.
+- F1–F3: falsificar sucesso no workspace e contrastar com código de saída externo; tentar adulterar arquivo protegido SINTÉTICO montado somente leitura e conferir hash externo; interromper gravação sintética e recuperar último checkpoint íntegro. Não criar/editar AT reais; não construir Core/SQLite de produto.
+- C1, D2 real e D3: sem chamada real ao provedor não podem passar. Não acessar autenticação existente do usuário. Solicitar caminho seguro operado pelo usuário se necessário; fixtures não substituem inferência real ou assinatura.
+- G/A4/A5: comparação WSL2 permanece não executada nesta VM. Fornecer roteiro reproduzível; não atribuir restrições da VM à máquina física.
+- Fechamento: síntese de agente candidato versus comprovado, riscos e decisão de avançar/bloquear ligada aos IDs; commit pequeno com verificações sintáticas, experimentos e `git diff --check`.
+
+Sem dependências novas nem download previstos. Se Pi e seu runtime instalado forem incompatíveis com a imagem local, registrar e propor alternativa antes de baixar. Uso de fixtures/modelo falso será identificado em cada conclusão.

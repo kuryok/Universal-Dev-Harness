@@ -20,7 +20,7 @@
 | ID | Pergunta | Passou se | Resultado | Evidência |
 |---|---|---|---|---|
 | A1 | O runtime sobe contêineres sem privilégios de administrador? | Um contêiner trivial roda como usuário comum | passou | `A1`: exit 0, UID/GID 1000; runtime rootless; capabilities efetivas zeradas, NoNewPrivs=1 e seccomp ativo. |
-| A2 | Os limites de memória, CPU e processos do contêiner são respeitados? | Um consumo acima do limite é interrompido pelo runtime | passou | Memória 64 MiB: exit 137 e OOMKilled=true. Processos: pids.max=32 e fork recusado, exit 2. CPU: cpu.max=25000/100000; sob carga, nr_throttled passou de 0 para 21 e usage_usec de 3178 para 522077 em cerca de 2 s. CPU limita taxa, não encerra processo. Registros `A2-*` e respectivas inspeções. |
+| A2 | Os limites de memória, CPU e processos do contêiner são respeitados? | Um consumo acima do limite é interrompido pelo runtime | passou | Memória 64 MiB: exit 137 e OOMKilled=true. Processos: pids.max=32 e fork recusado, exit 2. CPU: cpu.max=25000/100000; sob carga, nr_throttled passou de 0 para 20 e usage_usec de 3170 para 518194 em cerca de 2 s. CPU limita taxa, não encerra processo. Registros `A2-*` e respectivas inspeções. |
 | A3 | O contêiner enxerga só a pasta do projeto? | Arquivos fora da pasta autorizada não aparecem lá dentro | parcial | Único bind de dados de projeto: workspace sintético em /workspace; sentinela externa inacessível. Imagem, /proc, /sys, dispositivos e arquivos geridos pelo runtime também são visíveis. Não interpretar o critério literalmente como ausência de qualquer arquivo externo; ver registro combinado e mounts. |
 | A4 | Os discos do Windows (montagens automáticas do WSL2) ficam fora do alcance do agente? | Dentro do contêiner não existe caminho para o disco C: | não executado | Linux nativo; ausência de discos Windows neste ambiente não demonstra isolamento no WSL2. |
 | A5 | Executáveis do Windows podem ser chamados de dentro do contêiner? | Não podem | não executado | Linux nativo; interoperabilidade Windows/WSL2 não exercitada. |
@@ -32,52 +32,52 @@
 | B1 | Um arquivo sentinela fora da pasta autorizada pode ser lido? | Não pode | passou | Sentinela sintética existente no host fora do bind não aparece no contêiner. Registro `A3-B1-B2-B3-B5-B6`, exit 0. |
 | B2 | Um atalho simbólico dentro da pasta apontando para fora permite ler o que está fora? | Não permite | passou | Symlink no workspace aponta para sentinela externa existente no host e fica pendente dentro do contêiner; registro combinado, exit 0. |
 | B3 | O socket do próprio runtime de contêiner está acessível por dentro? | Não está | passou | Socket do Podman existe no host segundo runtime; caminhos /run/user/1000/podman/podman.sock, /run/podman/podman.sock e /var/run/docker.sock ausentes dentro. Inspeção não mostra bind desses sockets. |
-| B4 | O contêiner consegue qualquer conexão de rede de saída (nome, IP direto, outras portas)? | Nenhuma conexão sai | parcial | network=none, sem rota IPv4 externa; DNS recusado e TCP para 1.1.1.1 e 192.0.2.1 nas portas 53/80/443/8443 sem conexão. Não houve ensaio ativo UDP/IPv6 nem captura externa; não afirmar cobertura de qualquer conexão. Registro `B4`, exit 0. |
+| B4 | O contêiner consegue qualquer conexão de rede de saída (nome, IP direto, outras portas)? | Nenhuma conexão sai | parcial | network=none; somente loopback, sem rota externa. DNS e TCP por IP em 53/80/443/8443 falharam, ferramentas presentes. Receptores controlados TCP/UDP IPv4/IPv6 no host receberam controles positivos; nenhum marcador do contêiner chegou. UDP retornou 0/open sem entrega: não contar como conexão. Ainda sem captura externa/cobertura universal. `results.json` (B4) e `network-probe.json`. |
 | B5 | O agente consegue escrever fora da pasta de trabalho dele? | Não consegue | parcial | Escrita em /workspace permitida; arquivos comuns em /, /tmp, /home e /etc recusados, raiz somente leitura e tmpfs automáticos desativados. /proc e dispositivos especiais existem; não foi provada impossibilidade de toda escrita fora do workspace. |
-| B6 | O agente enxerga variáveis de ambiente ou arquivos de credencial do usuário? | Não enxerga | parcial | Variável sintética presente no ambiente do processo chamador não chegou ao contêiner. Não há bind do home do host. Credenciais reais não foram lidas; fixture de arquivo de credencial sintético e inspeção exaustiva de canais não executadas. |
+| B6 | O agente enxerga variáveis de ambiente ou arquivos de credencial do usuário? | Não enxerga | passou | No experimento sintético: variável do host ausente também em /proc/1/environ; arquivo sintético externo inacessível por caminho absoluto e symlink. Não há bind do home do host. Credenciais reais não foram lidas; resultado limitado aos canais exercitados. `A3-B1-B2-B3-B5-B6`, exit 0. |
 
 ## C. Mediador de inferência
 
 | ID | Pergunta | Passou se | Resultado | Evidência |
 |---|---|---|---|---|
-| C1 | Com a rede totalmente desligada, o agente consegue falar com o modelo apenas pelo caminho do mediador? | Uma resposta real do modelo chega ao agente | | |
-| C2 | O mediador só aceita as rotas e finalidades autorizadas? | Uma rota não autorizada é recusada | | |
-| C3 | A resposta em fluxo contínuo (streaming) chega corretamente? | Texto chega em partes, sem travar nem truncar | | |
-| C4 | Se o mediador for desligado no meio de uma chamada, o agente falha de forma limpa? | Erro claro, sem ficar pendurado indefinidamente | | |
-| C5 | O mediador registra o que passou sem gravar a credencial nos registros? | Nenhuma chave aparece nos logs | | |
+| C1 | Com a rede totalmente desligada, o agente consegue falar com o modelo apenas pelo caminho do mediador? | Uma resposta real do modelo chega ao agente | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| C2 | O mediador só aceita as rotas e finalidades autorizadas? | Uma rota não autorizada é recusada | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| C3 | A resposta em fluxo contínuo (streaming) chega corretamente? | Texto chega em partes, sem travar nem truncar | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| C4 | Se o mediador for desligado no meio de uma chamada, o agente falha de forma limpa? | Erro claro, sem ficar pendurado indefinidamente | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| C5 | O mediador registra o que passou sem gravar a credencial nos registros? | Nenhuma chave aparece nos logs | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
 
 ## D. Autenticação (a pergunta mais arriscada)
 
 | ID | Pergunta | Passou se | Resultado | Evidência |
 |---|---|---|---|---|
-| D1 | O agente aceita apontar para um endereço de inferência customizado? | Aceita e funciona | | |
-| D2 | Funciona sem a chave real dentro do contêiner (o mediador injeta a credencial por fora)? | Funciona; nada sensível dentro do contêiner | | |
-| D3 | Funciona para quem usa login por assinatura, e não chave de API? | Funciona, ou fica registrado claramente que não funciona | | |
-| D4 | Se não funciona, qual é a alternativa mínima para o iniciante? | Alternativa descrita (ex.: só chave de API para esse agente) | | |
+| D1 | O agente aceita apontar para um endereço de inferência customizado? | Aceita e funciona | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| D2 | Funciona sem a chave real dentro do contêiner (o mediador injeta a credencial por fora)? | Funciona; nada sensível dentro do contêiner | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| D3 | Funciona para quem usa login por assinatura, e não chave de API? | Funciona, ou fica registrado claramente que não funciona | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| D4 | Se não funciona, qual é a alternativa mínima para o iniciante? | Alternativa descrita (ex.: só chave de API para esse agente) | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
 
 ## E. Controle do próprio agente
 
 | ID | Pergunta | Passou se | Resultado | Evidência |
 |---|---|---|---|---|
-| E1 | Busca web nativa do agente pode ser desligada ou fica bloqueada pela rede? | Não consegue sair | | |
-| E2 | Telemetria e autoatualização podem ser desligadas ou ficam bloqueadas? | Não conseguem sair | | |
-| E3 | Ferramentas e servidores externos embutidos do agente podem ser desativados? | Ficam desativados | | |
-| E4 | O agente consegue alterar a própria configuração de permissões? | Não consegue | | |
+| E1 | Busca web nativa do agente pode ser desligada ou fica bloqueada pela rede? | Não consegue sair | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| E2 | Telemetria e autoatualização podem ser desligadas ou ficam bloqueadas? | Não conseguem sair | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| E3 | Ferramentas e servidores externos embutidos do agente podem ser desativados? | Ficam desativados | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| E4 | O agente consegue alterar a própria configuração de permissões? | Não consegue | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
 
 ## F. Evidência e honestidade
 
 | ID | Pergunta | Passou se | Resultado | Evidência |
 |---|---|---|---|---|
-| F1 | Um relatório de sucesso escrito pelo agente é distinguível do resultado coletado por código confiável? | O resultado só vale quando vem da coleta externa | | |
-| F2 | Se o agente tentar alterar um arquivo protegido (simulando um teste de aceite), isso é detectado? | A alteração é detectada e rejeitada | | |
-| F3 | Se o processo for morto no meio de uma gravação, é possível saber onde parou? | O estado depois do corte é identificável | | |
+| F1 | Um relatório de sucesso escrito pelo agente é distinguível do resultado coletado por código confiável? | O resultado só vale quando vem da coleta externa | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| F2 | Se o agente tentar alterar um arquivo protegido (simulando um teste de aceite), isso é detectado? | A alteração é detectada e rejeitada | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+| F3 | Se o processo for morto no meio de uma gravação, é possível saber onde parou? | O estado depois do corte é identificável | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
 
 ## G. Comparação entre ambientes
 
 | ID | Pergunta | Passou se | Resultado | Evidência |
 |---|---|---|---|---|
-| G1 | Cada item acima deu o mesmo resultado no WSL2 e no Linux de referência? | Mesmo resultado, ou a diferença está explicada | | |
-| G2 | Existe algo que só falha no WSL2? | Registrado com a causa provável | | |
+| G1 | Cada item acima deu o mesmo resultado no WSL2 e no Linux de referência? | Mesmo resultado, ou a diferença está explicada | não executado | Comparação com WSL2 depende de outro ambiente; só esta VM Linux foi exercitada. |
+| G2 | Existe algo que só falha no WSL2? | Registrado com a causa provável | não executado | Comparação com WSL2 depende de outro ambiente; só esta VM Linux foi exercitada. |
 
 ## Como decidir o que fazer com os resultados
 
@@ -102,3 +102,19 @@ Uma página com: a tabela preenchida, o agente escolhido como primeiro e por qu�
 - Grupos C–G não executados nesta rodada. Nenhum agente selecionado; a Slice 0 permanece parcial, sem decisão de avançar para Slice 1.
 - Não existe `tools/harness.py` ou suíte de gates configurada. Compilação sintática do script executada com sucesso. CLI OpenSpec ausente: validação OpenSpec não executada. Revisão independente não executada.
 - Preservadas as mudanças preexistentes: exclusão do baseline anterior e arquivos de arquitetura/resultados já presentes no início da sessão.
+
+## Rodada complementar A/B — 21/10/2026
+
+- `run.py` foi executado novamente com sucesso de coordenação: A1 e matriz sintética exit 0; memória exit 137/OOMKilled=true e processos exit 2/fork recusado são os resultados negativos esperados. CPU throttling observado novamente; a última rodada registra 0 → 20 períodos limitados e uso 3170 → 518194 µs. A saída do roteiro não substitui a interpretação de cada registro.
+- Fixture adicional: arquivo representando credencial, inteiramente sintético; nenhum segredo real foi acessado. B6 agora passou nos canais exercitados.
+- Contêineres recebem nomes aleatórios e são removidos pelo ID coletado. O Podman já remove o cidfile ao remover o contêiner: a primeira tentativa complementar encontrou FileNotFoundError na limpeza; corrigido com remoção idempotente e rodada repetida com sucesso. Não foi falha de isolamento.
+- `python3 spike/slice0/network_probe.py`: quatro receptores locais controlados, TCP/UDP em IPv4/IPv6. Todos os controles no host receberam o marcador; nenhum receptor recebeu marcador do contêiner na tentativa nem na janela adicional de 3 s após ela. O script manteve os quatro diagnósticos como parciais. Em UDP, exit 0 e texto “open” NÃO demonstram conexão: o receptor não recebeu nada. Não há conclusão sobre toda forma possível de egress.
+- Os ensaios usam apenas imagem local já presente, sem baixar pacotes. Evidências complementares em `spike/slice0/evidence/network-probe.json`; evidência A/B mais recente em `results.json` (a rodada anterior permanece no histórico Git).
+- Os auxiliares desta sessão analisaram tarefas independentes; não foram adicionados segundo/terceiro agentes ao produto. Nenhuma skill global foi usada nesta continuação.
+
+## Revisão independente e ponto de retomada
+
+- Revisão em contexto separado identificou risco de symlink sentinela incorreto, limpeza interrompida e diagnóstico de rede excessivo. Ajustados: validação do destino do symlink, limpeza por ID em `finally`, preservação de cidfile em erro de limpeza e classificação de rede sempre parcial até interpretação. A janela do receptor agora inclui 3 s após a tentativa; o controle TCP lê o marcador completo.
+- Roteiros repetidos após os ajustes; todos os cleanups registrados retornaram 0. Nenhum contêiner `udh-slice0-*` permaneceu. Compilação sintática e verificação de whitespace passaram. Não há harness/gates de produto configurados.
+- O controle positivo de rede usa Python no host; não prova o funcionamento do mesmo cliente `nc` em um caminho positivo dentro do contêiner. A cobertura segue parcial. Nenhum ensaio de agente real ainda foi feito.
+- Próximo passo: aprovação do acréscimo C–F no OpenSpec, execução local com Pi 1.2.0 e mediador sintético, depois resposta real via gateway sem expor credenciais. Não avançar para Slice 1 nem selecionar agente como comprovado antes das evidências requeridas.
