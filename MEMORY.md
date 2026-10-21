@@ -20,7 +20,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- Policy somente leitura: 16 complementares/11 AT policy/10 AT v1 e revisão/regressões PASS. [Resultados](openspec/changes/slice1-policy-query/verification.md). Próximo: aprovar [PENDING→BLOCKED e migração opt-in](openspec/changes/slice1-block-run/proposal.md); especificação pronta, sem implementação. Autorização por fronteira local protegida; sem agentes.
+- Policy somente leitura verificada; [resultados](openspec/changes/slice1-policy-query/verification.md). PENDING→BLOCKED/migração aprovados; [design/handoff](openspec/changes/slice1-block-run/acceptance-handoff.md) detalhados e revisados documentalmente. Próximo: autorizar infraestrutura/AT nomeados e definir interrupções M3/B4 antes do código. Nesta sessão:16 complementares PASS; Core/selos íntegros. Sem execução de agentes.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.

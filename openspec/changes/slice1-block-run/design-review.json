@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "review_kind": "independent_documentary_design_review",
+  "status": "DOCUMENTARY_REVIEW_COMPLETE_WITH_PREIMPLEMENTATION_GATES",
+  "scope": "Contrato aprovado, design derivado e handoff; sem implementação ou AT novos.",
+  "documents_sha256": {
+    "proposal.md": "4b828fd067ec40a96fdb4aa6ca98750e82658be56f23b4ddabfd82b7d63ce550",
+    "design.md": "670046fc34d405bc35141e7606b8cf0e253bc68614f96a0f99583f633ed84932",
+    "acceptance-handoff.md": "1d02fe55f9b751ff0317dc1ff5b503be1e25e2ecebefea1c5134eef1110b7953"
+  },
+  "semantic_findings": [],
+  "findings": [
+    {
+      "id": "R2-D1",
+      "severity": "preimplementation_gate",
+      "detail": "O DDL SQL concreto ainda não existe. A revisão cobre tabelas e restrições documentadas. A implementação deve fixar e revisar o SQL final, inclusive a forma produzida pelo ALTER TABLE RENAME; SQLite pode reescrever identificadores/citações, o que precisa concordar com a validação exata do store."
+    },
+    {
+      "id": "R2-D2",
+      "severity": "preimplementation_gate",
+      "detail": "O handoff ainda exige autorização específica da infraestrutura nova. Antes dos AT/controladores, fixar mapa exato de módulos, bytes e origem dos pins, template/launcher e layout de mounts na geração revisada; hashes medem bytes, não concedem autoridade."
+    },
+    {
+      "id": "R2-D3",
+      "severity": "delivery_blocker_until_evidence",
+      "detail": "M3/B4 permanecem NOT_RUN e bloqueiam a entrega da transição até contrato aprovado do observador e evidência real de interrupção/reabertura nos pontos declarados. Timeout genérico e hooks fornecidos pelo candidato não satisfazem o requisito."
+    }
+  ],
+  "documentary_checks": {
+    "migration_fk_on": "Sequência coerente: cópia pai/filho temporários, remoção filho/pai antigos, rename pai/filho e criação posterior de block_requests; foreign_keys ON durante toda transação, legacy_alter_table OFF e validação final exigidos.",
+    "block_requests": "PK textual explicitamente NOT NULL; checks dos hashes e unicidades coerentes. Invariantes entre tabelas continuam responsabilidade explícita do Core.",
+    "replay": "Payload literal run_id/expected_revision/reason e resposta persistida; metadados originais preservados; chamada repetida exige verificação atual da fronteira.",
+    "administrative_boundary": "Host não importa candidato. Core candidato só no contêiner administrativo, separado do adversário; mounts de controle e diretório SQLite ausentes do adversário. Limite contra escritor no host declarado.",
+    "interruption": "Handoff explicita bloqueio e observação confiável pendentes."
+  },
+  "execution_evidence": {
+    "tests": "NOT_RUN",
+    "implementation_review": "NOT_RUN",
+    "product_R2": "NOT_RUN",
+    "reason": "Revisão estritamente documental; não há execução ou aceite de produto implícitos."
+  },
+  "limits": [
+    "Não foram criados ou alterados AT, controladores, produto ou selos.",
+    "Não foram provados mounts, comportamento de SQLite em execução, concorrência, recuperação ou transporte.",
+    "Não foi encontrada alteração semântica em relação ao proposal aprovado."
+  ]
+}

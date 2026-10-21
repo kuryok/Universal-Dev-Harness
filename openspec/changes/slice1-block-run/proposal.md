@@ -1,6 +1,6 @@
 # Slice 1 — primeira transição: bloquear uma execução pendente
 
-Estado: proposta para aprovação humana; somente especificação, sem código ou AT novos. Base: Core/policy `bfb2cbb`, evidências `7072eba`. Não altera documentos fixados nos selos v1/v2.
+Estado: contrato funcional aprovado pelo usuário em 21/10/2026 ("Sim, prossiga! aprovado."). Detalhamento em [design.md](design.md); preparo protegido em [acceptance-handoff.md](acceptance-handoff.md). Sem código ou AT novos nesta preparação. Base: Core/policy `bfb2cbb`, evidências `7072eba`. Não altera documentos fixados nos selos v1/v2.
 
 ## Objetivo e fundamento
 

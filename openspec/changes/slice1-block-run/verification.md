@@ -12,3 +12,11 @@ Mudança exclusivamente documental. Proposta de PENDING→BLOCKED, migração ex
 - Harness fast/full e CLI OpenSpec: não executados, ferramentas ausentes.
 
 Suposições para aprovação: bloqueio administrativo antes de iniciar trabalho; opt-in preservando v1; operador no domínio confiável do SO sem novas credenciais. Handoff de infraestrutura/AT independente permanece pré-condição antes de implementar. Não é aceite de produto nem conclusão da Slice 1.
+
+## Após aprovação do contrato
+
+O usuário aprovou PENDING→BLOCKED e migração opt-in. Nesta etapa foram detalhados o DDL lógico, algoritmo de reconstrução com FKs ligadas, layout administrativo isolado e handoff com arquivos nomeados, preservando a semântica aprovada.
+
+Revisão documental independente `block_contract_review` registrada em `design-review.json`: nenhum desvio semântico identificado. Não equivale a revisão de DDL executável ou R2 de produto. Permanecem gates: autorização do handoff protegido, SQL concreto e normalização após renames, pins/launcher/mounts e observação determinística de interrupções M3/B4.
+
+Nesta sessão: 16 complementares existentes PASS com o comando acima; diff check PASS. Os AT novos não foram criados ou executados; produto/selos não foram alterados. A autorização do contrato funcional está registrada; o preparo exato de infraestrutura protegida está apresentado para autorização separada. Não há evidência nova de migração ou transição.
