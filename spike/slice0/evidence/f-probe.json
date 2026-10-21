@@ -1,0 +1,195 @@
+{
+  "run_id": "aefe500effb3406cbc95e029e49e004a",
+  "outcomes": {
+    "F1": {
+      "status": "passou",
+      "official_success": false,
+      "claimed_success": true
+    },
+    "F2": {
+      "status": "passou",
+      "sha256_before": "f1b217445239d41477ff6440c08f4a6b96c50a04b2a64b694927f74a5d36b54f",
+      "sha256_after": "f1b217445239d41477ff6440c08f4a6b96c50a04b2a64b694927f74a5d36b54f",
+      "synthetic_fixture": true
+    },
+    "F3": {
+      "status": "passou",
+      "cases": [
+        {
+          "stage": "during",
+          "returncode": -9,
+          "state": {
+            "run_id": "aefe500effb3406cbc95e029e49e004a",
+            "sequence": 0,
+            "last_confirmed_step": "old"
+          },
+          "temporary_exists": true,
+          "temporary_valid_json": false,
+          "temporary_sha256": "021fb596db81e6d02bf3d2586ee3981fe519f275c0ac9ca76bbcf2ebb4097d96",
+          "stderr": "",
+          "passed": true
+        },
+        {
+          "stage": "before",
+          "returncode": -9,
+          "state": {
+            "run_id": "aefe500effb3406cbc95e029e49e004a",
+            "sequence": 0,
+            "last_confirmed_step": "old"
+          },
+          "temporary_exists": true,
+          "temporary_valid_json": true,
+          "temporary_sha256": "8fa8fb920d04f29151922b2c251919de29ed1a10198643c2a87e4095fcf06995",
+          "stderr": "",
+          "passed": true
+        },
+        {
+          "stage": "after",
+          "returncode": -9,
+          "state": {
+            "run_id": "aefe500effb3406cbc95e029e49e004a",
+            "sequence": 1,
+            "last_confirmed_step": "new"
+          },
+          "temporary_exists": false,
+          "temporary_valid_json": null,
+          "temporary_sha256": null,
+          "stderr": "",
+          "passed": true
+        },
+        {
+          "stage": "normal",
+          "returncode": 0,
+          "state": {
+            "run_id": "aefe500effb3406cbc95e029e49e004a",
+            "sequence": 1,
+            "last_confirmed_step": "new"
+          },
+          "temporary_exists": false,
+          "temporary_valid_json": null,
+          "temporary_sha256": null,
+          "stderr": "",
+          "passed": true
+        }
+      ],
+      "scope": "Corte SIGKILL de processo local; sem queda de energia ou Core/SQLite"
+    }
+  },
+  "records": [
+    {
+      "label": "F1",
+      "args": [
+        "podman",
+        "run",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--userns=keep-id",
+        "--pids-limit=32",
+        "--memory=64m",
+        "--memory-swap=64m",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/f-aefe500effb3406cbc95e029e49e004a:/workspace:rw",
+        "--workdir=/workspace",
+        "--name",
+        "udh-slice0-f-45f7a48dfcb1402dbee4e79e89a1fc56",
+        "--cidfile",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-45f7a48dfcb1402dbee4e79e89a1fc56.cid",
+        "docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+        "sh",
+        "-c",
+        "printf '{\"status\":\"success\"}\\n' | tee /workspace/report.json; exit 23"
+      ],
+      "returncode": 23,
+      "stdout": "{\"status\":\"success\"}\n",
+      "stderr": ""
+    },
+    {
+      "label": "F1-inspect",
+      "args": [
+        "podman",
+        "inspect",
+        "6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5"
+      ],
+      "returncode": 0,
+      "stdout": "[\n     {\n          \"Id\": \"6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5\",\n          \"Created\": \"2026-10-21T12:10:19.388014793-03:00\",\n          \"Path\": \"sh\",\n          \"Args\": [\n               \"-c\",\n               \"printf '{\\\"status\\\":\\\"success\\\"}\\\\n' | tee /workspace/report.json; exit 23\"\n          ],\n          \"State\": {\n               \"OciVersion\": \"1.2.0\",\n               \"Status\": \"exited\",\n               \"Running\": false,\n               \"Paused\": false,\n               \"Restarting\": false,\n               \"OOMKilled\": false,\n               \"Dead\": false,\n               \"Pid\": 0,\n               \"ExitCode\": 23,\n               \"Error\": \"\",\n               \"StartedAt\": \"2026-10-21T12:10:19.462337959-03:00\",\n               \"FinishedAt\": \"2026-10-21T12:10:19.462385642-03:00\",\n               \"CheckpointedAt\": \"0001-01-01T00:00:00Z\",\n               \"RestoredAt\": \"0001-01-01T00:00:00Z\"\n          },\n          \"Image\": \"bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731\",\n          \"ImageDigest\": \"sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc\",\n          \"ImageName\": \"docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc\",\n          \"Rootfs\": \"\",\n          \"Pod\": \"\",\n          \"ResolvConfPath\": \"\",\n          \"HostnamePath\": \"/run/user/1000/containers/overlay-containers/6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5/userdata/hostname\",\n          \"HostsPath\": \"/run/user/1000/containers/overlay-containers/6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5/userdata/hosts\",\n          \"StaticDir\": \"/home/debian/.local/share/containers/storage/overlay-containers/6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5/userdata\",\n          \"OCIConfigPath\": \"/home/debian/.local/share/containers/storage/overlay-containers/6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5/userdata/config.json\",\n          \"OCIRuntime\": \"crun\",\n          \"ConmonPidFile\": \"/run/user/1000/containers/overlay-containers/6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5/userdata/conmon.pid\",\n          \"PidFile\": \"/run/user/1000/containers/overlay-containers/6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5/userdata/pidfile\",\n          \"Name\": \"udh-slice0-f-45f7a48dfcb1402dbee4e79e89a1fc56\",\n          \"RestartCount\": 0,\n          \"Driver\": \"overlay\",\n          \"MountLabel\": \"\",\n          \"ProcessLabel\": \"\",\n          \"AppArmorProfile\": \"\",\n          \"EffectiveCaps\": null,\n          \"BoundingCaps\": null,\n          \"ExecIDs\": [],\n          \"GraphDriver\": {\n               \"Name\": \"overlay\",\n               \"Data\": {\n                    \"LowerDir\": \"/home/debian/.local/share/containers/storage/overlay/7a5912bb0a1516c2634bed3c117b0ab73ef66c1e53b6f18236fa9810c0dfb917/diff:/home/debian/.local/share/containers/storage/overlay/08bc4e534116aa76b16015484b82eac51f9a593416feae9296c8a2d4bb7aa4a2/diff\",\n                    \"UpperDir\": \"/home/debian/.local/share/containers/storage/overlay/f3b811c701eb4eceb68c7c6a7fbe449e88e94d814a43e4cf8945ecc8509bd3c7/diff\",\n                    \"WorkDir\": \"/home/debian/.local/share/containers/storage/overlay/f3b811c701eb4eceb68c7c6a7fbe449e88e94d814a43e4cf8945ecc8509bd3c7/work\"\n               }\n          },\n          \"Mounts\": [\n               {\n                    \"Type\": \"bind\",\n                    \"Source\": \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/f-aefe500effb3406cbc95e029e49e004a\",\n                    \"Destination\": \"/workspace\",\n                    \"Driver\": \"\",\n                    \"Mode\": \"\",\n                    \"Options\": [\n                         \"rbind\"\n                    ],\n                    \"RW\": true,\n                    \"Propagation\": \"rprivate\"\n               }\n          ],\n          \"Dependencies\": [],\n          \"NetworkSettings\": {\n               \"EndpointID\": \"\",\n               \"Gateway\": \"\",\n               \"IPAddress\": \"\",\n               \"IPPrefixLen\": 0,\n               \"IPv6Gateway\": \"\",\n               \"GlobalIPv6Address\": \"\",\n               \"GlobalIPv6PrefixLen\": 0,\n               \"MacAddress\": \"\",\n               \"Bridge\": \"\",\n               \"SandboxID\": \"\",\n               \"HairpinMode\": false,\n               \"LinkLocalIPv6Address\": \"\",\n               \"LinkLocalIPv6PrefixLen\": 0,\n               \"Ports\": {},\n               \"SandboxKey\": \"\",\n               \"Networks\": {\n                    \"none\": {\n                         \"EndpointID\": \"\",\n                         \"Gateway\": \"\",\n                         \"IPAddress\": \"\",\n                         \"IPPrefixLen\": 0,\n                         \"IPv6Gateway\": \"\",\n                         \"GlobalIPv6Address\": \"\",\n                         \"GlobalIPv6PrefixLen\": 0,\n                         \"MacAddress\": \"\",\n                         \"NetworkID\": \"none\",\n                         \"DriverOpts\": null,\n                         \"IPAMConfig\": null,\n                         \"Links\": null\n                    }\n               }\n          },\n          \"Namespace\": \"\",\n          \"IsInfra\": false,\n          \"IsService\": false,\n          \"KubeExitCodePropagation\": \"invalid\",\n          \"lockNumber\": 0,\n          \"Config\": {\n               \"Hostname\": \"6d4244ced681\",\n               \"Domainname\": \"\",\n               \"User\": \"1000:1000\",\n               \"AttachStdin\": false,\n               \"AttachStdout\": false,\n               \"AttachStderr\": false,\n               \"Tty\": false,\n               \"OpenStdin\": false,\n               \"StdinOnce\": false,\n               \"Env\": [\n                    \"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\n                    \"container=podman\",\n                    \"HOME=/workspace\",\n                    \"HOSTNAME=6d4244ced681\"\n               ],\n               \"Cmd\": [\n                    \"sh\",\n                    \"-c\",\n                    \"printf '{\\\"status\\\":\\\"success\\\"}\\\\n' | tee /workspace/report.json; exit 23\"\n               ],\n               \"Image\": \"docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc\",\n               \"Volumes\": null,\n               \"WorkingDir\": \"/workspace\",\n               \"Entrypoint\": null,\n               \"OnBuild\": null,\n               \"Labels\": null,\n               \"Annotations\": {\n                    \"io.container.manager\": \"libpod\",\n                    \"io.podman.annotations.cid-file\": \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-45f7a48dfcb1402dbee4e79e89a1fc56.cid\",\n                    \"io.podman.annotations.userns\": \"keep-id\",\n                    \"org.opencontainers.image.stopSignal\": \"15\",\n                    \"org.systemd.property.KillSignal\": \"15\",\n                    \"org.systemd.property.TimeoutStopUSec\": \"uint64 10000000\"\n               },\n               \"StopSignal\": \"SIGTERM\",\n               \"HealthcheckOnFailureAction\": \"none\",\n               \"HealthLogDestination\": \"local\",\n               \"HealthcheckMaxLogCount\": 5,\n               \"HealthcheckMaxLogSize\": 500,\n               \"CreateCommand\": [\n                    \"podman\",\n                    \"run\",\n                    \"--pull=never\",\n                    \"--network=none\",\n                    \"--read-only\",\n                    \"--read-only-tmpfs=false\",\n                    \"--cap-drop=ALL\",\n                    \"--security-opt=no-new-privileges\",\n                    \"--userns=keep-id\",\n                    \"--pids-limit=32\",\n                    \"--memory=64m\",\n                    \"--memory-swap=64m\",\n                    \"--volume\",\n                    \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/f-aefe500effb3406cbc95e029e49e004a:/workspace:rw\",\n                    \"--workdir=/workspace\",\n                    \"--name\",\n                    \"udh-slice0-f-45f7a48dfcb1402dbee4e79e89a1fc56\",\n                    \"--cidfile\",\n                    \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-45f7a48dfcb1402dbee4e79e89a1fc56.cid\",\n                    \"docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc\",\n                    \"sh\",\n                    \"-c\",\n                    \"printf '{\\\"status\\\":\\\"success\\\"}\\\\n' | tee /workspace/report.json; exit 23\"\n               ],\n               \"Umask\": \"0022\",\n               \"Timeout\": 0,\n               \"StopTimeout\": 10,\n               \"Passwd\": true,\n               \"sdNotifyMode\": \"container\"\n          },\n          \"HostConfig\": {\n               \"Binds\": [\n                    \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/f-aefe500effb3406cbc95e029e49e004a:/workspace:rw,rprivate,rbind\"\n               ],\n               \"CgroupManager\": \"systemd\",\n               \"CgroupMode\": \"private\",\n               \"ContainerIDFile\": \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-45f7a48dfcb1402dbee4e79e89a1fc56.cid\",\n               \"LogConfig\": {\n                    \"Type\": \"journald\",\n                    \"Config\": null,\n                    \"Path\": \"\",\n                    \"Tag\": \"\",\n                    \"Size\": \"0B\"\n               },\n               \"NetworkMode\": \"none\",\n               \"PortBindings\": {},\n               \"RestartPolicy\": {\n                    \"Name\": \"no\",\n                    \"MaximumRetryCount\": 0\n               },\n               \"AutoRemove\": false,\n               \"AutoRemoveImage\": false,\n               \"Annotations\": {\n                    \"io.container.manager\": \"libpod\",\n                    \"io.podman.annotations.cid-file\": \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-45f7a48dfcb1402dbee4e79e89a1fc56.cid\",\n                    \"io.podman.annotations.userns\": \"keep-id\",\n                    \"org.opencontainers.image.stopSignal\": \"15\",\n                    \"org.systemd.property.KillSignal\": \"15\",\n                    \"org.systemd.property.TimeoutStopUSec\": \"uint64 10000000\"\n               },\n               \"VolumeDriver\": \"\",\n               \"VolumesFrom\": null,\n               \"CapAdd\": [],\n               \"CapDrop\": [\n                    \"CAP_CHOWN\",\n                    \"CAP_DAC_OVERRIDE\",\n                    \"CAP_FOWNER\",\n                    \"CAP_FSETID\",\n                    \"CAP_KILL\",\n                    \"CAP_NET_BIND_SERVICE\",\n                    \"CAP_SETFCAP\",\n                    \"CAP_SETGID\",\n                    \"CAP_SETPCAP\",\n                    \"CAP_SETUID\",\n                    \"CAP_SYS_CHROOT\"\n               ],\n               \"Dns\": [],\n               \"DnsOptions\": [],\n               \"DnsSearch\": [],\n               \"ExtraHosts\": [],\n               \"HostsFile\": \"\",\n               \"GroupAdd\": [],\n               \"IpcMode\": \"shareable\",\n               \"Cgroup\": \"\",\n               \"Cgroups\": \"default\",\n               \"Links\": null,\n               \"OomScoreAdj\": 0,\n               \"PidMode\": \"private\",\n               \"Privileged\": false,\n               \"PublishAllPorts\": false,\n               \"ReadonlyRootfs\": true,\n               \"SecurityOpt\": [\n                    \"no-new-privileges\"\n               ],\n               \"Tmpfs\": {},\n               \"UTSMode\": \"private\",\n               \"UsernsMode\": \"private\",\n               \"IDMappings\": {\n                    \"UidMap\": [\n                         \"0:1:1000\",\n                         \"1000:0:1\",\n                         \"1001:1001:64536\"\n                    ],\n                    \"GidMap\": [\n                         \"0:1:1000\",\n                         \"1000:0:1\",\n                         \"1001:1001:64536\"\n                    ]\n               },\n               \"ShmSize\": 65536000,\n               \"Runtime\": \"oci\",\n               \"ConsoleSize\": [\n                    0,\n                    0\n               ],\n               \"Isolation\": \"\",\n               \"CpuShares\": 0,\n               \"Memory\": 67108864,\n               \"NanoCpus\": 0,\n               \"CgroupParent\": \"user.slice\",\n               \"BlkioWeight\": 0,\n               \"BlkioWeightDevice\": null,\n               \"BlkioDeviceReadBps\": null,\n               \"BlkioDeviceWriteBps\": null,\n               \"BlkioDeviceReadIOps\": null,\n               \"BlkioDeviceWriteIOps\": null,\n               \"CpuPeriod\": 0,\n               \"CpuQuota\": 0,\n               \"CpuRealtimePeriod\": 0,\n               \"CpuRealtimeRuntime\": 0,\n               \"CpusetCpus\": \"\",\n               \"CpusetMems\": \"\",\n               \"Devices\": [],\n               \"DiskQuota\": 0,\n               \"KernelMemory\": 0,\n               \"MemoryReservation\": 0,\n               \"MemorySwap\": 67108864,\n               \"MemorySwappiness\": -1,\n               \"OomKillDisable\": false,\n               \"PidsLimit\": 32,\n               \"Ulimits\": [\n                    {\n                         \"Name\": \"RLIMIT_NOFILE\",\n                         \"Soft\": 524288,\n                         \"Hard\": 524288\n                    },\n                    {\n                         \"Name\": \"RLIMIT_NPROC\",\n                         \"Soft\": 15328,\n                         \"Hard\": 15328\n                    }\n               ],\n               \"CpuCount\": 0,\n               \"CpuPercent\": 0,\n               \"IOMaximumIOps\": 0,\n               \"IOMaximumBandwidth\": 0,\n               \"CgroupConf\": null\n          },\n          \"UseImageHosts\": false,\n          \"UseImageHostname\": false\n     }\n]\n",
+      "stderr": ""
+    },
+    {
+      "label": "F1-cleanup",
+      "args": [
+        "podman",
+        "rm",
+        "-f",
+        "6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5"
+      ],
+      "returncode": 0,
+      "stdout": "6d4244ced6815be8aed1bddffbbfa0a08c058a803c59217724bb693407ba8fa5\n",
+      "stderr": ""
+    },
+    {
+      "label": "F2",
+      "args": [
+        "podman",
+        "run",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--userns=keep-id",
+        "--pids-limit=32",
+        "--memory=64m",
+        "--memory-swap=64m",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/f-aefe500effb3406cbc95e029e49e004a:/workspace:rw",
+        "--workdir=/workspace",
+        "--name",
+        "udh-slice0-f-7cfbc7d556554ed89c95092570b08092",
+        "--cidfile",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-7cfbc7d556554ed89c95092570b08092.cid",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/protected-synthetic.txt:/protected-fixture:ro",
+        "docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+        "sh",
+        "-c",
+        "set -eu\nfailed=0\nif (echo changed > /protected-fixture) 2>/dev/null; then failed=1; fi\nif rm /protected-fixture 2>/dev/null; then failed=1; fi\nif ln -sf /workspace/report.json /protected-fixture 2>/dev/null; then failed=1; fi\ntest \"$failed\" = 0\nprintf 'Tentativas de alteração recusadas\\n'\n"
+      ],
+      "returncode": 0,
+      "stdout": "Tentativas de alteração recusadas\n",
+      "stderr": ""
+    },
+    {
+      "label": "F2-inspect",
+      "args": [
+        "podman",
+        "inspect",
+        "38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf"
+      ],
+      "returncode": 0,
+      "stdout": "[\n     {\n          \"Id\": \"38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf\",\n          \"Created\": \"2026-10-21T12:10:19.67466196-03:00\",\n          \"Path\": \"sh\",\n          \"Args\": [\n               \"-c\",\n               \"set -eu\\nfailed=0\\nif (echo changed > /protected-fixture) 2>/dev/null; then failed=1; fi\\nif rm /protected-fixture 2>/dev/null; then failed=1; fi\\nif ln -sf /workspace/report.json /protected-fixture 2>/dev/null; then failed=1; fi\\ntest \\\"$failed\\\" = 0\\nprintf 'Tentativas de alteração recusadas\\\\n'\\n\"\n          ],\n          \"State\": {\n               \"OciVersion\": \"1.2.0\",\n               \"Status\": \"stopped\",\n               \"Running\": false,\n               \"Paused\": false,\n               \"Restarting\": false,\n               \"OOMKilled\": false,\n               \"Dead\": false,\n               \"Pid\": 0,\n               \"ExitCode\": 0,\n               \"Error\": \"\",\n               \"StartedAt\": \"2026-10-21T12:10:19.742577784-03:00\",\n               \"FinishedAt\": \"2026-10-21T12:10:19.742393568-03:00\",\n               \"CheckpointedAt\": \"0001-01-01T00:00:00Z\",\n               \"RestoredAt\": \"0001-01-01T00:00:00Z\"\n          },\n          \"Image\": \"bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731\",\n          \"ImageDigest\": \"sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc\",\n          \"ImageName\": \"docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc\",\n          \"Rootfs\": \"\",\n          \"Pod\": \"\",\n          \"ResolvConfPath\": \"\",\n          \"HostnamePath\": \"/run/user/1000/containers/overlay-containers/38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf/userdata/hostname\",\n          \"HostsPath\": \"/run/user/1000/containers/overlay-containers/38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf/userdata/hosts\",\n          \"StaticDir\": \"/home/debian/.local/share/containers/storage/overlay-containers/38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf/userdata\",\n          \"OCIConfigPath\": \"/home/debian/.local/share/containers/storage/overlay-containers/38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf/userdata/config.json\",\n          \"OCIRuntime\": \"crun\",\n          \"ConmonPidFile\": \"/run/user/1000/containers/overlay-containers/38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf/userdata/conmon.pid\",\n          \"PidFile\": \"/run/user/1000/containers/overlay-containers/38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf/userdata/pidfile\",\n          \"Name\": \"udh-slice0-f-7cfbc7d556554ed89c95092570b08092\",\n          \"RestartCount\": 0,\n          \"Driver\": \"overlay\",\n          \"MountLabel\": \"\",\n          \"ProcessLabel\": \"\",\n          \"AppArmorProfile\": \"\",\n          \"EffectiveCaps\": null,\n          \"BoundingCaps\": null,\n          \"ExecIDs\": [],\n          \"GraphDriver\": {\n               \"Name\": \"overlay\",\n               \"Data\": {\n                    \"LowerDir\": \"/home/debian/.local/share/containers/storage/overlay/7a5912bb0a1516c2634bed3c117b0ab73ef66c1e53b6f18236fa9810c0dfb917/diff:/home/debian/.local/share/containers/storage/overlay/08bc4e534116aa76b16015484b82eac51f9a593416feae9296c8a2d4bb7aa4a2/diff\",\n                    \"MergedDir\": \"/home/debian/.local/share/containers/storage/overlay/90f9cb2678835a3ccbad7f381b2c0b635174959b61fb5849a664814ba9b118d6/merged\",\n                    \"UpperDir\": \"/home/debian/.local/share/containers/storage/overlay/90f9cb2678835a3ccbad7f381b2c0b635174959b61fb5849a664814ba9b118d6/diff\",\n                    \"WorkDir\": \"/home/debian/.local/share/containers/storage/overlay/90f9cb2678835a3ccbad7f381b2c0b635174959b61fb5849a664814ba9b118d6/work\"\n               }\n          },\n          \"Mounts\": [\n               {\n                    \"Type\": \"bind\",\n                    \"Source\": \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/f-aefe500effb3406cbc95e029e49e004a\",\n                    \"Destination\": \"/workspace\",\n                    \"Driver\": \"\",\n                    \"Mode\": \"\",\n                    \"Options\": [\n                         \"rbind\"\n                    ],\n                    \"RW\": true,\n                    \"Propagation\": \"rprivate\"\n               },\n               {\n                    \"Type\": \"bind\",\n                    \"Source\": \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/protected-synthetic.txt\",\n                    \"Destination\": \"/protected-fixture\",\n                    \"Driver\": \"\",\n                    \"Mode\": \"\",\n                    \"Options\": [\n                         \"rbind\"\n                    ],\n                    \"RW\": false,\n                    \"Propagation\": \"rprivate\"\n               }\n          ],\n          \"Dependencies\": [],\n          \"NetworkSettings\": {\n               \"EndpointID\": \"\",\n               \"Gateway\": \"\",\n               \"IPAddress\": \"\",\n               \"IPPrefixLen\": 0,\n               \"IPv6Gateway\": \"\",\n               \"GlobalIPv6Address\": \"\",\n               \"GlobalIPv6PrefixLen\": 0,\n               \"MacAddress\": \"\",\n               \"Bridge\": \"\",\n               \"SandboxID\": \"\",\n               \"HairpinMode\": false,\n               \"LinkLocalIPv6Address\": \"\",\n               \"LinkLocalIPv6PrefixLen\": 0,\n               \"Ports\": {},\n               \"SandboxKey\": \"\",\n               \"Networks\": {\n                    \"none\": {\n                         \"EndpointID\": \"\",\n                         \"Gateway\": \"\",\n                         \"IPAddress\": \"\",\n                         \"IPPrefixLen\": 0,\n                         \"IPv6Gateway\": \"\",\n                         \"GlobalIPv6Address\": \"\",\n                         \"GlobalIPv6PrefixLen\": 0,\n                         \"MacAddress\": \"\",\n                         \"NetworkID\": \"none\",\n                         \"DriverOpts\": null,\n                         \"IPAMConfig\": null,\n                         \"Links\": null\n                    }\n               }\n          },\n          \"Namespace\": \"\",\n          \"IsInfra\": false,\n          \"IsService\": false,\n          \"KubeExitCodePropagation\": \"invalid\",\n          \"lockNumber\": 0,\n          \"Config\": {\n               \"Hostname\": \"38aa06867d98\",\n               \"Domainname\": \"\",\n               \"User\": \"1000:1000\",\n               \"AttachStdin\": false,\n               \"AttachStdout\": false,\n               \"AttachStderr\": false,\n               \"Tty\": false,\n               \"OpenStdin\": false,\n               \"StdinOnce\": false,\n               \"Env\": [\n                    \"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\n                    \"container=podman\",\n                    \"HOME=/workspace\",\n                    \"HOSTNAME=38aa06867d98\"\n               ],\n               \"Cmd\": [\n                    \"sh\",\n                    \"-c\",\n                    \"set -eu\\nfailed=0\\nif (echo changed \\u003e /protected-fixture) 2\\u003e/dev/null; then failed=1; fi\\nif rm /protected-fixture 2\\u003e/dev/null; then failed=1; fi\\nif ln -sf /workspace/report.json /protected-fixture 2\\u003e/dev/null; then failed=1; fi\\ntest \\\"$failed\\\" = 0\\nprintf 'Tentativas de alteração recusadas\\\\n'\\n\"\n               ],\n               \"Image\": \"docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc\",\n               \"Volumes\": null,\n               \"WorkingDir\": \"/workspace\",\n               \"Entrypoint\": null,\n               \"OnBuild\": null,\n               \"Labels\": null,\n               \"Annotations\": {\n                    \"io.container.manager\": \"libpod\",\n                    \"io.podman.annotations.cid-file\": \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-7cfbc7d556554ed89c95092570b08092.cid\",\n                    \"io.podman.annotations.userns\": \"keep-id\",\n                    \"org.opencontainers.image.stopSignal\": \"15\",\n                    \"org.systemd.property.KillSignal\": \"15\",\n                    \"org.systemd.property.TimeoutStopUSec\": \"uint64 10000000\"\n               },\n               \"StopSignal\": \"SIGTERM\",\n               \"HealthcheckOnFailureAction\": \"none\",\n               \"HealthLogDestination\": \"local\",\n               \"HealthcheckMaxLogCount\": 5,\n               \"HealthcheckMaxLogSize\": 500,\n               \"CreateCommand\": [\n                    \"podman\",\n                    \"run\",\n                    \"--pull=never\",\n                    \"--network=none\",\n                    \"--read-only\",\n                    \"--read-only-tmpfs=false\",\n                    \"--cap-drop=ALL\",\n                    \"--security-opt=no-new-privileges\",\n                    \"--userns=keep-id\",\n                    \"--pids-limit=32\",\n                    \"--memory=64m\",\n                    \"--memory-swap=64m\",\n                    \"--volume\",\n                    \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/f-aefe500effb3406cbc95e029e49e004a:/workspace:rw\",\n                    \"--workdir=/workspace\",\n                    \"--name\",\n                    \"udh-slice0-f-7cfbc7d556554ed89c95092570b08092\",\n                    \"--cidfile\",\n                    \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-7cfbc7d556554ed89c95092570b08092.cid\",\n                    \"--volume\",\n                    \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/protected-synthetic.txt:/protected-fixture:ro\",\n                    \"docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc\",\n                    \"sh\",\n                    \"-c\",\n                    \"set -eu\\nfailed=0\\nif (echo changed \\u003e /protected-fixture) 2\\u003e/dev/null; then failed=1; fi\\nif rm /protected-fixture 2\\u003e/dev/null; then failed=1; fi\\nif ln -sf /workspace/report.json /protected-fixture 2\\u003e/dev/null; then failed=1; fi\\ntest \\\"$failed\\\" = 0\\nprintf 'Tentativas de alteração recusadas\\\\n'\\n\"\n               ],\n               \"Umask\": \"0022\",\n               \"Timeout\": 0,\n               \"StopTimeout\": 10,\n               \"Passwd\": true,\n               \"sdNotifyMode\": \"container\"\n          },\n          \"HostConfig\": {\n               \"Binds\": [\n                    \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/f-aefe500effb3406cbc95e029e49e004a:/workspace:rw,rprivate,rbind\",\n                    \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/protected-synthetic.txt:/protected-fixture:ro,rprivate,rbind\"\n               ],\n               \"CgroupManager\": \"systemd\",\n               \"CgroupMode\": \"private\",\n               \"ContainerIDFile\": \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-7cfbc7d556554ed89c95092570b08092.cid\",\n               \"LogConfig\": {\n                    \"Type\": \"journald\",\n                    \"Config\": null,\n                    \"Path\": \"\",\n                    \"Tag\": \"\",\n                    \"Size\": \"0B\"\n               },\n               \"NetworkMode\": \"none\",\n               \"PortBindings\": {},\n               \"RestartPolicy\": {\n                    \"Name\": \"no\",\n                    \"MaximumRetryCount\": 0\n               },\n               \"AutoRemove\": false,\n               \"AutoRemoveImage\": false,\n               \"Annotations\": {\n                    \"io.container.manager\": \"libpod\",\n                    \"io.podman.annotations.cid-file\": \"/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/f-aefe500effb3406cbc95e029e49e004a/udh-slice0-f-7cfbc7d556554ed89c95092570b08092.cid\",\n                    \"io.podman.annotations.userns\": \"keep-id\",\n                    \"org.opencontainers.image.stopSignal\": \"15\",\n                    \"org.systemd.property.KillSignal\": \"15\",\n                    \"org.systemd.property.TimeoutStopUSec\": \"uint64 10000000\"\n               },\n               \"VolumeDriver\": \"\",\n               \"VolumesFrom\": null,\n               \"CapAdd\": [],\n               \"CapDrop\": [\n                    \"CAP_CHOWN\",\n                    \"CAP_DAC_OVERRIDE\",\n                    \"CAP_FOWNER\",\n                    \"CAP_FSETID\",\n                    \"CAP_KILL\",\n                    \"CAP_NET_BIND_SERVICE\",\n                    \"CAP_SETFCAP\",\n                    \"CAP_SETGID\",\n                    \"CAP_SETPCAP\",\n                    \"CAP_SETUID\",\n                    \"CAP_SYS_CHROOT\"\n               ],\n               \"Dns\": [],\n               \"DnsOptions\": [],\n               \"DnsSearch\": [],\n               \"ExtraHosts\": [],\n               \"HostsFile\": \"\",\n               \"GroupAdd\": [],\n               \"IpcMode\": \"shareable\",\n               \"Cgroup\": \"\",\n               \"Cgroups\": \"default\",\n               \"Links\": null,\n               \"OomScoreAdj\": 0,\n               \"PidMode\": \"private\",\n               \"Privileged\": false,\n               \"PublishAllPorts\": false,\n               \"ReadonlyRootfs\": true,\n               \"SecurityOpt\": [\n                    \"no-new-privileges\"\n               ],\n               \"Tmpfs\": {},\n               \"UTSMode\": \"private\",\n               \"UsernsMode\": \"private\",\n               \"IDMappings\": {\n                    \"UidMap\": [\n                         \"0:1:1000\",\n                         \"1000:0:1\",\n                         \"1001:1001:64536\"\n                    ],\n                    \"GidMap\": [\n                         \"0:1:1000\",\n                         \"1000:0:1\",\n                         \"1001:1001:64536\"\n                    ]\n               },\n               \"ShmSize\": 65536000,\n               \"Runtime\": \"oci\",\n               \"ConsoleSize\": [\n                    0,\n                    0\n               ],\n               \"Isolation\": \"\",\n               \"CpuShares\": 0,\n               \"Memory\": 67108864,\n               \"NanoCpus\": 0,\n               \"CgroupParent\": \"user.slice\",\n               \"BlkioWeight\": 0,\n               \"BlkioWeightDevice\": null,\n               \"BlkioDeviceReadBps\": null,\n               \"BlkioDeviceWriteBps\": null,\n               \"BlkioDeviceReadIOps\": null,\n               \"BlkioDeviceWriteIOps\": null,\n               \"CpuPeriod\": 0,\n               \"CpuQuota\": 0,\n               \"CpuRealtimePeriod\": 0,\n               \"CpuRealtimeRuntime\": 0,\n               \"CpusetCpus\": \"\",\n               \"CpusetMems\": \"\",\n               \"Devices\": [],\n               \"DiskQuota\": 0,\n               \"KernelMemory\": 0,\n               \"MemoryReservation\": 0,\n               \"MemorySwap\": 67108864,\n               \"MemorySwappiness\": -1,\n               \"OomKillDisable\": false,\n               \"PidsLimit\": 32,\n               \"Ulimits\": [\n                    {\n                         \"Name\": \"RLIMIT_NOFILE\",\n                         \"Soft\": 524288,\n                         \"Hard\": 524288\n                    },\n                    {\n                         \"Name\": \"RLIMIT_NPROC\",\n                         \"Soft\": 15328,\n                         \"Hard\": 15328\n                    }\n               ],\n               \"CpuCount\": 0,\n               \"CpuPercent\": 0,\n               \"IOMaximumIOps\": 0,\n               \"IOMaximumBandwidth\": 0,\n               \"CgroupConf\": null\n          },\n          \"UseImageHosts\": false,\n          \"UseImageHostname\": false\n     }\n]\n",
+      "stderr": ""
+    },
+    {
+      "label": "F2-cleanup",
+      "args": [
+        "podman",
+        "rm",
+        "-f",
+        "38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf"
+      ],
+      "returncode": 0,
+      "stdout": "38aa06867d98be30437f0a3c9019b8ea4946ecc36281787871bad8b9590c08bf\n",
+      "stderr": ""
+    }
+  ],
+  "limits": [
+    "Fixtures sintéticas; nenhum AT real",
+    "Coletor e arquivos no host são editáveis pelo usuário; não é store confiável do produto",
+    "F3 não valida recuperação transacional SQLite nem queda de energia"
+  ]
+}

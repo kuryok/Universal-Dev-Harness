@@ -1,0 +1,53 @@
+[
+  {
+    "label": "kernel",
+    "args": [
+      "uname",
+      "-srmo"
+    ],
+    "returncode": 0,
+    "stdout": "Linux 6.12.111+deb13-amd64 x86_64 GNU/Linux\n",
+    "stderr": ""
+  },
+  {
+    "label": "identity",
+    "args": [
+      "id"
+    ],
+    "returncode": 0,
+    "stdout": "uid=1000(debian) gid=1000(debian) groups=1000(debian),24(cdrom),25(floppy),29(audio),30(dip),44(video),46(plugdev),100(users),101(netdev),102(scanner),106(lpadmin)\n",
+    "stderr": ""
+  },
+  {
+    "label": "virtualization",
+    "args": [
+      "systemd-detect-virt"
+    ],
+    "returncode": 0,
+    "stdout": "microsoft\n",
+    "stderr": ""
+  },
+  {
+    "label": "cgroup",
+    "args": [
+      "stat",
+      "-fc",
+      "%T",
+      "/sys/fs/cgroup"
+    ],
+    "returncode": 0,
+    "stdout": "cgroup2fs\n",
+    "stderr": ""
+  },
+  {
+    "label": "local-model-cli",
+    "args": [
+      "sh",
+      "-c",
+      "for executable in ollama llama-server vllm; do if command -v \"$executable\"; then :; else echo \"$executable: ausente no PATH\"; fi; done"
+    ],
+    "returncode": 0,
+    "stdout": "ollama: ausente no PATH\nllama-server: ausente no PATH\nvllm: ausente no PATH\n",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,88 @@
+{"run_id": "0b0cc2f2ddd54b588e536db7421cc70c", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9305.48827989}
+{"run_id": "0b0cc2f2ddd54b588e536db7421cc70c", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9305.639284063}
+{"run_id": "0b0cc2f2ddd54b588e536db7421cc70c", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9305.639823319}
+{"run_id": "0b0cc2f2ddd54b588e536db7421cc70c", "status": 403, "verdict": "purpose_denied", "peer_uid": 1000, "time_monotonic": 9305.640243675}
+{"run_id": "0b0cc2f2ddd54b588e536db7421cc70c", "status": 401, "verdict": "capability_denied", "peer_uid": 1000, "time_monotonic": 9305.640621891}
+{"run_id": "0b0cc2f2ddd54b588e536db7421cc70c", "status": 403, "verdict": "model_or_mode_denied", "peer_uid": 1000, "time_monotonic": 9305.641005471}
+{"run_id": "0b0cc2f2ddd54b588e536db7421cc70c", "status": 413, "verdict": "size_denied", "peer_uid": 1000, "time_monotonic": 9305.641434261}
+{"run_id": "a408c10c8a4348c7aadd31a0c3b2e57b", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9353.360227867}
+{"run_id": "a408c10c8a4348c7aadd31a0c3b2e57b", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9353.511835892}
+{"run_id": "a408c10c8a4348c7aadd31a0c3b2e57b", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9353.513212872}
+{"run_id": "a408c10c8a4348c7aadd31a0c3b2e57b", "status": 403, "verdict": "purpose_denied", "peer_uid": 1000, "time_monotonic": 9353.514090097}
+{"run_id": "a408c10c8a4348c7aadd31a0c3b2e57b", "status": 401, "verdict": "capability_denied", "peer_uid": 1000, "time_monotonic": 9353.514907581}
+{"run_id": "a408c10c8a4348c7aadd31a0c3b2e57b", "status": 403, "verdict": "model_or_mode_denied", "peer_uid": 1000, "time_monotonic": 9353.515688633}
+{"run_id": "a408c10c8a4348c7aadd31a0c3b2e57b", "status": 413, "verdict": "size_denied", "peer_uid": 1000, "time_monotonic": 9353.516507967}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9439.548428932}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "has_tools": false, "messages_count": 0}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9439.699833353}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9439.701090255}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "status": 403, "verdict": "purpose_denied", "peer_uid": 1000, "time_monotonic": 9439.701944207}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "status": 401, "verdict": "capability_denied", "peer_uid": 1000, "time_monotonic": 9439.702795743}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "status": 403, "verdict": "model_or_mode_denied", "peer_uid": 1000, "time_monotonic": 9439.703642793}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "status": 413, "verdict": "size_denied", "peer_uid": 1000, "time_monotonic": 9439.704618478}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9440.066574137}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "has_tools": false, "messages_count": 2}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9440.894733012}
+{"run_id": "aef33de6bc82472e9c32988587dc0dac", "has_tools": false, "messages_count": 2}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9525.459381177}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "has_tools": false, "messages_count": 0}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9525.610958591}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9525.612258107}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 403, "verdict": "purpose_denied", "peer_uid": 1000, "time_monotonic": 9525.613303305}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 401, "verdict": "capability_denied", "peer_uid": 1000, "time_monotonic": 9525.614200222}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 403, "verdict": "model_or_mode_denied", "peer_uid": 1000, "time_monotonic": 9525.615150221}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 413, "verdict": "size_denied", "peer_uid": 1000, "time_monotonic": 9525.61611716}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9525.799759483}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9525.802395329}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 400, "verdict": "unsupported_framing", "peer_uid": 1000, "time_monotonic": 9525.889666554}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9529.24146573}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "has_tools": false, "messages_count": 2}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9529.870832085}
+{"run_id": "f61f477fcc204f7ca6567d3a970b58fd", "has_tools": false, "messages_count": 2}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9798.149268223}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "has_tools": false, "messages_count": 0}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9798.301286542}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9798.304045609}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 403, "verdict": "purpose_denied", "peer_uid": 1000, "time_monotonic": 9798.305664783}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 401, "verdict": "capability_denied", "peer_uid": 1000, "time_monotonic": 9798.307376221}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 403, "verdict": "model_or_mode_denied", "peer_uid": 1000, "time_monotonic": 9798.308441234}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 413, "verdict": "size_denied", "peer_uid": 1000, "time_monotonic": 9798.309494627}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9798.482592798}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9798.48554982}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 400, "verdict": "unsupported_framing", "peer_uid": 1000, "time_monotonic": 9798.691358505}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9802.19486558}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "has_tools": false, "messages_count": 2}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9803.053800138}
+{"run_id": "feae5f13e3eb44db9f8f4642c1774dd7", "has_tools": false, "messages_count": 2}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9925.209464166}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "has_tools": false, "messages_count": 0}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9925.361632672}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9925.364810232}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 403, "verdict": "purpose_denied", "peer_uid": 1000, "time_monotonic": 9925.36664414}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 401, "verdict": "capability_denied", "peer_uid": 1000, "time_monotonic": 9925.368778906}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 403, "verdict": "model_or_mode_denied", "peer_uid": 1000, "time_monotonic": 9925.370952556}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 400, "verdict": "messages_denied", "peer_uid": 1000, "time_monotonic": 9925.373537801}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 413, "verdict": "size_denied", "peer_uid": 1000, "time_monotonic": 9925.374951421}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9925.545634016}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 9925.548590359}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 400, "verdict": "unsupported_framing", "peer_uid": 1000, "time_monotonic": 9925.774565545}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9929.123079911}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "has_tools": false, "messages_count": 2}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9930.040839553}
+{"run_id": "d6ddbcf97a0843408879f3b3bf01ad08", "has_tools": false, "messages_count": 2}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 10161.450301954}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "has_tools": false, "messages_count": 0}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 10161.603611723}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 10161.605357606}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 403, "verdict": "purpose_denied", "peer_uid": 1000, "time_monotonic": 10161.606648499}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 401, "verdict": "capability_denied", "peer_uid": 1000, "time_monotonic": 10161.608076326}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 403, "verdict": "model_or_mode_denied", "peer_uid": 1000, "time_monotonic": 10161.60924586}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 400, "verdict": "messages_denied", "peer_uid": 1000, "time_monotonic": 10161.611137323}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 413, "verdict": "size_denied", "peer_uid": 1000, "time_monotonic": 10161.613596991}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 10161.766369093}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 403, "verdict": "route_denied", "peer_uid": 1000, "time_monotonic": 10161.769188643}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 400, "verdict": "unsupported_framing", "peer_uid": 1000, "time_monotonic": 10161.85649822}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 10165.20096439}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "has_tools": false, "messages_count": 2}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 10165.819556224}
+{"run_id": "95eb4d57326c4866b58a77fd7994a327", "has_tools": false, "messages_count": 2}

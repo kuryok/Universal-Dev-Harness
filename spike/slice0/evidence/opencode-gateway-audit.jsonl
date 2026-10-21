@@ -1,0 +1,12 @@
+{"run_id": "763627b5cf2b4fa48f8d420137c29203", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9818.93991193}
+{"run_id": "763627b5cf2b4fa48f8d420137c29203", "has_tools": false, "messages_count": 3}
+{"run_id": "763627b5cf2b4fa48f8d420137c29203", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9819.168231485}
+{"run_id": "763627b5cf2b4fa48f8d420137c29203", "has_tools": true, "messages_count": 2}
+{"run_id": "9847820717124c38981e9b4af1f89ec7", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9860.713382883}
+{"run_id": "9847820717124c38981e9b4af1f89ec7", "has_tools": false, "messages_count": 3}
+{"run_id": "9847820717124c38981e9b4af1f89ec7", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 9860.94204886}
+{"run_id": "9847820717124c38981e9b4af1f89ec7", "has_tools": true, "messages_count": 2}
+{"run_id": "df894770897f4072894840d7ba21e1af", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 10009.341877693}
+{"run_id": "df894770897f4072894840d7ba21e1af", "has_tools": false, "messages_count": 3}
+{"run_id": "df894770897f4072894840d7ba21e1af", "status": 200, "verdict": "synthetic_stream", "peer_uid": 1000, "time_monotonic": 10009.560174146}
+{"run_id": "df894770897f4072894840d7ba21e1af", "has_tools": true, "messages_count": 2}

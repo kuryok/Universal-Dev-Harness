@@ -1,10 +1,10 @@
 # Spike Slice 0 — ambiente e isolamento
 
-Estado: recorte A/B aprovado pelo usuário em 21/10/2026; executado parcialmente, com limitações registradas em `SPIKE-SLICE0-RESULTADOS.md`.
+Estado: recortes experimentais A–F aprovados pelo usuário em 21/10/2026. Rodada local encerrada com conclusão parcial e 29 perguntas classificadas; inferência real, autenticação e comparação WSL2 permanecem pendentes conforme `SPIKE-SLICE0-RESULTADOS.md`.
 
 ## Objetivo
 
-Executar o recorte A/B de `SPIKE-SLICE0-PERGUNTAS.md` no Linux de referência, com Podman rootless, sem código de produto. Não declarar conformidade integral da Slice 0.
+Executar o spike de `SPIKE-SLICE0-PERGUNTAS.md` na VM Linux de referência com Podman rootless, sem código de produto. O recorte inicial A/B foi ampliado para C–F conforme a aprovação registrada abaixo. Não declarar conformidade integral sem inferência e autenticação reais.
 
 ## Decisões e escopo
 
@@ -40,7 +40,7 @@ Não existe `tools/harness.py` nem configuração de lint/testes neste repositó
 
 ## Fora de escopo
 
-Grupos C–G, escolha definitiva de agente, inferência real, credenciais, Core, interface, instalador, Judge, memória e novos agentes. Não criar ou alterar testes de aceite.
+Core de produto, interface, instalador, Judge, memória, novos agentes instalados e testes de aceite reais. C–F foram incluídos como experimentos descartáveis na continuação aprovada. Inferência/autenticação reais e comparação WSL2 não foram executadas por falta dos respectivos recursos neste recorte.
 
 ## Riscos e autorizações
 
@@ -48,7 +48,7 @@ O runtime usa armazenamento e diretórios fora do projeto. Essa operação e eve
 
 ## Continuação proposta em 21/10/2026 — C–F e fechamento
 
-Estado deste acréscimo: aguardando aprovação do recorte concreto. O usuário solicitou continuar até finalizar a Slice 0, com auxiliares em paralelo e sem skills globais.
+Estado deste acréscimo: aprovado pelo usuário em 21/10/2026, ao autorizar trabalho e análises completas da Slice 0 na VM isolada, sem credenciais nos agentes. Auxiliares em paralelo autorizados; sem skills globais.
 
 Objetivo: preencher todas as linhas da matriz com resultado e evidência, experimentando o Pi 1.2.0 já instalado, sem credenciais reais. Fechar o relatório não significa passar todos os critérios nem autorizar Slice 1.
 
@@ -63,3 +63,8 @@ Arquivos permitidos adicionais: scripts, configuração sintética, fixtures e e
 - Fechamento: síntese de agente candidato versus comprovado, riscos e decisão de avançar/bloquear ligada aos IDs; commit pequeno com verificações sintáticas, experimentos e `git diff --check`.
 
 Sem dependências novas nem download previstos. Se Pi e seu runtime instalado forem incompatíveis com a imagem local, registrar e propor alternativa antes de baixar. Uso de fixtures/modelo falso será identificado em cada conclusão.
+
+
+## Encerramento da rodada local
+
+Experimentos A–F possíveis sem credenciais executados; todas as perguntas A–G classificadas no relatório, com casos não executados justificados. Pi e OpenCode consumiram resposta sintética por UDS, sem rede externa no contêiner. Foram preservadas falhas de configuração e OOM; não houve instalação de dependências. Evidências e limites em `SPIKE-SLICE0-RESULTADOS.md`. C1/D2 reais, D3 e comparação WSL2 seguem pendentes; nenhum selo de produto ou autorização automática para Slice 1.

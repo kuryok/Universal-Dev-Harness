@@ -1,120 +1,88 @@
-# Spike da Slice 0: perguntas, critérios e decisão
+# Slice 0 — resultado do spike na VM
 
-**Natureza:** experimento descartável. Nada aqui é código de produto.
-**Objetivo:** descobrir, com evidência, se a fundação de isolamento e inferência se sustenta e qual agente entra primeiro.
-**Regra de ouro:** cada linha termina com um resultado honesto: **passou**, **falhou**, **parcial** ou **não executado**, mais a evidência (saída, log ou observação). Resultado ruim é informação, não fracasso.
+Data: 21/10/2026. **Experimento descartável; conclusão parcial da fundação.**
 
-## Preparação: anote antes de começar
+A rodada local foi executada e todas as 29 perguntas receberam um resultado. **Não há autorização técnica para declarar a Slice 0 integralmente validada ou avançar automaticamente à Slice 1:** C1 não recebeu uma resposta de modelo real, D2 não exercitou injeção de credencial real pelo gateway e D3 não exercitou assinatura. A comparação WSL2 fica pendente para outro ambiente. Os demais resultados abaixo valem somente para os perfis e casos efetivamente testados.
 
-- Ambiente: Debian GNU/Linux 13 (trixie), versão completa 13.7; Linux 6.12.111+deb13-amd64, x86_64. Usuário: `debian` (UID/GID 1000). Evidência: `/etc/os-release`, `uname -srmo`, `id`.
-- Windows/WSL2: não aplicável neste ambiente; este ambiente é uma VM Linux, conforme informado pelo usuário nesta sessão. Não foi testada máquina física; os resultados se restringem a esta VM.
-- Atualização em 21/10/2026: Podman 5.4.2, rootless confirmado por `podman info` e execução com UID/GID 1000 no contêiner. O erro anterior de filesystem somente leitura em `/run/user/1000/libpod` não se repetiu após a mudança de permissões da sessão. Imagem local Alpine 3.20, digest `sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc`; nenhum download. Evidência: `spike/slice0/evidence/results.json`, registros `runtime`, `image`, `A1`.
-- cgroup v2: disponível (filesystem `cgroup2fs`; `/proc/self/cgroup` registra hierarquia unificada `0::`). Delegação: evidência de escopo delegado ao usuário em `/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service`: `cgroup.controllers` contém `cpu memory pids`; `cgroup.subtree_control` e `cgroup.procs` pertencem a `debian`. Isso confirma delegação nesse escopo, não valida comportamento de um runtime.
-- User namespaces: habilitados pelos valores observados (`user.max_user_namespaces=2147483647`; `kernel.unprivileged_userns_clone=1`).
-- SubUID/subGID: `/etc/subuid` contém `debian:100000:65536`; `/etc/subgid` contém `debian:100000:65536`.
-- Agente e versão: não selecionados; não testados.
-- Comparação com WSL2: será feita depois, em outra máquina, conforme o contexto desta tarefa.
+## Ambiente e identidade
 
-## A. Ambiente
+- VM Linux informada pelo usuário: Debian 13, kernel `6.12.111+deb13-amd64`, x86_64, UID/GID 1000. `systemd-detect-virt` retornou `microsoft`; isso não certifica WSL2 nem a máquina física. Ver `environment.json`.
+- Podman 5.4.2 rootless, cgroup v2. Memória, processos e CPU foram exercitados; a lista de controladores do `podman info`, isoladamente, não demonstrava todos os limites efetivos.
+- Imagem local: Alpine 3.20, digest `sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc`. Nenhuma imagem ou dependência foi baixada.
+- Pi 1.2.0 e Node 22.23.3 já instalados; OpenCode 1.18.35 encontrado fora do PATH. Binários/bibliotecas e runtime Pi foram montados somente leitura. Os hashes estão nas evidências. Isso é uma composição experimental sobre a imagem Alpine, não uma imagem final de agente empacotada para produto.
+- Sem home pessoal, credenciais reais ou configuração pessoal montados. Apenas fixtures, prompts e capacidade de autenticação inteiramente sintéticos. Nenhum CLI local de modelo foi encontrado entre `ollama`, `llama-server` e `vllm` no PATH; isso não é inventário de todos os serviços possíveis.
 
-| ID | Pergunta | Passou se | Resultado | Evidência |
-|---|---|---|---|---|
-| A1 | O runtime sobe contêineres sem privilégios de administrador? | Um contêiner trivial roda como usuário comum | passou | `A1`: exit 0, UID/GID 1000; runtime rootless; capabilities efetivas zeradas, NoNewPrivs=1 e seccomp ativo. |
-| A2 | Os limites de memória, CPU e processos do contêiner são respeitados? | Um consumo acima do limite é interrompido pelo runtime | passou | Memória 64 MiB: exit 137 e OOMKilled=true. Processos: pids.max=32 e fork recusado, exit 2. CPU: cpu.max=25000/100000; sob carga, nr_throttled passou de 0 para 20 e usage_usec de 3170 para 518194 em cerca de 2 s. CPU limita taxa, não encerra processo. Registros `A2-*` e respectivas inspeções. |
-| A3 | O contêiner enxerga só a pasta do projeto? | Arquivos fora da pasta autorizada não aparecem lá dentro | parcial | Único bind de dados de projeto: workspace sintético em /workspace; sentinela externa inacessível. Imagem, /proc, /sys, dispositivos e arquivos geridos pelo runtime também são visíveis. Não interpretar o critério literalmente como ausência de qualquer arquivo externo; ver registro combinado e mounts. |
-| A4 | Os discos do Windows (montagens automáticas do WSL2) ficam fora do alcance do agente? | Dentro do contêiner não existe caminho para o disco C: | não executado | Linux nativo; ausência de discos Windows neste ambiente não demonstra isolamento no WSL2. |
-| A5 | Executáveis do Windows podem ser chamados de dentro do contêiner? | Não podem | não executado | Linux nativo; interoperabilidade Windows/WSL2 não exercitada. |
+## Matriz preenchida
 
-## B. Isolamento (matriz negativa: tente fazer o que não deveria dar certo)
+As perguntas e seus critérios originais permanecem em `SPIKE-SLICE0-PERGUNTAS.md`. Caminhos de evidência abaixo são relativos a `spike/slice0/evidence/`. “Passou” refere-se ao experimento descrito, não ao produto ou a uma garantia universal de segurança.
 
-| ID | Pergunta | Passou se | Resultado | Evidência |
-|---|---|---|---|---|
-| B1 | Um arquivo sentinela fora da pasta autorizada pode ser lido? | Não pode | passou | Sentinela sintética existente no host fora do bind não aparece no contêiner. Registro `A3-B1-B2-B3-B5-B6`, exit 0. |
-| B2 | Um atalho simbólico dentro da pasta apontando para fora permite ler o que está fora? | Não permite | passou | Symlink no workspace aponta para sentinela externa existente no host e fica pendente dentro do contêiner; registro combinado, exit 0. |
-| B3 | O socket do próprio runtime de contêiner está acessível por dentro? | Não está | passou | Socket do Podman existe no host segundo runtime; caminhos /run/user/1000/podman/podman.sock, /run/podman/podman.sock e /var/run/docker.sock ausentes dentro. Inspeção não mostra bind desses sockets. |
-| B4 | O contêiner consegue qualquer conexão de rede de saída (nome, IP direto, outras portas)? | Nenhuma conexão sai | parcial | network=none; somente loopback, sem rota externa. DNS e TCP por IP em 53/80/443/8443 falharam, ferramentas presentes. Receptores controlados TCP/UDP IPv4/IPv6 no host receberam controles positivos; nenhum marcador do contêiner chegou. UDP retornou 0/open sem entrega: não contar como conexão. Ainda sem captura externa/cobertura universal. `results.json` (B4) e `network-probe.json`. |
-| B5 | O agente consegue escrever fora da pasta de trabalho dele? | Não consegue | parcial | Escrita em /workspace permitida; arquivos comuns em /, /tmp, /home e /etc recusados, raiz somente leitura e tmpfs automáticos desativados. /proc e dispositivos especiais existem; não foi provada impossibilidade de toda escrita fora do workspace. |
-| B6 | O agente enxerga variáveis de ambiente ou arquivos de credencial do usuário? | Não enxerga | passou | No experimento sintético: variável do host ausente também em /proc/1/environ; arquivo sintético externo inacessível por caminho absoluto e symlink. Não há bind do home do host. Credenciais reais não foram lidas; resultado limitado aos canais exercitados. `A3-B1-B2-B3-B5-B6`, exit 0. |
+| ID | Resultado | Evidência e alcance |
+|---|---|---|
+| A1 | passou | `results.json`, A1: UID/GID 1000, rootless, capabilities efetivas zeradas, NoNewPrivs=1 e seccomp ativo. |
+| A2 | passou | `results.json`: memória 64 MiB, exit137/OOMKilled=true; pids.max=32, fork recusado/exit2; CPU 25000/100000, 20 throttles e uso de 3170 → 518194 µs em cerca de 2 s. CPU limita taxa; não encerra o processo. |
+| A3 | parcial | Só workspace sintético e recursos explicitamente montados ficam disponíveis como dados do experimento. Imagem, /proc, /sys e dispositivos também existem; o critério literal “só a pasta” não foi demonstrado. Inspeções em `results.json` e `agent-probe.json`. |
+| A4 | não executado | Discos Windows/automount de WSL2 não exercitados nesta VM Linux. |
+| A5 | não executado | Interoperabilidade com executáveis Windows não exercitada. |
+| B1 | passou | Sentinela externa ao bind inacessível pelo caminho absoluto; `results.json`, registro combinado A3/B. |
+| B2 | passou | Symlink validado no host aponta para sentinela existente; fica pendente/inacessível no contêiner. Mesmo registro. |
+| B3 | passou | Socket do Podman existe no host e não aparece nos caminhos testados do contêiner; sem bind do runtime. `results.json`. |
+| B4 | passou | No perfil testado: network=none, somente loopback, TCP/UDP IPv4/IPv6 externos retornam ENETUNREACH e DNS ECONNREFUSED. O mesmo cliente Node recebe controles positivos locais TCP/UDP. Receptores do host não recebem marcadores do contêiner. `agent-probe.json`, B4-E1-E2-network; `network-probe.json`. Não prova resistência a comprometimento do kernel. |
+| B5 | parcial | Escrita persistente nos caminhos comuns fora do workspace foi recusada; raiz RO e tmpfs automáticos desativados. /proc e dispositivos especiais existem; não foi provada impossibilidade de qualquer escrita fora do workspace. |
+| B6 | passou | Variável sintética ausente também em /proc/1/environ; arquivo sintético externo inacessível diretamente e por symlink. `results.json`. Não foram lidas credenciais reais. |
+| C1 | não executado | Nenhum provedor ou modelo real foi configurado. SPIKE_SYNTHETIC_OK é resposta programada, não inferência. |
+| C2 | passou | `agent-probe.json`: rota/método/finalidade/modelo recusados, capacidade incorreta 401, corpo excedente 413, schema/framing inválidos 400. Rota/método/finalidade recusados também pela ponte. Socket 0600, diretório 0700 e peer UID verificado. Mediador sintético; limites adicionais abaixo. |
+| C3 | passou | Pi recebeu SPIKE_ e SYNTHETIC_OK em eventos separados; SSE direto mostra partes separadas por aproximadamente 150 ms. OpenCode também completou resposta sintética. `agent-probe.json` e `opencode-probe.json`. |
+| C4 | passou | Mediador realmente morto após primeira parte. Pi encerra sem timeout e registra stopReason:error/errorMessage:terminated. **Exit do Pi é 0 mesmo no erro.** `agent-probe.json`, C4-mediator-killed. |
+| C5 | parcial | Auditoria por run_id não contém o marcador sintético de autenticação; registra apenas campos permitidos. Redação com chave real/injeção do provedor não exercitada. `gateway-audit.jsonl` e checks do Pi. |
+| D1 | passou | Pi e OpenCode consumiram endpoint customizado atrás da ponte/UDS com network=none. Resposta sintética; compatibilidade com provedor real ainda não provada. |
+| D2 | parcial | Ambos funcionaram sem chave real no contêiner, usando capacidade sintética. Não houve injeção de credencial real fora do sandbox ou inferência autenticada. |
+| D3 | não executado | Sem login/assinatura fornecido ao mediador. Nenhum auth store pessoal foi lido. Não afirmar suporte nem incompatibilidade. |
+| D4 | passou | Alternativa mínima descrita: primeiro integrar API pelo gateway com credencial mantida pelo operador fora do sandbox, ou modelo local; assinatura permanece indisponível até prova própria. Descrição, não autenticação validada. |
+| E1 | passou | Perfil Pi sem ferramentas expostas ao modelo e sem egress IP; clientes reais dentro do mesmo perfil confirmam bloqueio. Não foi feita busca web real. |
+| E2 | passou | Pi offline/telemetria desligada no perfil e egress IP bloqueado. OpenCode aceita autoupdate=false e flags disable*; isso não certifica ausência universal de canais de exfiltração por inferência. |
+| E3 | passou | Perfil Pi com no-mcp/no-extensions/no-skills/no-tools; auditoria recebe has_tools=false. OpenCode tem plugins vazios/pure e flags restritivas, mas uma requisição ainda declara ferramentas: não foi certificado como perfil sem ferramentas. |
+| E4 | passou | **Variante inicial falhou:** renomear diretório pai sombreou configurações RO (`pi-parent-rename-variant.json`). Perfil corrigido fixa diretório como mountpoint e arquivos RO; escrita, remoção, symlink e rename do pai são recusados. Hashes intactos em `agent-probe.json`. Não certificar configuração OpenCode por esse resultado. |
+| F1 | passou | Processo sintético declara sucesso, grava relatório falso e sai23; coletor externo registra official_success=false. `f-probe.json`. Não é executor confiável do produto. |
+| F2 | passou | Fixture protegida SINTÉTICA resiste a escrita, remoção e substituição; hash antes/depois idêntico. `f-probe.json`. Prova prevenção das tentativas, não detecção semântica nem AT real. |
+| F3 | passou | SIGKILL durante gravação deixa temporário JSON inválido e checkpoint antigo; antes do replace preserva antigo; depois preserva novo; controle normal passa. `f-probe.json`. Corte de processo local, não queda de energia nem Core/SQLite. |
+| G1 | não executado | Só esta VM foi exercitada; comparação WSL2 depende de outra execução. Não presumir paridade. |
+| G2 | não executado | Sem execução WSL2 não há causa de falha exclusiva a atribuir. |
 
-## C. Mediador de inferência
+## Decisão e riscos que sobraram
 
-| ID | Pergunta | Passou se | Resultado | Evidência |
-|---|---|---|---|---|
-| C1 | Com a rede totalmente desligada, o agente consegue falar com o modelo apenas pelo caminho do mediador? | Uma resposta real do modelo chega ao agente | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| C2 | O mediador só aceita as rotas e finalidades autorizadas? | Uma rota não autorizada é recusada | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| C3 | A resposta em fluxo contínuo (streaming) chega corretamente? | Texto chega em partes, sem travar nem truncar | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| C4 | Se o mediador for desligado no meio de uma chamada, o agente falha de forma limpa? | Erro claro, sem ficar pendurado indefinidamente | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| C5 | O mediador registra o que passou sem gravar a credencial nos registros? | Nenhuma chave aparece nos logs | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+**Primeiro candidato: Pi 1.2.0**, pela prova explícita de endpoint, UDS, streaming, interrupção e configuração protegida neste perfil. É candidato à próxima prova, não agente declarado conforme. OpenCode também completou o transporte sintético; não foi instalado segundo agente de produto.
 
-## D. Autenticação (a pergunta mais arriscada)
+- **C1/D2/D3:** inferência real e autenticação continuam pendentes. A documentação oficial atual do [OpenCode Console](https://opencode.ai/v2/docs/console/models/) orienta autenticação por chave; listar modelos gratuitos no catálogo local não prova acesso anônimo. Nenhuma chamada paga ou autenticada foi feita.
+- **C4/F1:** o adaptador futuro deve conferir os eventos estruturados do Pi; exit0 não demonstra conclusão de inferência. O spike não implementa esse adaptador de produto.
+- **E4:** arquivos RO dentro de diretório renomeável não bastam. A configuração experimental corrigida protege o mountpoint e permite locks no workspace. O Pi falhou inicialmente quando todo o diretório de configuração era RO, pois precisa criar settings.json.lock/auth.json.lock; essa falha foi preservada em `pi-readonly-directory-failure.json`.
+- **A2/OpenCode:** listagem models falhou com OOM em 256 MiB e passou em 768 MiB; inferência sintética passou em 768 MiB. Pi passou em 384 MiB. Não foi medido mínimo exato nem benchmark comparável de consumo entre agentes.
+- **C2:** protótipo com limite de corpo, oito conexões simultâneas e timeout de inatividade de 3 s. Não há prazo absoluto contra envio lento; cliente que pinga bytes pode ocupar slots. Não é gateway pronto para uso com segredos ou tráfego de produção.
+- **F1–F3:** evidências ficam fora dos mounts graváveis dos contêineres, porém são editáveis pelo usuário/assistente no host. Não são store selada, executor oficial ou aprovação independente do produto. Nenhum AT real foi criado ou alterado.
+- **G:** resultados da VM não certificam máquina física nem WSL2. O erro inicial de filesystem RO no runtime não se repetiu após a mudança de permissões da sessão.
 
-| ID | Pergunta | Passou se | Resultado | Evidência |
-|---|---|---|---|---|
-| D1 | O agente aceita apontar para um endereço de inferência customizado? | Aceita e funciona | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| D2 | Funciona sem a chave real dentro do contêiner (o mediador injeta a credencial por fora)? | Funciona; nada sensível dentro do contêiner | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| D3 | Funciona para quem usa login por assinatura, e não chave de API? | Funciona, ou fica registrado claramente que não funciona | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| D4 | Se não funciona, qual é a alternativa mínima para o iniciante? | Alternativa descrita (ex.: só chave de API para esse agente) | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+Não foi identificada falha de isolamento IP nos casos executados. O bypass de configuração foi reproduzido, preservado e fechado no perfil experimental; não foi apagado do resultado para aparentar sucesso.
 
-## E. Controle do próprio agente
+## Como reproduzir e verificar
 
-| ID | Pergunta | Passou se | Resultado | Evidência |
-|---|---|---|---|---|
-| E1 | Busca web nativa do agente pode ser desligada ou fica bloqueada pela rede? | Não consegue sair | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| E2 | Telemetria e autoatualização podem ser desligadas ou ficam bloqueadas? | Não conseguem sair | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| E3 | Ferramentas e servidores externos embutidos do agente podem ser desativados? | Ficam desativados | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| E4 | O agente consegue alterar a própria configuração de permissões? | Não consegue | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+No diretório do projeto, com os mesmos binários locais e imagem disponível:
 
-## F. Evidência e honestidade
+```bash
+python3 spike/slice0/run.py
+python3 spike/slice0/network_probe.py
+python3 spike/slice0/agent_probe.py
+python3 spike/slice0/evidence_probe.py
+python3 spike/slice0/opencode_probe.py --memory-mib 256
+python3 spike/slice0/opencode_probe.py --memory-mib 768 --synthetic-inference
+python3 -m py_compile spike/slice0/*.py
+git diff --check
+```
 
-| ID | Pergunta | Passou se | Resultado | Evidência |
-|---|---|---|---|---|
-| F1 | Um relatório de sucesso escrito pelo agente é distinguível do resultado coletado por código confiável? | O resultado só vale quando vem da coleta externa | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| F2 | Se o agente tentar alterar um arquivo protegido (simulando um teste de aceite), isso é detectado? | A alteração é detectada e rejeitada | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
-| F3 | Se o processo for morto no meio de uma gravação, é possível saber onde parou? | O estado depois do corte é identificável | não executado | Nenhum experimento deste item nesta rodada. Continuação C–F proposta no OpenSpec, aguardando aprovação do recorte concreto; inferência/autenticação reais também dependem de caminho sem exposição de credenciais. |
+Executar sem concorrência entre roteiros: alguns arquivos de evidência são atualizados a cada rodada. O retorno137 de memória, o retorno2 do teste de processos e o OOM do catálogo OpenCode em 256 MiB são resultados esperados dos experimentos, não gates de produto aprovados. A listagem de processos da VM e stores de credenciais pessoais não precisam ser lidas.
 
-## G. Comparação entre ambientes
+Os roteiros foram executados; compilação e checks das evidências passaram. Houve revisão em contexto separado; os achados de configuração, framing e limpeza foram incorporados ou mantidos como limite explícito. O Podman já remove cidfiles na limpeza: falhas iniciais de remoção duplicada foram corrigidas e repetidas com sucesso. O caminho longo de UDS foi corrigido com caminho relativo no processo servidor. Nenhuma dependência foi instalada.
 
-| ID | Pergunta | Passou se | Resultado | Evidência |
-|---|---|---|---|---|
-| G1 | Cada item acima deu o mesmo resultado no WSL2 e no Linux de referência? | Mesmo resultado, ou a diferença está explicada | não executado | Comparação com WSL2 depende de outro ambiente; só esta VM Linux foi exercitada. |
-| G2 | Existe algo que só falha no WSL2? | Registrado com a causa provável | não executado | Comparação com WSL2 depende de outro ambiente; só esta VM Linux foi exercitada. |
+`tools/harness.py` e gates do projeto não existem: fast/full **não executados**. OpenSpec CLI ausente: validação pela CLI **não executada**. A emenda ADR-018 A não foi ratificada e não foi necessária para estes ensaios exclusivos de inferência. Exclusão do baseline antigo e arquivo de arquitetura novo, preexistentes, foram preservados sem entrar nos commits desta tarefa.
 
-## Como decidir o que fazer com os resultados
+## Próximo passo
 
-- **Tudo ou quase tudo passou, com pelo menos um agente:** siga para a Slice 1 com esse agente como primeiro.
-- **O isolamento (grupo B) falhou de forma que não dá para corrigir com configuração:** pare. Isso é um problema de fundação, e vale reabrir o desenho nesse ponto, com a evidência na mão.
-- **A autenticação (grupo D) falhou para o login por assinatura:** não é um bloqueio. Registre que esse agente só serve a quem usa chave de API e decida qual caminho oferecer ao iniciante.
-- **Só o WSL2 falhou:** registre o que é preciso mudar no ambiente e o que o `doctor` (a verificação de instalação) precisará checar. Não descarte o WSL2 sem entender a causa.
-- **Um agente falhou em E ou D, outro passou:** escolha o que passou como primeiro e deixe o outro para depois.
-- **Itens "não executado":** não contam como passou. Resolva ou justifique antes de seguir.
-
-## Saída esperada do spike
-
-Uma página com: a tabela preenchida, o agente escolhido como primeiro e por quê, os riscos que sobraram, e as mudanças de desenho propostas, **se houver**, cada uma ligada a uma linha da tabela como evidência.
-
-## Evidências desta rodada — 21/10/2026
-
-- Roteiro executável: `spike/slice0/run.py`. Saídas, argumentos, códigos de retorno e inspeções: `spike/slice0/evidence/results.json`.
-- Reprodução: `python3 spike/slice0/run.py`, com Podman rootless utilizável e a mesma imagem já disponível localmente. Não baixa imagem (`--pull=never`). Usa nomes de contêiner prefixados com `udh-slice0-`; executar sem concorrência e sem contêineres preexistentes com esses nomes.
-- Ambiente: VM informada pelo usuário; restrições da sessão/VM não serão atribuídas à máquina física sem reprodução.
-- Escopo: contêiner Alpine com comandos sintéticos; nenhum CLI de agente foi executado. Os resultados não certificam agente nem produto.
-- As evidências foram coletadas pelo processo deste experimento, fora do contêiner, mas ficam editáveis no repositório. Não constituem a store protegida ou o executor confiável do produto; F1–F3 continuam sem execução.
-- Grupos C–G não executados nesta rodada. Nenhum agente selecionado; a Slice 0 permanece parcial, sem decisão de avançar para Slice 1.
-- Não existe `tools/harness.py` ou suíte de gates configurada. Compilação sintática do script executada com sucesso. CLI OpenSpec ausente: validação OpenSpec não executada. Revisão independente não executada.
-- Preservadas as mudanças preexistentes: exclusão do baseline anterior e arquivos de arquitetura/resultados já presentes no início da sessão.
-
-## Rodada complementar A/B — 21/10/2026
-
-- `run.py` foi executado novamente com sucesso de coordenação: A1 e matriz sintética exit 0; memória exit 137/OOMKilled=true e processos exit 2/fork recusado são os resultados negativos esperados. CPU throttling observado novamente; a última rodada registra 0 → 20 períodos limitados e uso 3170 → 518194 µs. A saída do roteiro não substitui a interpretação de cada registro.
-- Fixture adicional: arquivo representando credencial, inteiramente sintético; nenhum segredo real foi acessado. B6 agora passou nos canais exercitados.
-- Contêineres recebem nomes aleatórios e são removidos pelo ID coletado. O Podman já remove o cidfile ao remover o contêiner: a primeira tentativa complementar encontrou FileNotFoundError na limpeza; corrigido com remoção idempotente e rodada repetida com sucesso. Não foi falha de isolamento.
-- `python3 spike/slice0/network_probe.py`: quatro receptores locais controlados, TCP/UDP em IPv4/IPv6. Todos os controles no host receberam o marcador; nenhum receptor recebeu marcador do contêiner na tentativa nem na janela adicional de 3 s após ela. O script manteve os quatro diagnósticos como parciais. Em UDP, exit 0 e texto “open” NÃO demonstram conexão: o receptor não recebeu nada. Não há conclusão sobre toda forma possível de egress.
-- Os ensaios usam apenas imagem local já presente, sem baixar pacotes. Evidências complementares em `spike/slice0/evidence/network-probe.json`; evidência A/B mais recente em `results.json` (a rodada anterior permanece no histórico Git).
-- Os auxiliares desta sessão analisaram tarefas independentes; não foram adicionados segundo/terceiro agentes ao produto. Nenhuma skill global foi usada nesta continuação.
-
-## Revisão independente e ponto de retomada
-
-- Revisão em contexto separado identificou risco de symlink sentinela incorreto, limpeza interrompida e diagnóstico de rede excessivo. Ajustados: validação do destino do symlink, limpeza por ID em `finally`, preservação de cidfile em erro de limpeza e classificação de rede sempre parcial até interpretação. A janela do receptor agora inclui 3 s após a tentativa; o controle TCP lê o marcador completo.
-- Roteiros repetidos após os ajustes; todos os cleanups registrados retornaram 0. Nenhum contêiner `udh-slice0-*` permaneceu. Compilação sintática e verificação de whitespace passaram. Não há harness/gates de produto configurados.
-- O controle positivo de rede usa Python no host; não prova o funcionamento do mesmo cliente `nc` em um caminho positivo dentro do contêiner. A cobertura segue parcial. Nenhum ensaio de agente real ainda foi feito.
-- Próximo passo: aprovação do acréscimo C–F no OpenSpec, execução local com Pi 1.2.0 e mediador sintético, depois resposta real via gateway sem expor credenciais. Não avançar para Slice 1 nem selecionar agente como comprovado antes das evidências requeridas.
+**Completar C1/D2 com um modelo real atrás do gateway**, mantendo network=none no agente e sem colocar credenciais no workspace. Pode ser endpoint local sem autenticação ou gateway externo configurado pelo operador. Repetir streaming/interrupção nesse caminho, registrar decisão por agente e então avaliar a liberação para Slice 1. D3 e WSL2 exigem provas próprias; eventual escopo Linux/API deve ser assumido explicitamente, sem declarar esses casos como aprovados.

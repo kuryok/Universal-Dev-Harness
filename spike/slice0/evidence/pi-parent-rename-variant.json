@@ -1,0 +1,668 @@
+{
+  "run_id": "122a5dc9a0174d32981c192cdd1a1863",
+  "synthetic_only": true,
+  "experiments": [
+    {
+      "label": "E4-parent-rename-before-hardening",
+      "args": [
+        "podman",
+        "run",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--userns=keep-id",
+        "--pids-limit=64",
+        "--memory=384m",
+        "--memory-swap=384m",
+        "--env=HOME=/workspace/home",
+        "--env=PI_CODING_AGENT_DIR=/workspace/agent-config",
+        "--env=PI_OFFLINE=1",
+        "--env=PI_TELEMETRY=0",
+        "--env=PATH=/runtime:/usr/bin:/bin",
+        "--env=TMPDIR=/workspace/tmp",
+        "--workdir=/workspace",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/agent-122a5dc9a0174d32981c192cdd1a1863:/workspace:rw",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/ipc:/ipc:ro",
+        "--volume",
+        "/home/debian/.pi/agent/install/releases/1.2.0/node_modules:/opt/pi/node_modules:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/network_client.mjs:/network_client.mjs:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/bridge.mjs:/bridge.mjs:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/models.json:/workspace/agent-config/models.json:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/settings.json:/workspace/agent-config/settings.json:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/auth.json:/workspace/agent-config/auth.json:ro",
+        "--volume",
+        "/home/debian/.local/share/pi-node/node-v22.23.3-linux-x64/bin/node:/runtime/node:ro",
+        "--volume",
+        "/lib/x86_64-linux-gnu/libc.so.6:/lib/x86_64-linux-gnu/libc.so.6:ro",
+        "--volume",
+        "/lib/x86_64-linux-gnu/libdl.so.2:/lib/x86_64-linux-gnu/libdl.so.2:ro",
+        "--volume",
+        "/lib/x86_64-linux-gnu/libgcc_s.so.1:/lib/x86_64-linux-gnu/libgcc_s.so.1:ro",
+        "--volume",
+        "/lib/x86_64-linux-gnu/libm.so.6:/lib/x86_64-linux-gnu/libm.so.6:ro",
+        "--volume",
+        "/lib/x86_64-linux-gnu/libpthread.so.0:/lib/x86_64-linux-gnu/libpthread.so.0:ro",
+        "--volume",
+        "/lib/x86_64-linux-gnu/libstdc++.so.6:/lib/x86_64-linux-gnu/libstdc++.so.6:ro",
+        "--volume",
+        "/lib64/ld-linux-x86-64.so.2:/lib64/ld-linux-x86-64.so.2:ro",
+        "--name",
+        "udh-slice0-agent-dd80a361255a42929177cfd362ddb5fb",
+        "--cidfile",
+        "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/udh-slice0-agent-dd80a361255a42929177cfd362ddb5fb.cid",
+        "docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+        "sh",
+        "-c",
+        "set -eu; mv /workspace/agent-config /workspace/moved-config; mkdir /workspace/agent-config; echo synthetic-replacement > /workspace/agent-config/settings.json; echo CONFIG_SHADOWED"
+      ],
+      "stdout": "CONFIG_SHADOWED\n",
+      "stderr": "",
+      "returncode": 0,
+      "elapsed_seconds": 0.09815602200069407,
+      "inspection": [
+        {
+          "Id": "f6fdbb57773a5368e10a2df036664b3958f1d980212b3d14b343657d7f57f3b0",
+          "Created": "2026-10-21T12:15:26.170393436-03:00",
+          "Path": "sh",
+          "Args": [
+            "-c",
+            "set -eu; mv /workspace/agent-config /workspace/moved-config; mkdir /workspace/agent-config; echo synthetic-replacement > /workspace/agent-config/settings.json; echo CONFIG_SHADOWED"
+          ],
+          "State": {
+            "OciVersion": "1.2.0",
+            "Status": "exited",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-10-21T12:15:26.231696404-03:00",
+            "FinishedAt": "2026-10-21T12:15:26.235050634-03:00",
+            "CheckpointedAt": "0001-01-01T00:00:00Z",
+            "RestoredAt": "0001-01-01T00:00:00Z"
+          },
+          "Image": "bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731",
+          "ImageDigest": "sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+          "ImageName": "docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+          "Rootfs": "",
+          "Pod": "",
+          "ResolvConfPath": "",
+          "HostnamePath": "/run/user/1000/containers/overlay-containers/f6fdbb57773a5368e10a2df036664b3958f1d980212b3d14b343657d7f57f3b0/userdata/hostname",
+          "HostsPath": "/run/user/1000/containers/overlay-containers/f6fdbb57773a5368e10a2df036664b3958f1d980212b3d14b343657d7f57f3b0/userdata/hosts",
+          "StaticDir": "/home/debian/.local/share/containers/storage/overlay-containers/f6fdbb57773a5368e10a2df036664b3958f1d980212b3d14b343657d7f57f3b0/userdata",
+          "OCIConfigPath": "/home/debian/.local/share/containers/storage/overlay-containers/f6fdbb57773a5368e10a2df036664b3958f1d980212b3d14b343657d7f57f3b0/userdata/config.json",
+          "OCIRuntime": "crun",
+          "ConmonPidFile": "/run/user/1000/containers/overlay-containers/f6fdbb57773a5368e10a2df036664b3958f1d980212b3d14b343657d7f57f3b0/userdata/conmon.pid",
+          "PidFile": "/run/user/1000/containers/overlay-containers/f6fdbb57773a5368e10a2df036664b3958f1d980212b3d14b343657d7f57f3b0/userdata/pidfile",
+          "Name": "udh-slice0-agent-dd80a361255a42929177cfd362ddb5fb",
+          "RestartCount": 0,
+          "Driver": "overlay",
+          "MountLabel": "",
+          "ProcessLabel": "",
+          "AppArmorProfile": "",
+          "EffectiveCaps": null,
+          "BoundingCaps": null,
+          "ExecIDs": [],
+          "GraphDriver": {
+            "Name": "overlay",
+            "Data": {
+              "LowerDir": "/home/debian/.local/share/containers/storage/overlay/7a5912bb0a1516c2634bed3c117b0ab73ef66c1e53b6f18236fa9810c0dfb917/diff:/home/debian/.local/share/containers/storage/overlay/08bc4e534116aa76b16015484b82eac51f9a593416feae9296c8a2d4bb7aa4a2/diff",
+              "UpperDir": "/home/debian/.local/share/containers/storage/overlay/df1896e740bf834c1372bd78e7eba1db5893e4caf2703e46137af017dc5143d4/diff",
+              "WorkDir": "/home/debian/.local/share/containers/storage/overlay/df1896e740bf834c1372bd78e7eba1db5893e4caf2703e46137af017dc5143d4/work"
+            }
+          },
+          "Mounts": [
+            {
+              "Type": "bind",
+              "Source": "/lib/x86_64-linux-gnu/libm.so.6",
+              "Destination": "/lib/x86_64-linux-gnu/libm.so.6",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/lib/x86_64-linux-gnu/libpthread.so.0",
+              "Destination": "/lib/x86_64-linux-gnu/libpthread.so.0",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/settings.json",
+              "Destination": "/workspace/agent-config/settings.json",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/agent-122a5dc9a0174d32981c192cdd1a1863",
+              "Destination": "/workspace",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": true,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/home/debian/.pi/agent/install/releases/1.2.0/node_modules",
+              "Destination": "/opt/pi/node_modules",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/home/debian/.local/share/pi-node/node-v22.23.3-linux-x64/bin/node",
+              "Destination": "/runtime/node",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/lib/x86_64-linux-gnu/libdl.so.2",
+              "Destination": "/lib/x86_64-linux-gnu/libdl.so.2",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/lib/x86_64-linux-gnu/libgcc_s.so.1",
+              "Destination": "/lib/x86_64-linux-gnu/libgcc_s.so.1",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/lib64/ld-linux-x86-64.so.2",
+              "Destination": "/lib64/ld-linux-x86-64.so.2",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/models.json",
+              "Destination": "/workspace/agent-config/models.json",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/bridge.mjs",
+              "Destination": "/bridge.mjs",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/lib/x86_64-linux-gnu/libc.so.6",
+              "Destination": "/lib/x86_64-linux-gnu/libc.so.6",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/ipc",
+              "Destination": "/ipc",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/auth.json",
+              "Destination": "/workspace/agent-config/auth.json",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/lib/x86_64-linux-gnu/libstdc++.so.6",
+              "Destination": "/lib/x86_64-linux-gnu/libstdc++.so.6",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            },
+            {
+              "Type": "bind",
+              "Source": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/network_client.mjs",
+              "Destination": "/network_client.mjs",
+              "Driver": "",
+              "Mode": "",
+              "Options": [
+                "rbind"
+              ],
+              "RW": false,
+              "Propagation": "rprivate"
+            }
+          ],
+          "Dependencies": [],
+          "NetworkSettings": {
+            "EndpointID": "",
+            "Gateway": "",
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "MacAddress": "",
+            "Bridge": "",
+            "SandboxID": "",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {},
+            "SandboxKey": "",
+            "Networks": {
+              "none": {
+                "EndpointID": "",
+                "Gateway": "",
+                "IPAddress": "",
+                "IPPrefixLen": 0,
+                "IPv6Gateway": "",
+                "GlobalIPv6Address": "",
+                "GlobalIPv6PrefixLen": 0,
+                "MacAddress": "",
+                "NetworkID": "none",
+                "DriverOpts": null,
+                "IPAMConfig": null,
+                "Links": null
+              }
+            }
+          },
+          "Namespace": "",
+          "IsInfra": false,
+          "IsService": false,
+          "KubeExitCodePropagation": "invalid",
+          "lockNumber": 0,
+          "Config": {
+            "Hostname": "f6fdbb57773a",
+            "Domainname": "",
+            "User": "1000:1000",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+              "HOME=/workspace/home",
+              "PI_CODING_AGENT_DIR=/workspace/agent-config",
+              "container=podman",
+              "PATH=/runtime:/usr/bin:/bin",
+              "PI_OFFLINE=1",
+              "PI_TELEMETRY=0",
+              "TMPDIR=/workspace/tmp",
+              "HOSTNAME=f6fdbb57773a"
+            ],
+            "Cmd": [
+              "sh",
+              "-c",
+              "set -eu; mv /workspace/agent-config /workspace/moved-config; mkdir /workspace/agent-config; echo synthetic-replacement > /workspace/agent-config/settings.json; echo CONFIG_SHADOWED"
+            ],
+            "Image": "docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+            "Volumes": null,
+            "WorkingDir": "/workspace",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": null,
+            "Annotations": {
+              "io.container.manager": "libpod",
+              "io.podman.annotations.cid-file": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/udh-slice0-agent-dd80a361255a42929177cfd362ddb5fb.cid",
+              "io.podman.annotations.userns": "keep-id",
+              "org.opencontainers.image.stopSignal": "15",
+              "org.systemd.property.KillSignal": "15",
+              "org.systemd.property.TimeoutStopUSec": "uint64 10000000"
+            },
+            "StopSignal": "SIGTERM",
+            "HealthcheckOnFailureAction": "none",
+            "HealthLogDestination": "local",
+            "HealthcheckMaxLogCount": 5,
+            "HealthcheckMaxLogSize": 500,
+            "CreateCommand": [
+              "podman",
+              "run",
+              "--pull=never",
+              "--network=none",
+              "--read-only",
+              "--read-only-tmpfs=false",
+              "--cap-drop=ALL",
+              "--security-opt=no-new-privileges",
+              "--userns=keep-id",
+              "--pids-limit=64",
+              "--memory=384m",
+              "--memory-swap=384m",
+              "--env=HOME=/workspace/home",
+              "--env=PI_CODING_AGENT_DIR=/workspace/agent-config",
+              "--env=PI_OFFLINE=1",
+              "--env=PI_TELEMETRY=0",
+              "--env=PATH=/runtime:/usr/bin:/bin",
+              "--env=TMPDIR=/workspace/tmp",
+              "--workdir=/workspace",
+              "--volume",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/agent-122a5dc9a0174d32981c192cdd1a1863:/workspace:rw",
+              "--volume",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/ipc:/ipc:ro",
+              "--volume",
+              "/home/debian/.pi/agent/install/releases/1.2.0/node_modules:/opt/pi/node_modules:ro",
+              "--volume",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/network_client.mjs:/network_client.mjs:ro",
+              "--volume",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/bridge.mjs:/bridge.mjs:ro",
+              "--volume",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/models.json:/workspace/agent-config/models.json:ro",
+              "--volume",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/settings.json:/workspace/agent-config/settings.json:ro",
+              "--volume",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/auth.json:/workspace/agent-config/auth.json:ro",
+              "--volume",
+              "/home/debian/.local/share/pi-node/node-v22.23.3-linux-x64/bin/node:/runtime/node:ro",
+              "--volume",
+              "/lib/x86_64-linux-gnu/libc.so.6:/lib/x86_64-linux-gnu/libc.so.6:ro",
+              "--volume",
+              "/lib/x86_64-linux-gnu/libdl.so.2:/lib/x86_64-linux-gnu/libdl.so.2:ro",
+              "--volume",
+              "/lib/x86_64-linux-gnu/libgcc_s.so.1:/lib/x86_64-linux-gnu/libgcc_s.so.1:ro",
+              "--volume",
+              "/lib/x86_64-linux-gnu/libm.so.6:/lib/x86_64-linux-gnu/libm.so.6:ro",
+              "--volume",
+              "/lib/x86_64-linux-gnu/libpthread.so.0:/lib/x86_64-linux-gnu/libpthread.so.0:ro",
+              "--volume",
+              "/lib/x86_64-linux-gnu/libstdc++.so.6:/lib/x86_64-linux-gnu/libstdc++.so.6:ro",
+              "--volume",
+              "/lib64/ld-linux-x86-64.so.2:/lib64/ld-linux-x86-64.so.2:ro",
+              "--name",
+              "udh-slice0-agent-dd80a361255a42929177cfd362ddb5fb",
+              "--cidfile",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/udh-slice0-agent-dd80a361255a42929177cfd362ddb5fb.cid",
+              "docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+              "sh",
+              "-c",
+              "set -eu; mv /workspace/agent-config /workspace/moved-config; mkdir /workspace/agent-config; echo synthetic-replacement > /workspace/agent-config/settings.json; echo CONFIG_SHADOWED"
+            ],
+            "Umask": "0022",
+            "Timeout": 0,
+            "StopTimeout": 10,
+            "Passwd": true,
+            "sdNotifyMode": "container"
+          },
+          "HostConfig": {
+            "Binds": [
+              "/lib/x86_64-linux-gnu/libm.so.6:/lib/x86_64-linux-gnu/libm.so.6:ro,rprivate,rbind",
+              "/lib/x86_64-linux-gnu/libpthread.so.0:/lib/x86_64-linux-gnu/libpthread.so.0:ro,rprivate,rbind",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/settings.json:/workspace/agent-config/settings.json:ro,rprivate,rbind",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/workspace/agent-122a5dc9a0174d32981c192cdd1a1863:/workspace:rw,rprivate,rbind",
+              "/home/debian/.pi/agent/install/releases/1.2.0/node_modules:/opt/pi/node_modules:ro,rprivate,rbind",
+              "/home/debian/.local/share/pi-node/node-v22.23.3-linux-x64/bin/node:/runtime/node:ro,rprivate,rbind",
+              "/lib/x86_64-linux-gnu/libdl.so.2:/lib/x86_64-linux-gnu/libdl.so.2:ro,rprivate,rbind",
+              "/lib/x86_64-linux-gnu/libgcc_s.so.1:/lib/x86_64-linux-gnu/libgcc_s.so.1:ro,rprivate,rbind",
+              "/lib64/ld-linux-x86-64.so.2:/lib64/ld-linux-x86-64.so.2:ro,rprivate,rbind",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/models.json:/workspace/agent-config/models.json:ro,rprivate,rbind",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/bridge.mjs:/bridge.mjs:ro,rprivate,rbind",
+              "/lib/x86_64-linux-gnu/libc.so.6:/lib/x86_64-linux-gnu/libc.so.6:ro,rprivate,rbind",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/ipc:/ipc:ro,rprivate,rbind",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/config/auth.json:/workspace/agent-config/auth.json:ro,rprivate,rbind",
+              "/lib/x86_64-linux-gnu/libstdc++.so.6:/lib/x86_64-linux-gnu/libstdc++.so.6:ro,rprivate,rbind",
+              "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/network_client.mjs:/network_client.mjs:ro,rprivate,rbind"
+            ],
+            "CgroupManager": "systemd",
+            "CgroupMode": "private",
+            "ContainerIDFile": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/udh-slice0-agent-dd80a361255a42929177cfd362ddb5fb.cid",
+            "LogConfig": {
+              "Type": "journald",
+              "Config": null,
+              "Path": "",
+              "Tag": "",
+              "Size": "0B"
+            },
+            "NetworkMode": "none",
+            "PortBindings": {},
+            "RestartPolicy": {
+              "Name": "no",
+              "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "AutoRemoveImage": false,
+            "Annotations": {
+              "io.container.manager": "libpod",
+              "io.podman.annotations.cid-file": "/home/debian/Área de trabalho/Universal Dev Harness/spike/slice0/host-fixtures/agent-122a5dc9a0174d32981c192cdd1a1863/udh-slice0-agent-dd80a361255a42929177cfd362ddb5fb.cid",
+              "io.podman.annotations.userns": "keep-id",
+              "org.opencontainers.image.stopSignal": "15",
+              "org.systemd.property.KillSignal": "15",
+              "org.systemd.property.TimeoutStopUSec": "uint64 10000000"
+            },
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "CapAdd": [],
+            "CapDrop": [
+              "CAP_CHOWN",
+              "CAP_DAC_OVERRIDE",
+              "CAP_FOWNER",
+              "CAP_FSETID",
+              "CAP_KILL",
+              "CAP_NET_BIND_SERVICE",
+              "CAP_SETFCAP",
+              "CAP_SETGID",
+              "CAP_SETPCAP",
+              "CAP_SETUID",
+              "CAP_SYS_CHROOT"
+            ],
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": [],
+            "HostsFile": "",
+            "GroupAdd": [],
+            "IpcMode": "shareable",
+            "Cgroup": "",
+            "Cgroups": "default",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "private",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": true,
+            "SecurityOpt": [
+              "no-new-privileges"
+            ],
+            "Tmpfs": {},
+            "UTSMode": "private",
+            "UsernsMode": "private",
+            "IDMappings": {
+              "UidMap": [
+                "0:1:1000",
+                "1000:0:1",
+                "1001:1001:64536"
+              ],
+              "GidMap": [
+                "0:1:1000",
+                "1000:0:1",
+                "1001:1001:64536"
+              ]
+            },
+            "ShmSize": 65536000,
+            "Runtime": "oci",
+            "ConsoleSize": [
+              0,
+              0
+            ],
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 402653184,
+            "NanoCpus": 0,
+            "CgroupParent": "user.slice",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DiskQuota": 0,
+            "KernelMemory": 0,
+            "MemoryReservation": 0,
+            "MemorySwap": 402653184,
+            "MemorySwappiness": -1,
+            "OomKillDisable": false,
+            "PidsLimit": 64,
+            "Ulimits": [
+              {
+                "Name": "RLIMIT_NOFILE",
+                "Soft": 524288,
+                "Hard": 524288
+              },
+              {
+                "Name": "RLIMIT_NPROC",
+                "Soft": 15328,
+                "Hard": 15328
+              }
+            ],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "CgroupConf": null
+          },
+          "UseImageHosts": false,
+          "UseImageHostname": false
+        }
+      ],
+      "cleanup_returncode": 0
+    }
+  ],
+  "runtime_files": [
+    {
+      "source": "/home/debian/.local/share/pi-node/node-v22.23.3-linux-x64/bin/node",
+      "destination": "/runtime/node",
+      "sha256": "fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48"
+    },
+    {
+      "source": "/lib/x86_64-linux-gnu/libc.so.6",
+      "destination": "/lib/x86_64-linux-gnu/libc.so.6",
+      "sha256": "9792e3cbb541c8f44c7acf5f14f4022ea62998ecc787d326bed4d8b6547dfd92"
+    },
+    {
+      "source": "/lib/x86_64-linux-gnu/libdl.so.2",
+      "destination": "/lib/x86_64-linux-gnu/libdl.so.2",
+      "sha256": "295fa521a03cd2faa99974f378c9e23dd622021ec7d32bcad4f8ea61aec8a872"
+    },
+    {
+      "source": "/lib/x86_64-linux-gnu/libgcc_s.so.1",
+      "destination": "/lib/x86_64-linux-gnu/libgcc_s.so.1",
+      "sha256": "30c61ab012a4241bed033725a09b61f5fdd3bb7df95ee852d0b096520524c7af"
+    },
+    {
+      "source": "/lib/x86_64-linux-gnu/libm.so.6",
+      "destination": "/lib/x86_64-linux-gnu/libm.so.6",
+      "sha256": "6d567d53e895273ca14a1f9dc164fc6c8d39aed2f60aa46a733c2784228915f3"
+    },
+    {
+      "source": "/lib/x86_64-linux-gnu/libpthread.so.0",
+      "destination": "/lib/x86_64-linux-gnu/libpthread.so.0",
+      "sha256": "85e21f7dba0394411d00959176fd18b470e575b0b05f1f4f41e5636802ce0500"
+    },
+    {
+      "source": "/lib/x86_64-linux-gnu/libstdc++.so.6",
+      "destination": "/lib/x86_64-linux-gnu/libstdc++.so.6",
+      "sha256": "972bb2a18b71140dab0240f8a1f68ab3fb1d56bcd4c4f824a91b70888faf5a00"
+    },
+    {
+      "source": "/lib64/ld-linux-x86-64.so.2",
+      "destination": "/lib64/ld-linux-x86-64.so.2",
+      "sha256": "c8438e4fde1934e61c88311633f00949ff645d5c04cdb8671fa3d78164d2f307"
+    }
+  ],
+  "pi_runtime": {
+    "version": "1.2.0",
+    "files": 14927,
+    "manifest_sha256": "4cec56093d3cdcdb4eb4fd248db310c039def2ce0f0d743e35669e97d136445b"
+  }
+}
