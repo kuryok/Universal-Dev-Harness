@@ -1,6 +1,6 @@
 # Slice 1 — cenários de aceite da tarefa 1
 
-Estado: proposta documental em contexto separado do autor da implementação; **pendente de aprovação humana**. Não contém AT executáveis, selo, execução oficial ou autorização de implementação. Complementa os critérios C1–C8 da [proposta](proposal.md); não amplia a Slice 1 nem presume exceção de bootstrap. Referências: arquitetura v2.5.1, B4 e F-02.
+Estado: proposta documental em contexto separado do autor da implementação; **cenários e contrato aprovados pelo “Prossiga” de 21/10/2026, para preparação transitória**. Este documento não contém código de testes; candidatos executáveis foram preparados separadamente no bootstrap. Não há selo, execução oficial ou autorização de implementação de produto. Complementa os critérios C1–C8 da [proposta](proposal.md); não amplia a Slice 1 nem presume exceção de bootstrap. Referências: arquitetura v2.5.1, B4 e F-02.
 
 ## Contrato público proposto para aprovação
 
@@ -13,7 +13,7 @@ Para impedir que o futuro autor dos AT escolha a semântica, propõe-se o seguin
 - Erro: código diferente de zero, stdout vazio, mensagem não vazia em pt-BR no stderr, sem traceback. Não se exige texto literal nem código numérico específico nesta tarefa.
 - IDs de especificação, versão e requisição vazios ou compostos apenas de espaços são inválidos. Valores válidos conservam literalmente seu conteúdo, inclusive espaços nas extremidades. Não há normalização silenciosa.
 
-Essas escolhas ainda não são requisitos aprovados. Se rejeitadas, ajustar contrato e cenários antes da geração de AT. Persistência, restrições de esquema e módulos seguem a proposta; JSON não expõe nomes de tabelas.
+Essas escolhas integram o preparo autorizado. Alteração semântica posterior exige atualização e aprovação antes de mudar os AT. Persistência, restrições de esquema e módulos seguem a proposta; JSON não expõe nomes de tabelas.
 
 ## Cenários para aprovação
 
@@ -54,3 +54,5 @@ A8 é revisão estrutural, não resultado comportamental CLI. Conforme F-02, dev
 - Definir e prover o caminho confiável para autoria, proteção, selo e execução dos AT. Enquanto isso não existir, a preparação documental não libera implementação nem constitui aceite.
 
 Há um impedimento de bootstrap concreto: o Core que deveria gerar/selar AT ainda não existe. O próximo passo operacional deve propor uma autorização transitória e limitada para preparação confiável dos primeiros AT, ou uma exceção explícita de protótipo; nenhuma é presumida. Não instalar ferramentas, escrever fora do projeto ou construir um segundo Core para contornar esse impedimento.
+
+Atualização de 21/10/2026: autoria transitória independente autorizada no registro da proposta. Preparar candidatos e baseline não demonstra Core gerador, store protegida ou aceite oficial; essas pendências permanecem.

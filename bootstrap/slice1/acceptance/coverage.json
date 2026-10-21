@@ -1,0 +1,139 @@
+{
+  "status": "candidatos transitórios; sem selo ou execução oficial",
+  "sources": [
+    "openspec/changes/slice1-core-state/proposal.md",
+    "openspec/changes/slice1-core-state/acceptance.md"
+  ],
+  "criteria": {
+    "C1": {
+      "scenarios": [
+        "A1",
+        "A2"
+      ],
+      "classification": "behavior"
+    },
+    "C2": {
+      "scenarios": [
+        "A3"
+      ],
+      "classification": "behavior"
+    },
+    "C3": {
+      "scenarios": [
+        "A4"
+      ],
+      "classification": "behavior"
+    },
+    "C4": {
+      "scenarios": [
+        "A5"
+      ],
+      "classification": "behavior"
+    },
+    "C5": {
+      "scenarios": [
+        "A6"
+      ],
+      "classification": "behavior"
+    },
+    "C6": {
+      "scenarios": [
+        "A7"
+      ],
+      "classification": "behavior"
+    },
+    "C7": {
+      "scenarios": [
+        "A8"
+      ],
+      "classification": "check"
+    },
+    "C8": {
+      "scenarios": [
+        "A9",
+        "A10"
+      ],
+      "classification": "behavior"
+    }
+  },
+  "scenarios": {
+    "A1": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a1_reinitialization_preserves_run"
+      ]
+    },
+    "A2": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a2_incompatible_fixtures_unchanged"
+      ]
+    },
+    "A3": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a3_durable_across_processes"
+      ]
+    },
+    "A4": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a4_event_failure_rolls_back"
+      ]
+    },
+    "A5": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a5_invalid_inputs_and_missing_database"
+      ]
+    },
+    "A6": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a6_literal_references"
+      ]
+    },
+    "A7": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a7_no_promotion_and_persistent_state_constraint"
+      ]
+    },
+    "A9": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a9_idempotence_and_conflicting_payload"
+      ]
+    },
+    "A10": {
+      "classification": "behavior",
+      "methods": [
+        "CoreStateAcceptance.test_a10_concurrent_identical_requests",
+        "CoreStateAcceptance.test_a10_concurrent_divergent_requests"
+      ]
+    },
+    "A8": {
+      "classification": "check",
+      "executable": false,
+      "review": "Revisão independente de domínio, store, serviço, CLI e pacote, sobre commit/digest identificado; sem SQL na CLI, sem SQLite no domínio, casos de uso no serviço e nenhum módulo vazio de antecipação.",
+      "status": "não executada"
+    }
+  },
+  "limits": [
+    "A8 exige revisão independente sobre snapshot identificável; não executada por esta suíte.",
+    "Idioma pt-BR das mensagens exige inspeção humana: a suíte verifica stderr não vazio, stdout vazio e ausência de traceback; não impõe texto literal.",
+    "AT candidatos no workspace não demonstram proteção, selo, executor confiável ou aceite.",
+    "Concorrência sincroniza disparo de processos, sem instrumentar o candidato; não prova todas as intercalações possíveis."
+  ],
+  "infrastructure": {
+    "required_environment": [
+      "UDH_CANDIDATE_ROOT",
+      "UDH_TEST_WORK_ROOT"
+    ],
+    "error_type": "InfrastructureError para raízes inválidas, entrada ausente e falha de spawn/decodificação; timeout CLI é falha comportamental",
+    "temporary_files": "Somente sob UDH_TEST_WORK_ROOT; runner deve fornecer diretório ou mount exclusivo dentro do projeto",
+    "cli_timeout_seconds": 15,
+    "candidate_imported": false
+  },
+  "execution": "não executado contra produto; somente validação sintática/estrutural dos candidatos"
+}

@@ -6,12 +6,12 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 ## Estado
 - Slice 0 encerrada para VM Linux/API gratuita; produto completo não certificado.
 - Pi e OpenCode receberam resposta real via OpenRouter; chave só no gateway externo, agentes sem egress IP. Custos normais reportados: zero.
-- Não há Core, SQLite operacional, harness/gates ou AT executáveis. CLI OpenSpec ausente; validação não executada.
-- Slice 1: [cenários independentes](openspec/changes/slice1-core-state/acceptance.md) preparados, pendentes aprovação. Depois gerar AT em contexto independente, provar baseline negativo e proteger AT/runner antes de implementar. Sem exceção de protótipo presumida.
+- Core/harness oficiais ausentes. CLI OpenSpec ausente; validação não executada.
+- Slice 1: cenários/preparo transitório aprovados; candidatos independentes em `bootstrap/slice1/acceptance/`. [Baseline](bootstrap/slice1/evidence/baseline.json): 10 testes, 18 falhas esperadas, zero erros; não é aceite.
 
 ## Fontes sob demanda
 - [Resultado, limites e reprodução](SPIKE-SLICE0-RESULTADOS.md).
-- [Escopo e aprovações do spike](openspec/changes/spike-slice0-isolamento/proposal.md).
+- [Slice 1: escopo, resultado e bloqueio](openspec/changes/slice1-core-state/proposal.md).
 - [Evidência real](spike/slice0/evidence/free-models-probe.json).
 
 ## Cuidados de retomada
@@ -20,7 +20,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- Core modular: domínio, armazenamento, serviço e CLI; autoridade única não significa arquivo monolítico. Memorix/ai-memory não instalados.
+- Core modular: domínio, armazenamento, serviço e CLI. Memorix/ai-memory não instalados. Próximo: proteção/selo/executor dos AT antes de implementar produto; exceção de protótipo não autorizada.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.

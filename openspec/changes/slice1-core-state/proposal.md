@@ -1,6 +1,6 @@
 # Slice 1 — tarefa 1: estado persistente mínimo
 
-Estado: revisada em 21/10/2026; aguardando aprovação humana. Handoff para implementação bloqueado pelas condições abaixo.
+Estado: cenários e preparo transitório aprovados em 21/10/2026. Candidatos e baseline preparados; implementação de produto ainda bloqueada por proteção/executor ausentes.
 
 ## Objetivo
 
@@ -81,3 +81,22 @@ Registrar commit candidato, comandos e resultados da sessão; obter revisão em 
 A implementação de policy, autorizações, executor confiável, store protegida e isolamento do Core, transições, checkpoints completos, efeitos UNKNOWN, integração Git, agentes, gateway, UI, Memorix, Judge e instalador.
 
 Próximo recorte após esta tarefa: especificar policy e transições autorizadas antes de executar agentes. A proteção e autoria independente dos AT desta tarefa são pré-condições, não algo adiado para depois da implementação. A Slice 1 completa continua Core + SQLite + policy + executor/AT.
+
+## Autorização transitória — 21/10/2026
+
+Após o pedido explícito para aprovar cenários e autorizar procedimento transitório, o usuário respondeu “Prossiga”. Registro: cenários A1–A10 e contrato aprovados para preparação dos primeiros candidatos a AT por contexto independente. A autoria transitória substitui somente a chamada do Core ainda inexistente; não dispensa proteção, selo, linha de base ou executor e não autoriza implementação do produto sem essas pré-condições.
+
+Escopo desta sessão: `bootstrap/slice1/acceptance/` (somente autor independente), `bootstrap/slice1/baseline/` (stub deliberadamente incorreto), `bootstrap/slice1/run_baseline.py` (experimento transitório), `bootstrap/slice1/evidence/`, documentos desta mudança e `MEMORY.md`. Sem alterações em AT oficiais, ferramentas protegidas existentes ou arquivos fora do projeto. Não instalar dependências nem baixar imagem: usar Alpine local identificado por digest e Python existente montado RO. Execução em contêiner rootless sem rede, sem credenciais, com fontes somente leitura e diretório temporário gravável. O runner é descartável e não se torna segundo Core nem executor oficial.
+
+Critério deste preparo: cobertura documentada, candidatos sintaticamente válidos e baseline executável com falhas comportamentais identificadas por cenário. Resultado parcial ou falha de infraestrutura não será apresentado como comprovação da linha de base. A8 permanece revisão independente sobre o futuro candidato, não aprovação automatizada.
+
+## Resultado do preparo transitório
+
+- Autor distinto gerou 10 métodos de teste, cobrindo cenários comportamentais A1–A7/A9/A10, com mapeamento em `bootstrap/slice1/acceptance/coverage.json`. A8 continua revisão sobre futuro código de produto; idioma pt-BR das mensagens exige inspeção humana.
+- Baseline executado em Podman rootless, imagem local por digest, `--pull=never`, rede desativada e fontes RO. Python/SQLite existentes funcionaram sem instalação.
+- Resultado negativo final: 10 testes executados, 18 falhas de assertiva (incluem subtestes), zero erros de infraestrutura, exit 1 esperado. O stub retorna sucesso sem persistir, aceita banco incompatível e permite ACCEPTED; as falhas detectam esses comportamentos incompletos. Não são testes de produto passando.
+- Evidência com hashes dos candidatos/stub e comando: [baseline final](../../../bootstrap/slice1/evidence/baseline.json). Primeira execução preservada em `bootstrap/slice1/evidence/baseline-initial.json`; ResourceWarning de conexões foi corrigido pelo autor independente sem mudar critérios. Revisão independente também levou à validação estrita RFC 3339 e `--pull=never`; evidência regenerada após ajustes.
+- Limite: cada método pode parar na primeira falha. O stub não prova que todas as assertivas discriminam cada defeito, especialmente persistência parcial em A4 e normalização/SQL em A6. Não foi criada implementação de referência para simular aceite.
+- Ainda ausentes: Core de produto, linha de base de produto, store selada, manifesto/at_version aprovado e executor confiável. Fontes RO no contêiner não protegem contra esta sessão com escrita no host; teste e stub compartilham namespace. Nenhum resultado oficial de ACCEPTED/DELIVERED.
+
+Próximo passo concreto: resolver a fronteira de confiança para armazenar/selar candidatos e executar verificações fora do alcance do implementador antes de iniciar o ticket de produto. Se for necessário desenvolver a primeira fundação como protótipo sem esses mecanismos, isso exige autorização humana explícita; o “Prossiga” deste preparo não foi usado como dispensa de B4.2/B4.6.
