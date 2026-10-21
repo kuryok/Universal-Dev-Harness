@@ -1,6 +1,6 @@
 # Slice 1 — fronteira de confiança do bootstrap
 
-Estado: especificação do próximo recorte, preparada após autorização para prosseguir. Implementação ainda não iniciada; aprovar este recorte antes de escrever os componentes abaixo. Não altera os cenários A1–A10.
+Estado: implementação e verificação aprovadas explicitamente pelo usuário em 21/10/2026 (“Sim!”); recorte implementado e verificado, T1–T8 PASS. Não altera os cenários A1–A10.
 
 ## Problema e resultado esperado
 
@@ -47,7 +47,7 @@ Manifesto contém versão do formato, identificador único da execução, commit
 | T7 | Controle positivo funciona | Fixture inofensiva retorna 0 e conteúdo conhecido; controlador coleta ambos |
 | T8 | Arquivos anteriores preservados | Hashes dos AT/stub e suas evidências anteriores continuam iguais; checagem sintática e diff sem erros |
 
-Tentativas usam apenas fixtures temporárias. Em T6, identificadores numéricos podem colidir entre namespaces: não enviar sinais destrutivos; sobrevivência do verificador sozinha não comprova isolamento. Não alterar AT reais/candidatos para simular adulteração. Cada falha de infraestrutura tem categoria própria e não conta como aprovação de critério. Timeout, sinal, recusa de política e exit funcional são resultados distintos. Limitar stdout/stderr e tempo; não usar shell nem extrair comandos de saída do candidato.
+Tentativas usam apenas fixtures temporárias. Em T6, identificadores numéricos podem colidir entre namespaces: não enviar sinais destrutivos; sobrevivência do verificador sozinha não comprova isolamento. Não alterar AT reais/candidatos para simular adulteração. Cada falha de infraestrutura tem categoria própria e não conta como aprovação de critério. Timeout, sinal, recusa de política e exit funcional são resultados distintos. Código negativo do cliente Podman identifica sinal nesse cliente. Código positivo 128+ é TERMINATION_UNKNOWN, pois pode representar sinal no candidato ou saída explícita: preservar o código bruto, não afirmar origem e nunca tratar incerteza como aprovação. Verificar ambos os casos com sinal somente no contêiner próprio e fixture exit137. Limitar stdout/stderr e tempo; não usar shell nem extrair comandos de saída do candidato.
 
 ## Verificação e encerramento
 
@@ -55,4 +55,17 @@ Executar `python3 bootstrap/slice1/check_boundary.py`; cada T recebe PASS, FAIL,
 
 Concluído esse recorte, a próxima tarefa é integrar os AT independentes ao controlador externo e definir aprovação/selo da primeira versão. Core + SQLite permanece depois dessa preparação; nenhuma mudança de estado de produto é autorizada por este documento.
 
-Revisão documental independente: ajustados T3 (efeitos de importação), T6 (identidade de namespaces sem sinais destrutivos), estados por critério e escopo/descarte temporário. Ainda não foram implementadas ou executadas as fixtures T1–T8.
+Revisão documental independente: ajustados T3 (efeitos de importação), T6 (identidade de namespaces sem sinais destrutivos), estados por critério e escopo/descarte temporário. As fixtures T1–T8 foram executadas; resultado abaixo.
+
+## Resultado verificado — 21/10/2026
+
+- Comando: `PYTHONDONTWRITEBYTECODE=1 python3 bootstrap/slice1/check_boundary.py`, exit 0. T1–T8 em PASS na execução final, com revisão T3 identificada e hashes coincidentes.
+- [Evidência](../../../bootstrap/slice1/evidence/boundary.json) contém manifesto transitório, identidade da execução, parâmetros efetivos, resultados por critério, tentativas anteriores e confirmação de descarte da store temporária. [Revisão independente](bootstrap-review.json) registra os arquivos examinados e ausência de achados pendentes.
+- T1 recusou seis escritas (caminho absoluto/symlink para snapshot, manifesto e sentinela de evidência); hashes externos preservados. T2 preservou exit23 apesar do falso PASS. T3 confirmou ausência de execução na cópia e entrypoint explícito isolado, com revisão do host.
+- T4 recusou cinco adulterações de cópias temporárias antes de lançar processo: bytes, ausência, arquivo extra, symlink e manifesto divergente. T5 confirmou timeout, limite de saída e ausência dos contêineres após limpeza; códigos 137 de SIGKILL controlado e saída explícita ficam TERMINATION_UNKNOWN, sem inventar a causa.
+- T6 comprovou namespaces PID/mount distintos e invisibilidade da sentinela host no /proc do candidato, sem sinalizar o verificador. T7 controle positivo exit0; T8 preservou os hashes anteriores e validou sintaxe/diff.
+- Falhas durante desenvolvimento preservadas na evidência: cleanup inicial esperava SIGTERM padrão além do prazo (corrigido com `rm --force --time=0`); prova adicional com SIGTERM não encerrava PID1 (substituída por SIGKILL controlado ao contêiner próprio e exit137 explícito). Nenhum critério/AT foi enfraquecido.
+- Não houve rede, download, nova dependência, mudança nos AT candidatos ou código de produto. O snapshot não foi mantido como store operacional; o manifesto preservado na evidência não é selo oficial.
+- Não executados: gates fast/full (harness oficial ausente), CLI OpenSpec (ausente), AT de produto e review A8 (Core ainda não implementado). A prova não certifica segurança contra o usuário/sessão que escreve no host nem conformidade completa do produto.
+
+Próximo passo: preparar integração dos AT independentes com o controlador externo e aprovação/selo da primeira versão, antes de iniciar Core + SQLite. O autor implementador continua sem autorização para alterar os AT.

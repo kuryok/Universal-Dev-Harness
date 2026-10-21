@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "created_at": "2026-10-21T17:45:59.970367+00:00",
+  "reviewer_context": "Agente independente /root/review_boundary_implementation, contexto novo sem autoria das fontes; revisão estática somente leitura e conferência de evidências desta execução.",
+  "host_does_not_import_candidate": true,
+  "unresolved_findings": [],
+  "files": {
+    "bootstrap/slice1/trust_snapshot.py": "08b71af238e1a5577daf44187008523ffb06329b5108bb830c14bac8d4f1a15e",
+    "bootstrap/slice1/isolated_process.py": "f3fc10740b69dfc8bfd42de8a26ba2cc5c45e31d8313c426af2eaf921e6c1c3e",
+    "bootstrap/slice1/check_boundary.py": "bd458e98af6742dacd7216fad45ba0bf4ddcda85f23a1d1791e206985d1afcf6",
+    "bootstrap/slice1/fixtures/adversary.py": "f015e94f87e601517a900178dd9028e4fdcdadb117f23228dd57820a26568ec7",
+    "bootstrap/slice1/fixtures/hang.py": "0b79ca764317e9ced9d98d8bfb0497dcf4de645d21283b7efb8ec7ec65f66f24",
+    "bootstrap/slice1/fixtures/import_effect.py": "23f8667b5e9f8a12fe17c23db937e8b3ade473d0443a079e537ba219fa8331c7",
+    "bootstrap/slice1/fixtures/output_flood.py": "831c1a028cb71344e80764a1f6e171c50a67dd123bcd0c126681a388d8871593",
+    "bootstrap/slice1/fixtures/positive.py": "5e87c99208b11c9369d0d676238790f065b14da44ff98ad1e2445cc73a3256dc",
+    "bootstrap/slice1/fixtures/process_visibility.py": "8530a0b66f668cc54252b2a6cc3f174c7674dfd235059aef48647d9f52fc3158",
+    "bootstrap/slice1/fixtures/termination.py": "3d798ec784d008b6857fa6b3521ad67993780fd4a8511afe1774b9cfa73f3dae"
+  },
+  "validation": {
+    "evidence_run_id": "767a2e639d104efdb5d1519f094a07d6",
+    "evidence_created_at": "2026-10-21T17:45:02.956073+00:00",
+    "criteria_observed": {
+      "T1": "PASS",
+      "T2": "PASS",
+      "T3": "NOT_RUN",
+      "T4": "PASS",
+      "T5": "PASS",
+      "T6": "PASS",
+      "T7": "PASS",
+      "T8": "PASS"
+    },
+    "observations": [
+      "Host importa apenas módulos do controlador; fixtures são copiadas como bytes e executadas por entrypoint explícito no contêiner.",
+      "Snapshot e manifesto fixados por hash permanecem fora das montagens; verificação ocorre antes e depois de cada execução.",
+      "T1/T2/T4–T8 passaram na evidência atual, com hashes dos três controladores coincidentes; T3 executável passou e aguarda este registro.",
+      "Achado de classificação de sinal resolvido: SIGKILL no próprio contêiner e exit137 explícito preservam 137 como TERMINATION_UNKNOWN, sem alegar saída funcional ou sinal comprovado.",
+      "Todas as execuções registram remoção confirmada; sintaxe Python e git diff --check passaram na sessão de revisão.",
+      "Proteção limitada ao candidato contido, sem isolamento contra o construtor com escrita no host; não representa aceite de produto.",
+      "Revisão não executou novamente contêineres; conferiu fontes e evidência externa produzida nesta sessão. Alteração posterior em qualquer fonte listada invalida este registro."
+    ]
+  }
+}

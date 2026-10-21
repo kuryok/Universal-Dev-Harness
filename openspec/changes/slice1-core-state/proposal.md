@@ -1,6 +1,6 @@
 # Slice 1 — tarefa 1: estado persistente mínimo
 
-Estado: cenários e preparo transitório aprovados em 21/10/2026. Candidatos e baseline preparados; implementação de produto ainda bloqueada por proteção/executor ausentes.
+Estado: cenários e preparo transitório aprovados em 21/10/2026. Candidatos/baseline e fronteira transitória verificados; implementação de produto ainda bloqueada até integrar AT e definir selo/aprovação oficiais.
 
 ## Objetivo
 
@@ -10,7 +10,7 @@ Referência: arquitetura consolidada v2.5.1, ADR-011 e F-03, arquivo local `UDH-
 
 ## Condições para iniciar
 
-B4.2 exige cenários aprovados e AT independentes antes de iniciar ticket de produto. A rota proposta é cumprir esse contrato, sem presumir exceção de protótipo. Os [cenários independentes](acceptance.md) são a entrada de aceite e aguardam aprovação humana; não são AT executáveis nem um selo de aceite.
+B4.2 exige cenários aprovados e AT independentes antes de iniciar ticket de produto. A rota proposta é cumprir esse contrato, sem presumir exceção de protótipo. Os [cenários independentes](acceptance.md) são a entrada de aceite aprovada para a preparação transitória; não são, por si, AT executáveis nem um selo de aceite.
 
 Antes de implementar: aprovar os cenários, gerar AT em contexto independente do implementador, comprovar a linha de base negativa e proteger testes/runner/manifesto no domínio confiável conforme B4.4–B4.6. O implementador não pode escrever ou alterar esses AT. Se a fundação ainda não permitir isso, registrar bloqueio e decidir explicitamente o bootstrap, sem iniciar produto apenas com testes complementares.
 
@@ -100,3 +100,5 @@ Critério deste preparo: cobertura documentada, candidatos sintaticamente válid
 - Ainda ausentes: Core de produto, linha de base de produto, store selada, manifesto/at_version aprovado e executor confiável. Fontes RO no contêiner não protegem contra esta sessão com escrita no host; teste e stub compartilham namespace. Nenhum resultado oficial de ACCEPTED/DELIVERED.
 
 Próximo passo concreto: resolver a fronteira de confiança para armazenar/selar candidatos e executar verificações fora do alcance do implementador antes de iniciar o ticket de produto. Se for necessário desenvolver a primeira fundação como protótipo sem esses mecanismos, isso exige autorização humana explícita; o “Prossiga” deste preparo não foi usado como dispensa de B4.2/B4.6.
+
+Continuação aprovada em 21/10/2026: [fronteira do bootstrap](bootstrap-executor.md) implementada e verificada, T1–T8 PASS, revisão independente registrada. A integração dos AT ao controlador externo e o selo oficial ainda não foram realizados; esta prova não libera automaticamente produto.

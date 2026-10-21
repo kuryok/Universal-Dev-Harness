@@ -6,7 +6,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 ## Estado
 - Slice 0 encerrada para VM Linux/API gratuita; produto completo não certificado.
 - Pi e OpenCode receberam resposta real via OpenRouter; chave só no gateway externo, agentes sem egress IP. Custos normais reportados: zero.
-- Core/harness oficiais ausentes. CLI OpenSpec ausente; validação não executada.
+- Core/harness oficiais ausentes. CLI OpenSpec ausente; validação não executada. [Fronteira transitória](bootstrap/slice1/evidence/boundary.json): T1–T8 PASS, revisão independente, contêineres removidos.
 - Slice 1: cenários/preparo transitório aprovados; candidatos independentes em `bootstrap/slice1/acceptance/`. [Baseline](bootstrap/slice1/evidence/baseline.json): 10 testes, 18 falhas esperadas, zero erros; não é aceite.
 
 ## Fontes sob demanda
@@ -20,7 +20,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- Core modular: domínio, armazenamento, serviço e CLI. Memorix/ai-memory não instalados. Próximo: aprovar o [recorte de isolamento](openspec/changes/slice1-core-state/bootstrap-executor.md), depois provar a fronteira externa e integrar AT. Produto permanece bloqueado; sem exceção presumida.
+- Core modular: domínio, armazenamento, serviço e CLI. Memorix/ai-memory não instalados. Próximo: integrar AT ao controlador externo e definir aprovação/selo da primeira versão; depois Core + SQLite. A prova não protege contra esta sessão no host nem concede aceite oficial.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.
