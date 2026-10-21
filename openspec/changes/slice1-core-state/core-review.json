@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "reviewer_context": "Contexto fresco de revisão independente A8/F-02, sem participação na implementação nem autoria/edição dos AT; leitura dos cinco módulos, testes complementares, proposta e contrato de aceite.",
+  "candidate_commit": "b26fd969e20a72b8494b815c57e984b279699714",
+  "source_files": {
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/domain.py": "da32490a19dd0d3d5b3611d3fff4116297de3f0aee3ef652fb944a1d0be9c16a",
+    "udh/store.py": "9e65b7fb9d0efac8a23407d9171c4a7cd19da9a58ba73a7ab0b1c46fc44dae20",
+    "udh/service.py": "9c8d1b0561369e740660758bf3b426898b228aef2c1ce34c6af695e520544a3a",
+    "udh/__main__.py": "6290adfeb9013317e82678cadc2dfb6c1707af0be169ab8662ee7adb67921a10"
+  },
+  "A8": "PASS",
+  "unresolved_findings": [],
+  "observations": [
+    "C1–C8 revisados no recorte Core mínimo PENDING: inicialização transacional e recusa de versões/esquemas incompatíveis; leitura sem criação implícita; criação e evento na mesma transação; SQL parametrizado e referências preservadas pela interface pública.",
+    "BEGIN IMMEDIATE serializa a consulta e criação por request_id, com unicidade persistente; repetição com referência idêntica retorna dados existentes, conflito reverte sem alteração. Consultas usam uma transação para obter execução e evento no mesmo snapshot.",
+    "A8: CLI restrita a argumentos, apresentação e códigos; domínio sem SQLite; serviço controla identidade e validação dos casos de uso; store concentra esquema e transações. Nenhum módulo vazio ou antecipação de policy/agentes.",
+    "Mensagens normais de erro inspecionadas em pt-BR, sem traceback; ajuda e docstrings em pt-BR. Identificadores técnicos do contrato preservados.",
+    "Evidência comportamental conferida: core-verification.json, run_id 3a96914ea557427daebd249f75599124, at_version sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704, 10 testes PASS, zero falhas/erros/skips; hashes dos cinco módulos correspondem ao candidato Git e às fontes lidas.",
+    "Verificação complementar executada nesta revisão: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v; nove testes PASS.",
+    "tools/harness.py ausente: gates fast/full não executados. CLI OpenSpec não executada. Esta revisão não substitui execução oficial nem demonstra ACCEPTED/DELIVERED.",
+    "Limite aprovado: bootstrap protege o candidato contido, não a sessão de construção no host; store operacional protegida, policy, executor oficial e demais partes da Slice 1 seguem fora deste recorte."
+  ]
+}

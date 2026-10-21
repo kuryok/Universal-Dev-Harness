@@ -1,6 +1,6 @@
 # Slice 1 — tarefa 1: estado persistente mínimo
 
-Estado: cenários e preparo transitório aprovados em 21/10/2026. Integração externa e selo inicial do bootstrap verificados; próximo recorte é Core mínimo + SQLite, sujeito às condições de implementação e revisão abaixo.
+Estado: cenários e preparo transitório aprovados em 21/10/2026. Integração externa e selo inicial do bootstrap verificados; Core mínimo + SQLite implementado e verificado no recorte abaixo; a Slice 1 completa permanece em construção.
 
 ## Objetivo
 
@@ -104,3 +104,30 @@ Encaminhamento daquele preparo: resolver a fronteira de confiança para armazena
 Continuação aprovada em 21/10/2026: [fronteira do bootstrap](bootstrap-executor.md) implementada e verificada, T1–T8 PASS, revisão independente registrada. A integração externa e o selo inicial do bootstrap foram concluídos na continuação registrada abaixo; nenhuma dessas provas libera automaticamente produto.
 
 Integração autorizada e concluída em 21/10/2026: [resultado e selo inicial](integration-results.md), I1–I7 PASS com regressão T1–T8 PASS. O selo identifica os testes/componentes do bootstrap; não equivale a ACCEPTED do produto. Não modificar a especificação selada para anexar logs; resultados permanecem no documento próprio.
+
+## Implementação do Core autorizada — 21/10/2026
+
+O usuário solicitou explicitamente implementar Core mínimo + SQLite em domínio, persistência, serviço e CLI. Condições transitórias cumpridas: AT independentes, baseline negativo, transporte externo e selo bootstrap v1. Esta autorização não antecipa policy ou aceite de produto.
+
+Verificação complementar: testes em `tests/` e comando já definido. Verificação comportamental: copiar somente os cinco módulos para snapshot temporário RO, executar os AT do selo v1 no host por meio do bridge selado e gravar a evidência em `openspec/changes/slice1-core-state/core-verification.json`. A revisão independente A8 e seus hashes ficam em `core-review.json` nesta mesma mudança. Esse arquivo documental adicional é necessário para identificar candidato, selo, resultados e auditoria; não contém novos requisitos nem é executável. Temporários de execução permanecem dentro do projeto e são removidos. Nenhum arquivo de AT, selo ou controlador será alterado.
+
+## Resultado do Core mínimo — 21/10/2026
+
+- Implementação identificada pelo commit `b26fd969e20a72b8494b815c57e984b279699714`: cinco módulos, maior com 163 linhas. Domínio sem SQLite, CLI sem SQL, serviço conduz identidade/validação, store mantém versão e transações.
+- `init`, `create` e `show` retornam JSON; execuções apenas PENDING. Execução/evento são gravados atomicamente; repetição com mesma referência preserva identidade, timestamps e evento; conflito é recusado. Consulta/criação não inicializam banco ausente.
+- Nove testes complementares PASS. Dez métodos de AT do selo v1 PASS sobre snapshot RO dos bytes do commit, via 49 chamadas externas isoladas, sem erros de infraestrutura. Não foram editados AT, selo ou controladores. A8/revisão independente PASS sem pendências.
+- Regressão I1–I7 e T1–T8 PASS; selo v1 inalterado. Ajuda CLI em pt-BR, exit 0. A evidência é [core-verification.json](core-verification.json), com hashes, candidato, selo, relatório por método e auditoria; a revisão está em [core-review.json](core-review.json).
+- Durante desenvolvimento, um teste complementar demonstrou que normalizar whitespace em todo o DDL confundia literais SQL diferentes; comparação corrigida antes do candidato final. Um caso adicional garante que tabela alheia com prefixo semelhante a sqlite_ não seja ignorada. Nenhum teste foi enfraquecido.
+- Retomada: corrigir apenas a fase desatualizada do AGENTS.md, mantendo suas regras; MEMORY.md guarda o estado curto e o próximo passo.
+
+### Como verificar
+
+Rodar `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v` e `python3 -m udh --help`. Para experimentar, usar banco descartável dentro do projeto: `python3 -m udh init --db ./udh-state.sqlite`, depois `python3 -m udh create --db ./udh-state.sqlite --spec-id exemplo --spec-version v1 --request-id primeira`. Consultar com `python3 -m udh show --db ./udh-state.sqlite --run-id UUID_RETORNADO`. Não versionar o banco.
+
+Os AT desta tarefa foram executados com os testes verificados do selo, bridge e launcher já selados, candidato copiado do commit para diretório temporário RO e configuração/auditoria fora do contêiner; a evidência identifica todas as chamadas. `integrate_acceptance.py` continua verificando a integração contra o stub: não confundir esse comando com uma nova execução de AT sobre o Core.
+
+### Limites e próximo passo
+
+Não executados: fast/full (harness oficial ausente) e CLI OpenSpec (ausente). Não implementados: policy, autorizações, transições, execução de agentes, checkpoints completos e reconciliação Git/evidências. Referências de spec continuam opacas, sem comprovar aprovação. Este resultado é IMPLEMENTED/TESTED neste recorte do bootstrap, não ACCEPTED/DELIVERED de produto nem conclusão da Slice 1.
+
+Próximo passo: especificar policy e transições autorizadas de estado antes de permitir execução de agentes. SQLite fica como autoridade operacional; nenhum parecer de LLM promove estados.

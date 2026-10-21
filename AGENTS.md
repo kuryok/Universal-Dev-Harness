@@ -40,9 +40,9 @@ Um sistema local-first que leva uma pessoa que não sabe programar de uma ideia 
 - Se não conseguiu executar algo, escreva "não executado" e explique o motivo.
 - Resultado parcial é resultado válido. Resultado inventado não é.
 
-## Fase atual: especificação da Slice 1
+## Fase atual: fundação da Slice 1
 
-A Slice 0 foi encerrada no perfil experimental Linux/API testado. O próximo passo é especificar Core mínimo + SQLite no OpenSpec e obter aprovação antes de implementar; consulte MEMORY.md para limites e evidências.
+A Slice 0 foi encerrada no perfil experimental Linux/API testado. O Core mínimo + SQLite foi implementado e verificado; a Slice 1 permanece em construção. Consulte MEMORY.md para estado, limites e próximo passo. Novos recortes seguem OpenSpec e aprovação antes de implementar.
 
 O código da Slice 0 permanece **descartável**, com os limites registrados no relatório. Na Slice 1, siga o recorte aprovado no OpenSpec. Um Core só significa autoridade única, com módulos separados por responsabilidade; não concentrar todo o sistema em um arquivo.
 
