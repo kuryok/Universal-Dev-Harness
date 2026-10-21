@@ -1,0 +1,107 @@
+{
+  "status": "AT independentes preparados; execução isolada pendente",
+  "sources": [
+    "openspec/changes/slice1-policy-query/proposal.md",
+    "openspec/changes/slice1-policy-query/acceptance-handoff.md"
+  ],
+  "tests": {
+    "PolicyAcceptance.test_p1_read_existing_run": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenario": "P1"
+    },
+    "PolicyAcceptance.test_p2_denied_actions": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenario": "P2"
+    },
+    "PolicyAcceptance.test_p3_unknown_actions_are_literal": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenario": "P3"
+    },
+    "PolicyAcceptance.test_p3_authority_flags_rejected": {
+      "baseline_expected": "EXISTING_PASS",
+      "scenario": "P3"
+    },
+    "PolicyAcceptance.test_p4_empty_action_precedes_domain_and_database": {
+      "baseline_expected": "EXISTING_PASS",
+      "scenario": "P4"
+    },
+    "PolicyAcceptance.test_p4_invalid_uuid_precedes_unknown_action": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenario": "P4"
+    },
+    "PolicyAcceptance.test_p4_missing_database_precedes_unknown_action": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenario": "P4"
+    },
+    "PolicyAcceptance.test_p4_unknown_run_precedes_unknown_action": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenario": "P4"
+    },
+    "PolicyAcceptance.test_p4_incompatible_database_unchanged": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenario": "P4"
+    },
+    "PolicyAcceptance.test_p5_stable_response_and_canonical_hash": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenario": "P5"
+    },
+    "PolicyAcceptance.test_regression_v1_metadata": {
+      "baseline_expected": "EXISTING_PASS",
+      "scenario": "P6_PARTIAL"
+    }
+  },
+  "scenarios": {
+    "P1": {
+      "classification": "behavior",
+      "methods": [
+        "PolicyAcceptance.test_p1_read_existing_run"
+      ]
+    },
+    "P2": {
+      "classification": "behavior",
+      "methods": [
+        "PolicyAcceptance.test_p2_denied_actions"
+      ]
+    },
+    "P3": {
+      "classification": "behavior",
+      "methods": [
+        "PolicyAcceptance.test_p3_unknown_actions_are_literal",
+        "PolicyAcceptance.test_p3_authority_flags_rejected"
+      ]
+    },
+    "P4": {
+      "classification": "behavior",
+      "methods": [
+        "PolicyAcceptance.test_p4_empty_action_precedes_domain_and_database",
+        "PolicyAcceptance.test_p4_invalid_uuid_precedes_unknown_action",
+        "PolicyAcceptance.test_p4_missing_database_precedes_unknown_action",
+        "PolicyAcceptance.test_p4_unknown_run_precedes_unknown_action",
+        "PolicyAcceptance.test_p4_incompatible_database_unchanged"
+      ]
+    },
+    "P5": {
+      "classification": "behavior",
+      "methods": [
+        "PolicyAcceptance.test_p5_stable_response_and_canonical_hash"
+      ]
+    }
+  },
+  "infrastructure": {
+    "required_environment": [
+      "UDH_TEST_WORK_ROOT",
+      "UDH_CLI_PREFIX_JSON"
+    ],
+    "cli_transport": "prefixo JSON + command --db CAMINHO_ABSOLUTO args; cwd UDH_TEST_WORK_ROOT; nenhum import do candidato no host",
+    "reserved_exit": 125,
+    "error_type": "InfrastructureError",
+    "timeout_seconds": 15
+  },
+  "limits": [
+    "P6 completo exige regressões externas: nove complementares, dez AT v1, I1–I7/T1–T8 e integridade do selo v1. O caso local de metadados é apenas regressão parcial.",
+    "P7 exige revisão independente vinculada aos hashes; não é teste funcional.",
+    "Idioma e segurança semântica de message/next_action exigem revisão humana pt-BR; AT verificam presença e tipos, sem impor texto literal.",
+    "Casos EXISTING_PASS de flags e ação vazia também passam no parser v1 que desconhece policy: são verificações negativas preservadas, não evidência da presença de policy.",
+    "NEW_FAILURE deve ser falha funcional pela ausência de policy; InfrastructureError ou qualquer erro unittest não pode ser contado como falha negativa válida."
+  ]
+}

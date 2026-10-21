@@ -1,6 +1,6 @@
 # Preparo dos AT e selo da consulta de policy
 
-Estado: proposta de infraestrutura pendente de aprovação específica. O usuário aprovou o contrato de policy em 21/10/2026; essa aprovação não inclui esta extensão protegida, explicitamente excluída no contrato original.
+Estado: infraestrutura explicitamente aprovada pelo usuário em 21/10/2026 ("aprovado"), após aprovação do contrato de policy. Inclui autoria e revisão independentes por subagentes e novos componentes protegidos abaixo; preserva v1.
 
 ## Objetivo
 

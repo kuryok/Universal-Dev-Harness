@@ -20,7 +20,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- Policy somente leitura aprovada em 21/10/2026; código não iniciado. Próximo: autorizar [preparo independente dos AT/selo v2](openspec/changes/slice1-policy-query/acceptance-handoff.md), excluído da aprovação original. Preservar v1; depois implementar o contrato aprovado. Sem transições ou agentes.
+- Policy/preparo aprovados. AT independentes11; baseline negativo PASS; infra/revisão PASS; selo v2 publicado (`438ce43f`), v1 preservada. [Resultados](openspec/changes/slice1-policy-query/verification.md). Próximo: implementar consulta somente leitura e verificar candidato. Sem transições/agentes.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.
