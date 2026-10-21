@@ -1,6 +1,8 @@
 # Briefing do agente: construção do Universal Dev Harness (UDH)
 
-Este é o único documento que você precisa ler no início de cada sessão. Ele **não substitui** o baseline normativo. Consulte o baseline só quando a tarefa citar uma cláusula ou ADR.
+No início de cada sessão, leia este arquivo e [MEMORY.md](MEMORY.md), depois confira o estado do Git. Consulte as fontes indicadas apenas quando necessárias à tarefa; não carregue todos os documentos por padrão. Estes arquivos **não substituem** o baseline normativo.
+
+Mantenha `MEMORY.md` com **até 35 linhas e 300 palavras**: estado confirmado, próximo passo, impedimentos e links. Ao pausar, substitua informações obsoletas; não acumule histórico, logs ou transcrições. A memória não aprova requisitos nem substitui OpenSpec, Git ou evidências.
 
 ## O que estamos construindo
 
@@ -38,7 +40,9 @@ Um sistema local-first que leva uma pessoa que não sabe programar de uma ideia 
 - Se não conseguiu executar algo, escreva "não executado" e explique o motivo.
 - Resultado parcial é resultado válido. Resultado inventado não é.
 
-## Fase atual: spike da Slice 0
+## Fase atual: especificação da Slice 1
+
+A Slice 0 foi encerrada no perfil experimental Linux/API testado. O próximo passo é especificar Core mínimo + SQLite no OpenSpec e obter aprovação antes de implementar; consulte MEMORY.md para limites e evidências.
 
 Esta fase é **descartável**. O objetivo é responder perguntas com experimento, não produzir código de produto. Siga o arquivo de perguntas do spike. Registre cada resultado como passou, falhou, parcial ou não executado, sempre com evidência. Não tente "consertar" um resultado ruim para que ele pareça bom: um resultado ruim é a informação que procuramos.
 
