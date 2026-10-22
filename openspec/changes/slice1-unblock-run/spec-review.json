@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "DOCUMENTARY_PASS",
+  "scope": "Revisão documental independente da proposta de desbloqueio; parecer consultivo, sem aprovação de produto ou autorização de implementação.",
+  "proposal": "openspec/changes/slice1-unblock-run/proposal.md",
+  "proposal_sha256": "04c1e3ed264388b813261138a5b8040b42e1412a0ca8f2e3122bdf26851d1742",
+  "findings": [],
+  "checks": [
+    "Transição limitada a BLOCKED/1 → PENDING/2; reblock e ciclos futuros explicitamente excluídos.",
+    "Replay de block preserva resultado histórico, revisão 1 e schema emitido (2 migrado ou 3 nativo), sem consultar revisão atual para reconstruir resposta.",
+    "Replay de unblock precede conflito de estado, exige autorização atual e preserva medições históricas; identidade e namespaces definidos.",
+    "Perfil schema 1 permanece restrito a MIGRATE_V2/BLOCK_PENDING; perfil schema 2 inclui operações novas e exige negação antes de I/O para operação ausente.",
+    "SQLite v3 opt-in, sem migração silenciosa, downgrade ou apresentação como v2; preservação literal dos dados legados e marca do formato de resposta.",
+    "Invariantes relacionais cobrem eventos/pedidos entre runs, ordem e integridade além das FKs isoladas.",
+    "AT e selos anteriores preservados nos perfis originais; novos AT dependem de autoria independente e preparo posterior à aprovação humana."
+  ],
+  "limitations": [
+    "SQL/DDL v3 não implementado nem executado; SQL literal final após renames requer revisão antes de novos AT.",
+    "AT e testes complementares não executados nesta revisão documental; nenhum comportamento de unblock foi demonstrado.",
+    "Fronteira administrativa e perfis novos não implementados ou verificados; evidência operacional permanece futura.",
+    "A revisão não certifica produto, aceite oficial, entrega, checkpoint Git/spec/artefatos ou resolução técnica do bloqueio.",
+    "Leitura de código atual usada somente para confrontar compatibilidade e pontos de evolução; nenhum arquivo de produto ou teste alterado."
+  ]
+}

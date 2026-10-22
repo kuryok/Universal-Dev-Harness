@@ -20,7 +20,7 @@ Retomada: ler [STATE.md](STATE.md), conferir Git e fontes. Memória não é requ
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- [Estado e próximo passo](STATE.md): especificar desbloqueio/retomada de BLOCKED, revisões e checkpoints; obter aprovação antes de nova transição. Sem execução de agentes ou aceite oficial.
+- [Estado e próximo passo](STATE.md): aprovar [desbloqueio BLOCKED/1→PENDING/2](openspec/changes/slice1-unblock-run/proposal.md) e preparo nomeado. Spec revisada documentalmente; SQLite v3 opt-in e replay histórico definidos, ainda sem código. Nesta preparação: 36 complementares PASS; Core/selos íntegros. Sem agentes.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.

@@ -16,13 +16,13 @@ Este arquivo orienta a retomada; não aprova requisitos nem substitui OpenSpec, 
 
 ## Pendente
 
-- Especificar desbloqueio/retomada de BLOCKED, novas revisões e consistência de checkpoints; nenhuma outra transição está implementada.
+- Aprovar [desbloqueio BLOCKED/1→PENDING/2](openspec/changes/slice1-unblock-run/proposal.md): proposta revisada documentalmente, SQLite v3 opt-in e replay histórico preservado. Sem implementação nova.
 - Executor de agentes, coordenação automática até entrega e interface guiada ainda não implementados. OpenSpec é usado documentalmente; sua CLI e o harness fast/full não estão disponíveis.
 - Instalação operacional protegida e aceite oficial do produto não demonstrados. Bootstrap usa dados sintéticos e não protege contra quem escreve no host. Slice 1 incompleta.
 
 ## Próxima tarefa
 
-Preparar no OpenSpec o contrato de desbloqueio/retomada, com autorização, revisão, idempotência e recuperação. Obter aprovação antes de implementar. Não integrar agentes ou declarar entrega oficial.
+Obter aprovação do contrato de desbloqueio e do preparo de AT/perfil administrativo nomeados na proposta. Depois preparar evidências independentes e migrar/implementar em incrementos verificados. Não integrar agentes.
 
 ## Verificação
 
