@@ -23,7 +23,7 @@ Este arquivo orienta a retomada; não aprova requisitos nem substitui OpenSpec, 
 
 ## Próxima tarefa
 
-Aprovar o [formato de evidências sem duplicação](openspec/changes/slice1-evidence-storage/proposal.md), especificado por autorização do usuário, com revisão documental PASS; ainda sem implementação. Depois implementar/verificar o transporte e selo v7 antes de retomar migração/leitura v3. Contrato funcional de desbloqueio segue aprovado; preservar v1/v2 e não integrar agentes.
+Aprovar o [formato de evidências sem duplicação](openspec/changes/slice1-evidence-storage/proposal.md), revalidado com correções de orçamento total, exportação completa e CLI sem reescrita; experimentos de deduplicação/compatibilidade PASS, ainda sem implementação. Se mantida a prioridade operacional, implementar/verificar transporte e selo v7 antes de retomar v3; armazenamento não é dependência funcional do Core. Contrato funcional de desbloqueio segue aprovado; preservar v1/v2 e não integrar agentes.
 
 ## Verificação
 

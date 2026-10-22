@@ -1,0 +1,41 @@
+{
+  "status": "DOCUMENTARY_PASS",
+  "review_id": "independent-evidence-storage-design-validation-2026-10-22",
+  "spec": {
+    "path": "openspec/changes/slice1-evidence-storage/proposal.md",
+    "sha256": "5fe7314fd71f04fac56ef6a6149f111e46c85afd782dd151d7a95a6278258f43"
+  },
+  "previous_review": {
+    "path": "openspec/changes/slice1-evidence-storage/doc-review.json",
+    "sha256": "1d4f6e9cc55e103045d24778b963d3dc2b02432bf423781b0a1cab158e1f92fb",
+    "note": "Preservado; seu parecer continua vinculado à versão anterior da proposta."
+  },
+  "unresolved_findings": [],
+  "resolved_findings": [
+    {
+      "finding": "Exportação de somente manifesto/objetos não fecha inventário do selo nem define confiança do pin.",
+      "resolution": "Pacote contém snapshot completo, specs indexadas e objetos alcançáveis; verificação recebe raízes locais e pin externo confiável, sem origem/Git, e cobre somente coleta histórica."
+    },
+    {
+      "finding": "Limites apenas individuais permitiam grafo de aproximadamente16GiB de JSON e reidratação multiplicativa.",
+      "resolution": "Limites individuais4MiB/16MiB e agregados16MiB/64MiB, contadores reais por hash distinto, um objeto por vez e gates por referência, com recusa explícita."
+    },
+    {
+      "finding": "Preservar API default6 não impedia CLI antiga de sobrescrever unblock-baseline.json.",
+      "resolution": "CLI --baseline sem geração7 recusa exit2 antes de qualquer escrita; rota nova opt-in grava objects/runs, mantendo compatibilidade somente da API legada."
+    }
+  ],
+  "recommendation": {
+    "design": "Adequado para implementação incremental depois de aprovação humana, sem novos bloqueadores documentais identificados.",
+    "necessity": "Melhoria operacional para conter duplicação e reescrita de evidências; não é dependência funcional do SQLite v3/desbloqueio.",
+    "priority": "Executar antes de v3 é justificável se o custo das próximas coletas for a prioridade escolhida; o custo adicional de codec, gates e regressões deve permanecer explícito."
+  },
+  "limits": [
+    "Revisão documental, sem implementação, execução do Core, mudança de AT ou publicação de selo.",
+    "Experimento de roundtrip e redução informado pelo coordenador demonstra viabilidade de representação em memória; não foi reexecutado por este revisor e não comprova I/O, atomicidade, isolamento ou exportação real.",
+    "E1–E9 ainda exigem autoria independente dos novos AT, execução futura e revisão dos bytes correspondentes antes da publicação7.",
+    "Orçamento lógico não é limite exato de RSS; a implementação precisa comprovar tratamento de limites antes de expansão multiplicativa.",
+    "Verificação offline não reexecuta o candidato nem revalida os bytes dos ancestrais; usa identidade ancestral fixada e pin externo confiável."
+  ],
+  "clarification": "Caminhos absolutos em logs/comandos históricos são preservados literalmente; a verificação offline não os resolve nem usa para abrir arquivos."
+}
