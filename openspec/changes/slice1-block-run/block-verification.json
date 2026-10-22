@@ -1,0 +1,96 @@
+{
+  "result": "PASS",
+  "candidate_commit": "ad2bd478fa8a07a06b6e1a1b832b1795fafe1c4d",
+  "source_hashes": {
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "35c2199d6c990d9e0f02f6250929ae6c1088cd9fb340f04cc930f22fa11c9f8e",
+    "udh/domain.py": "589db31e4aac42c2719bd3d15f1b9be2eb9f94fa30785deb01d3c0f6bd6b8130",
+    "udh/migrations.py": "d0cdcba75eb6f470caa69853ad264441a6b8a203b7c47fea583a7c7451f0059f",
+    "udh/operator.py": "4316e9b3b72375d9fbf389cb85606b4e821b2b399a742e2303745593e1e4a851",
+    "udh/policy.py": "a9e67014098b84f0fe8ad4269190c77c7d94ff7d84ceac8fbded321342906d1b",
+    "udh/service.py": "e225536da6296dd3de52c0b44eb636e11605859b7e228c9663f659c50c84178f",
+    "udh/store.py": "f3545bea6c5ef6e6f7746de60aa87f0cde8e5fbaf6e98aef1fc6ed90994f1420",
+    "udh/transitions.py": "5e3b16cb4b0e170b46d2e6a204ae78f429c92c9e812bc2fb0368b4bc63f3ec19"
+  },
+  "complementary_tests": 36,
+  "at_methods": 13,
+  "at_outcomes": {
+    "BlockAcceptance.test_b1_persisted_block_and_v2_reader": "PASS",
+    "BlockAcceptance.test_b2_adversary_isolation_and_claims": "PASS",
+    "BlockAcceptance.test_b3_distinct_concurrent_requests": "PASS",
+    "BlockAcceptance.test_b3_equal_concurrent_requests": "PASS",
+    "BlockAcceptance.test_b3_exact_replay_and_payload_conflicts": "PASS",
+    "BlockAcceptance.test_b4_instrumented_interruption_and_replay": "PASS",
+    "BlockAcceptance.test_b5_common_policy_and_unsupported_targets_no_effect": "PASS",
+    "MigrationAcceptance.test_m1_empty_and_populated_preserve_and_replay": "PASS",
+    "MigrationAcceptance.test_m2_invalid_database_unchanged": "PASS",
+    "MigrationAcceptance.test_m2_missing_rejected_without_creation": "PASS",
+    "MigrationAcceptance.test_m3_concurrent_migration": "PASS",
+    "MigrationAcceptance.test_m3_instrumented_interruption_and_replay": "PASS",
+    "MigrationAcceptance.test_r1_v1_formats_and_common_refusal": "PASS"
+  },
+  "audited_calls": 171,
+  "interruption_checkpoints": {
+    "migrate": [
+      "BEFORE_WRITE:5",
+      "BEFORE_WRITE:2",
+      "AFTER_COMMIT:1",
+      "BEFORE_WRITE:4",
+      "BEFORE_WRITE:8",
+      "BEFORE_WRITE:3",
+      "BEFORE_WRITE:10",
+      "BEFORE_WRITE:1",
+      "BEFORE_WRITE:6",
+      "BEFORE_WRITE:7",
+      "BEFORE_WRITE:9"
+    ],
+    "block": [
+      "BEFORE_WRITE:3",
+      "AFTER_COMMIT:1",
+      "BEFORE_WRITE:1",
+      "BEFORE_WRITE:2"
+    ]
+  },
+  "infrastructure_errors": 0,
+  "independent_review": "PASS",
+  "regressions": {
+    "candidate_ref": "ad2bd478fa8a07a06b6e1a1b832b1795fafe1c4d",
+    "results": {
+      "v1": "PASS",
+      "v2": "PASS",
+      "I1_I7_T1_T8": "PASS"
+    },
+    "result": "PASS"
+  },
+  "seals": {
+    "1": "sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704",
+    "2": "sha256:438ce43f70e0137115f2c30920623eabf5bfd042035958951fdaafa151e41f3f",
+    "3": "sha256:d1362b119315a504976adf573f802fd7b3e4b045e03554a1432fc43c76cf3e0a",
+    "4": "sha256:49a07d7f8f4c55daaee039940288a5b17aacae94df623c7ec6ec7638d01c4183",
+    "5": "sha256:182d2ba72a7b5dfb5648e650577dcc3bbbbd67048c72a3bf959406ce7dd89ac6"
+  },
+  "core_modules": 9,
+  "core_lines": 704,
+  "module_lines": {
+    "udh/__init__.py": 1,
+    "udh/__main__.py": 71,
+    "udh/domain.py": 121,
+    "udh/migrations.py": 89,
+    "udh/operator.py": 48,
+    "udh/policy.py": 43,
+    "udh/service.py": 44,
+    "udh/store.py": 236,
+    "udh/transitions.py": 51
+  },
+  "official_product_acceptance": false,
+  "slice1_complete": false,
+  "not_implemented": [
+    "desbloqueio/retomada",
+    "execução de agentes",
+    "instalação operacional e UI"
+  ],
+  "not_run": [
+    "harness fast/full: ausente",
+    "OpenSpec CLI: ausente"
+  ]
+}

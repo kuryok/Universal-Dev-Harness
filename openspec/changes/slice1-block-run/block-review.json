@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "scope": "Revisão independente do incremento PENDING→BLOCKED contra proposal.md e design.md aprovados.",
+  "candidate_commit": "ad2bd478fa8a07a06b6e1a1b832b1795fafe1c4d",
+  "core_files": {
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "35c2199d6c990d9e0f02f6250929ae6c1088cd9fb340f04cc930f22fa11c9f8e",
+    "udh/domain.py": "589db31e4aac42c2719bd3d15f1b9be2eb9f94fa30785deb01d3c0f6bd6b8130",
+    "udh/migrations.py": "d0cdcba75eb6f470caa69853ad264441a6b8a203b7c47fea583a7c7451f0059f",
+    "udh/operator.py": "4316e9b3b72375d9fbf389cb85606b4e821b2b399a742e2303745593e1e4a851",
+    "udh/policy.py": "a9e67014098b84f0fe8ad4269190c77c7d94ff7d84ceac8fbded321342906d1b",
+    "udh/service.py": "e225536da6296dd3de52c0b44eb636e11605859b7e228c9663f659c50c84178f",
+    "udh/store.py": "f3545bea6c5ef6e6f7746de60aa87f0cde8e5fbaf6e98aef1fc6ed90994f1420",
+    "udh/transitions.py": "5e3b16cb4b0e170b46d2e6a204ae78f429c92c9e812bc2fb0368b4bc63f3ec19"
+  },
+  "unresolved": [],
+  "conclusions": [
+    "BEGIN IMMEDIATE serializa decisões; validação v2 e integridade global precedem o pedido e se repetem antes de commit. Inserção de evento, pedido/autorização e atualização por compare-and-set permanecem na mesma transação com rollback em falha.",
+    "Chave de bloqueio é global em block_requests; replay compara literalmente run_id, expected_revision e reason antes de conferir estado. Reutilização divergente conflita e não grava. Namespace da criação permanece separado.",
+    "Replay exige contexto administrativo válido em cada chamada; retorna timestamp, sequência e UUID persistidos, preservando hashes originais mesmo quando as medições atuais mudam. Não persiste nova autorização.",
+    "PENDING/revision0 e revisão esperada zero são condições da transição única; BLOCKED não pode transicionar novamente. UPDATE contém estado e revisão esperados e exige exatamente uma linha.",
+    "Serviço valida domínio/contexto antes de I/O. Entrada operator traduz conflito em exit4 e preserva negação sem acesso ao banco quando falta contexto; entrada comum e policy não ganham permissão de escrita.",
+    "Contexto contém metadados, não credencial. Autoridade continua dependente do controlador e mount privado do banco no perfil aprovado; não há nova dependência, rede ou mecanismo de autenticação fora do escopo."
+  ],
+  "verification": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 TMPDIR=\"$PWD/bootstrap/slice1\" python3 -m unittest discover -s tests -v",
+    "result": "PASS",
+    "tests": 36,
+    "elapsed_seconds": 3.773,
+    "acceptance_tests": "Não executados por este revisor; execução independente pelo controlador principal. Este parecer não declara full PASS de AT."
+  },
+  "limits": [
+    "Parecer consultivo; não constitui aceite oficial ou conclusão da Slice 1.",
+    "Concorrência e interrupção de processo dependem também dos AT independentes em andamento; testes complementares não substituem aceite.",
+    "Bootstrap protege o banco do contêiner adversário; não protege contra escritor no host. Instalação operacional permanece fora do escopo.",
+    "Nenhum arquivo de produto, teste de aceite, infraestrutura ou selo alterado nesta revisão. Mudanças locais preexistentes foram preservadas."
+  ]
+}

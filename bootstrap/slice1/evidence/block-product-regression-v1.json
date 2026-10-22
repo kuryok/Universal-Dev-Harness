@@ -1,0 +1,5979 @@
+{
+  "candidate_ref": "ad2bd478fa8a07a06b6e1a1b832b1795fafe1c4d",
+  "candidate_hashes": {
+    "_udh_cli.py": "5f887097c8c313a25f554cc1b6e149d88eeca527ed192b1bd6df8e33bf99bab6",
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "35c2199d6c990d9e0f02f6250929ae6c1088cd9fb340f04cc930f22fa11c9f8e",
+    "udh/domain.py": "589db31e4aac42c2719bd3d15f1b9be2eb9f94fa30785deb01d3c0f6bd6b8130",
+    "udh/migrations.py": "d0cdcba75eb6f470caa69853ad264441a6b8a203b7c47fea583a7c7451f0059f",
+    "udh/operator.py": "4316e9b3b72375d9fbf389cb85606b4e821b2b399a742e2303745593e1e4a851",
+    "udh/policy.py": "a9e67014098b84f0fe8ad4269190c77c7d94ff7d84ceac8fbded321342906d1b",
+    "udh/service.py": "e225536da6296dd3de52c0b44eb636e11605859b7e228c9663f659c50c84178f",
+    "udh/store.py": "f3545bea6c5ef6e6f7746de60aa87f0cde8e5fbaf6e98aef1fc6ed90994f1420",
+    "udh/transitions.py": "5e3b16cb4b0e170b46d2e6a204ae78f429c92c9e812bc2fb0368b4bc63f3ec19"
+  },
+  "at_version": "sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704",
+  "tests_run": 10,
+  "outcomes": {
+    "CoreStateAcceptance.test_a10_concurrent_divergent_requests": "PASS",
+    "CoreStateAcceptance.test_a10_concurrent_identical_requests": "PASS",
+    "CoreStateAcceptance.test_a1_reinitialization_preserves_run": "PASS",
+    "CoreStateAcceptance.test_a2_incompatible_fixtures_unchanged": "PASS",
+    "CoreStateAcceptance.test_a3_durable_across_processes": "PASS",
+    "CoreStateAcceptance.test_a4_event_failure_rolls_back": "PASS",
+    "CoreStateAcceptance.test_a5_invalid_inputs_and_missing_database": "PASS",
+    "CoreStateAcceptance.test_a6_literal_references": "PASS",
+    "CoreStateAcceptance.test_a7_no_promotion_and_persistent_state_constraint": "PASS",
+    "CoreStateAcceptance.test_a9_idempotence_and_conflicting_payload": "PASS"
+  },
+  "errors": [],
+  "failures": [],
+  "skipped": [],
+  "audit": [
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "082215f400d0418c8f8384d7c49a6834",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-4e2779d0383347b18c47ebd231da390d",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-4e2779d0383347b18c47ebd231da390d",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-c08037ho/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-4e2779d0383347b18c47ebd231da390d\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "090de6959e2e4db4b30c671b90cfb0da",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-1648c93c748647039afe4ee0c795efbd",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-1648c93c748647039afe4ee0c795efbd",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-mggytq8_/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-1648c93c748647039afe4ee0c795efbd\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "275e13df3952410c8dea52e70d874d00",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-ea8fe7fd7d6d418f9f5a915d993f9055",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-ea8fe7fd7d6d418f9f5a915d993f9055",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-mggytq8_/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-ea8fe7fd7d6d418f9f5a915d993f9055\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "2c31ef8ddb8d4f3d883c54139967dc1c",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-33efec7901c54c93951fdfdf0014187e",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-33efec7901c54c93951fdfdf0014187e",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        ""
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-33efec7901c54c93951fdfdf0014187e\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "3036048e80e9490396a5cf9124599f4f",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-5a6554ca307a4f1f96e23ea15f3e2c1b",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-5a6554ca307a4f1f96e23ea15f3e2c1b",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "   "
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-5a6554ca307a4f1f96e23ea15f3e2c1b\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "313ca4acb76748beac2a2f362ff5bf37",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-c5ca6a7efba64032aa88dd80c27f44e8",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-c5ca6a7efba64032aa88dd80c27f44e8",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite",
+        "--run-id",
+        "484b1208-871a-4daf-a488-5a2997ba28c5"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-c5ca6a7efba64032aa88dd80c27f44e8\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "3154aec27550472f928c57c8b91dae04",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-bc32706196f04653a1dfec0fbea11232",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-bc32706196f04653a1dfec0fbea11232",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-o0554ns0/state.sqlite",
+        "--run-id",
+        "942003a2-4edf-496f-a6ec-57d8b4bd9ae5"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-bc32706196f04653a1dfec0fbea11232\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "34626fa40aac4cc1a8c9c5b43eb7e62e",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-1f77d1db1e1648cbb078830b41b12ed4",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-1f77d1db1e1648cbb078830b41b12ed4",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-_sxhg8a9/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-1f77d1db1e1648cbb078830b41b12ed4\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "3e38385d35204b1b9c753806d2947818",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-3dee999302864b28838692c2a7913487",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-3dee999302864b28838692c2a7913487",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-ir0c2mn3/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-3dee999302864b28838692c2a7913487\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "43d06c2274594aa9825d3ad8c77f8444",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-42b3aa7d28ea495999b37fc37d20e0d6",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-42b3aa7d28ea495999b37fc37d20e0d6",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite",
+        "--run-id",
+        "334c1932-e42c-4ea9-9184-25ac5f01dfa4"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-42b3aa7d28ea495999b37fc37d20e0d6\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "44a3f76659d04827b071f60d5d439cda",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-56f898a707784f5ba7ba509afb949015",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-56f898a707784f5ba7ba509afb949015",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-u7l4ka4r/fixture-1.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-56f898a707784f5ba7ba509afb949015\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "4b4d567448954569b692dd1f02e68dcb",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-ae08264762d44187857ef11aa00d4b9a",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-ae08264762d44187857ef11aa00d4b9a",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-o0554ns0/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-ae08264762d44187857ef11aa00d4b9a\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "4ed5934caba245e49b21b3d750ce5917",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-d97350c396654089916a7f273a5b9a3e",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-d97350c396654089916a7f273a5b9a3e",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite",
+        "--spec-id",
+        "",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-d97350c396654089916a7f273a5b9a3e\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "54567b9170d24fb5bad58fa77b5d0888",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-26d62ab4ae834081bd9a2b50c96d88c5",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-26d62ab4ae834081bd9a2b50c96d88c5",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-qptq_kkv/missing-create.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-26d62ab4ae834081bd9a2b50c96d88c5\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "5719cabb6c6541c2bc78ba3e6bf2ca48",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-a2b744b950fa4a90baebe0b1487e199d",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-a2b744b950fa4a90baebe0b1487e199d",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-c08037ho/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v2",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-a2b744b950fa4a90baebe0b1487e199d\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "5755df942fd24ca9b61c9a32b7251ceb",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-a6235da72c9145ce98200ae5776cf6fd",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-a6235da72c9145ce98200ae5776cf6fd",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-ir0c2mn3/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-a6235da72c9145ce98200ae5776cf6fd\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "5787a7391eea4fd691f1e6f53c583f30",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-ee865322e13743dea2e18b1a6b0368fa",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-ee865322e13743dea2e18b1a6b0368fa",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-keec2kwr/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-ee865322e13743dea2e18b1a6b0368fa\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "5b671003b0004c38b002168c968b3b5b",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-da0302495d6343359e34ff8e34d02819",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-da0302495d6343359e34ff8e34d02819",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-7enxhsz0/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-2"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-da0302495d6343359e34ff8e34d02819\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "5d10c3caa19347fe8246ff8f23076ed4",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-41389e87de4b4445aa810a63f8eb33f7",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-41389e87de4b4445aa810a63f8eb33f7",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-7enxhsz0/state.sqlite",
+        "--run-id",
+        "27ea1b79-6445-41b5-8966-94e46c7f2209"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-41389e87de4b4445aa810a63f8eb33f7\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "5d685b5fe9fc4401ac1c4e707fdf5c28",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-522535ada85942159c11c04abd35df92",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-522535ada85942159c11c04abd35df92",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-mggytq8_/state.sqlite",
+        "--run-id",
+        "98ce1ce8-b9b3-48a4-aabd-f6e557a5dbf1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-522535ada85942159c11c04abd35df92\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "67098e1712284ecd9fe58446517225db",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-3e5b3910a6bd4610897c4893b761452e",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-3e5b3910a6bd4610897c4893b761452e",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-7enxhsz0/state.sqlite",
+        "--run-id",
+        "3bc3f544-c0a3-422d-a25c-ddd24af00078"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-3e5b3910a6bd4610897c4893b761452e\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "6964dec76d504d3cafecd2475f2772ae",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-8d532f0d8fe54f7583588ef86f1d4a43",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-8d532f0d8fe54f7583588ef86f1d4a43",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-o0554ns0/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-8d532f0d8fe54f7583588ef86f1d4a43\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "6d093ede785b4a0caf90555774421408",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-3fafdb824850490c8d004f59ad9d3acc",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-3fafdb824850490c8d004f59ad9d3acc",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-c08037ho/state.sqlite",
+        "--run-id",
+        "8bffe9fa-c528-4183-9aa0-d005e385c72d"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-3fafdb824850490c8d004f59ad9d3acc\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "7353ec569d8e4d0896d160390ca0b82f",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-5f8f7aa85b264cfd9c2d5da0c12334c4",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-5f8f7aa85b264cfd9c2d5da0c12334c4",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-qptq_kkv/missing-show.sqlite",
+        "--run-id",
+        "6345bd70-87cc-4e6a-a92a-d84a9bbd9934"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-5f8f7aa85b264cfd9c2d5da0c12334c4\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "8d35df4c37814fb9a91980e55acd56e2",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-1b9340b7cb86414b802fbabc5efd362a",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-1b9340b7cb86414b802fbabc5efd362a",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-u7l4ka4r/fixture-2.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-1b9340b7cb86414b802fbabc5efd362a\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "93a70ea09fb14ef5bc70b69acd9413f4",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-1f70412b1589402cbaa094a7be5f767f",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-1f70412b1589402cbaa094a7be5f767f",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-u7l4ka4r/fixture-0.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-1f70412b1589402cbaa094a7be5f767f\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "93e77288311949ecb9b8f2d355712629",
+      "outcome": "EXIT",
+      "returncode": 2,
+      "container_name": "udh-boundary-fcd1636b57234ae298cf1b164b3405ba",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-fcd1636b57234ae298cf1b164b3405ba",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "promote",
+        "--db",
+        "/work/at-core-o0554ns0/state.sqlite",
+        "--run-id",
+        "942003a2-4edf-496f-a6ec-57d8b4bd9ae5"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-fcd1636b57234ae298cf1b164b3405ba\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "99b2e89bab2e43d3a6972200cc64237c",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-bddae61958a74bf5964a81cc2325fe8e",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-bddae61958a74bf5964a81cc2325fe8e",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-_sxhg8a9/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-bddae61958a74bf5964a81cc2325fe8e\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "9ab56eba3d6446a1a223d0b1e06f0ddd",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-bc2e0f473272498a8572f1feae8369cc",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-bc2e0f473272498a8572f1feae8369cc",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-c08037ho/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-bc2e0f473272498a8572f1feae8369cc\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "a7508991ce8a40c881898ff1826cd18b",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-e18eae7dabc54fdd83518a09a086b089",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-e18eae7dabc54fdd83518a09a086b089",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-1sl59i73/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v2",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-e18eae7dabc54fdd83518a09a086b089\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "aa6bcabde5c04ee7b7fb84c10265bf0e",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-9c43d07bbce84fc69b90c1539b8924f3",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-9c43d07bbce84fc69b90c1539b8924f3",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-7enxhsz0/state.sqlite",
+        "--spec-id",
+        "spec'); DROP TABLE runs; --",
+        "--spec-version",
+        " v1 ",
+        "--request-id",
+        "req-'1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-9c43d07bbce84fc69b90c1539b8924f3\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "cbdab5383b114d179183a742655d7389",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-2ab5c5a947294cf4bb59c5f15b5a7650",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-2ab5c5a947294cf4bb59c5f15b5a7650",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-_sxhg8a9/state.sqlite",
+        "--run-id",
+        "0f963fd0-c38c-4fb0-b0f3-03abaf4d2311"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-2ab5c5a947294cf4bb59c5f15b5a7650\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "cce5bc6d8bfd41f0bf7d3cf30e3b1f2b",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-2710da8d8f7d45fda79814946d0c064a",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-2710da8d8f7d45fda79814946d0c064a",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-1sl59i73/state.sqlite",
+        "--run-id",
+        "5c7e509e-c284-4775-b91f-2ae161b3a294"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-2710da8d8f7d45fda79814946d0c064a\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "cee5b7107a32464db1f9e7634ed22d56",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-dcded015954244efbf460d0f95859d28",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-dcded015954244efbf460d0f95859d28",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-keec2kwr/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-fail"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-dcded015954244efbf460d0f95859d28\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "d71f789886a34ef18084c4a02f30743b",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-38927b134f4241da9e9482d97f9fd4b9",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-38927b134f4241da9e9482d97f9fd4b9",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-keec2kwr/state.sqlite",
+        "--run-id",
+        "cc75214d-83ed-4a16-8953-21746b9ac162"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-38927b134f4241da9e9482d97f9fd4b9\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "d984d9cdb5e04234921289079859e570",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-941e28fbd495452fa9358c7e30dc7d9a",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-941e28fbd495452fa9358c7e30dc7d9a",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-941e28fbd495452fa9358c7e30dc7d9a\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "db5db3ad9e634b84b90d03a748cb5a74",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-036db17260814d1598c6d2feca82b759",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-036db17260814d1598c6d2feca82b759",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-1sl59i73/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-036db17260814d1598c6d2feca82b759\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "dda1ec367e0743c79c99c3d408a2c23c",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-42bc5bc132274dafb06e4fe09821df33",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-42bc5bc132274dafb06e4fe09821df33",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-ir0c2mn3/state.sqlite",
+        "--run-id",
+        "51d037f8-5532-476f-972a-7235dc826d43"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-42bc5bc132274dafb06e4fe09821df33\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "ddb90553bf36414db94b6c7d7b1ceeef",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-25211efd6a8749f98cbaccc977a22369",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-25211efd6a8749f98cbaccc977a22369",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-c08037ho/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-25211efd6a8749f98cbaccc977a22369\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "e44df03a69444f82a735315922134d3b",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-af907fe0eb3b4b81884d741f3d58753f",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-af907fe0eb3b4b81884d741f3d58753f",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite",
+        "--spec-id",
+        "   ",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-af907fe0eb3b4b81884d741f3d58753f\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "e96df5e677924405bc39eb8f69d40d50",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-704f08c174c443569b0ce44a462146ee",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-704f08c174c443569b0ce44a462146ee",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-ir0c2mn3/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-704f08c174c443569b0ce44a462146ee\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "ef8608454f114a42ae0e55f7c370e140",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-0a80bf47e82a40f189ce07d56ef6c8b6",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-0a80bf47e82a40f189ce07d56ef6c8b6",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-0a80bf47e82a40f189ce07d56ef6c8b6\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "efb158f07c304f738e3e3da41360261f",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-aa12c736277f46edbaf17bbb1d6f288d",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-aa12c736277f46edbaf17bbb1d6f288d",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "show",
+        "--db",
+        "/work/at-core-7enxhsz0/state.sqlite",
+        "--run-id",
+        "3bc3f544-c0a3-422d-a25c-ddd24af00078"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-aa12c736277f46edbaf17bbb1d6f288d\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "f0596833e78246d49b2f676465a672c1",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-714f194b8ce04b659afd3a225b096776",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-714f194b8ce04b659afd3a225b096776",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-7enxhsz0/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-714f194b8ce04b659afd3a225b096776\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "f0e40ff8440c463cb2d1a36b97008dc9",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-0fae30d549e44961a9bd4775cc7953d8",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-0fae30d549e44961a9bd4775cc7953d8",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "   ",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-0fae30d549e44961a9bd4775cc7953d8\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "f561aa8aaaf24028a4016202cbec743d",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-145fa89792d94cff8c3704b2b502b386",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-145fa89792d94cff8c3704b2b502b386",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "init",
+        "--db",
+        "/work/at-core-qptq_kkv/state.sqlite"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-145fa89792d94cff8c3704b2b502b386\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "f5a3bdc8b1034bb7ac069b24e5774d30",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-d66c0a2ab24f4c24ae2cf92fabc496a3",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-d66c0a2ab24f4c24ae2cf92fabc496a3",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-keec2kwr/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-d66c0a2ab24f4c24ae2cf92fabc496a3\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "f72927c2094b46d68ed64158bd33e404",
+      "outcome": "EXIT",
+      "returncode": 1,
+      "container_name": "udh-boundary-507e4fd992bf4a8ea666dc3a1456dfc7",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-507e4fd992bf4a8ea666dc3a1456dfc7",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-1sl59i73/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-507e4fd992bf4a8ea666dc3a1456dfc7\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    },
+    {
+      "classification": "FUNCTIONAL_EXIT",
+      "bridge_id": "f9a2a148bed14c9e8e760f327afc2e21",
+      "outcome": "EXIT",
+      "returncode": 0,
+      "container_name": "udh-boundary-d29832afb2f94a6fab7acbffa58d21ae",
+      "removed": true,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate",
+          "Destination": "/candidate",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work",
+          "Destination": "/work",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr",
+          "Destination": "/usr",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib",
+          "Destination": "/lib",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "bind",
+          "Source": "/usr/lib64",
+          "Destination": "/lib64",
+          "Driver": "",
+          "Mode": "",
+          "Options": [
+            "rbind"
+          ],
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ],
+      "command": [
+        "podman",
+        "create",
+        "--name",
+        "udh-boundary-d29832afb2f94a6fab7acbffa58d21ae",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=128",
+        "--cpus=1",
+        "--memory=384m",
+        "--userns=keep-id",
+        "--user",
+        "1000:1000",
+        "--volume",
+        "/usr:/usr:ro",
+        "--volume",
+        "/usr/lib:/lib:ro",
+        "--volume",
+        "/usr/lib64:/lib64:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/candidate:/candidate:ro",
+        "--volume",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/policy-integration-jqibha21/work:/work:rw",
+        "--workdir=/work",
+        "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+        "/usr/bin/python3",
+        "/candidate/_udh_cli.py",
+        "create",
+        "--db",
+        "/work/at-core-mggytq8_/state.sqlite",
+        "--spec-id",
+        "slice1",
+        "--spec-version",
+        "v1",
+        "--request-id",
+        "req-1"
+      ],
+      "cleanup": {
+        "remove": {
+          "returncode": 0,
+          "stdout": "udh-boundary-d29832afb2f94a6fab7acbffa58d21ae\n",
+          "stderr": "",
+          "outcome": null
+        },
+        "exists": {
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "",
+          "outcome": null
+        }
+      }
+    }
+  ],
+  "transcript": "test_a10_concurrent_divergent_requests (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a10_concurrent_divergent_requests) ... ok\ntest_a10_concurrent_identical_requests (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a10_concurrent_identical_requests) ... ok\ntest_a1_reinitialization_preserves_run (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a1_reinitialization_preserves_run) ... ok\ntest_a2_incompatible_fixtures_unchanged (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a2_incompatible_fixtures_unchanged) ... ok\ntest_a3_durable_across_processes (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a3_durable_across_processes) ... ok\ntest_a4_event_failure_rolls_back (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a4_event_failure_rolls_back) ... ok\ntest_a5_invalid_inputs_and_missing_database (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a5_invalid_inputs_and_missing_database) ... ok\ntest_a6_literal_references (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a6_literal_references) ... ok\ntest_a7_no_promotion_and_persistent_state_constraint (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a7_no_promotion_and_persistent_state_constraint) ... ok\ntest_a9_idempotence_and_conflicting_payload (trusted_114c76859626430cbbe64edc9f41118a.CoreStateAcceptance.test_a9_idempotence_and_conflicting_payload) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 28.173s\n\nOK\n",
+  "temporary_removed": true,
+  "result": "PASS"
+}
