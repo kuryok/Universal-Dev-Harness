@@ -6,28 +6,27 @@ Este arquivo orienta a retomada; não aprova requisitos nem substitui OpenSpec, 
 
 ## Funciona
 
-- Core modular: criação e consulta de execuções; SQLite guarda estado, Git guarda código.
-- Consulta determinística de policy: leitura permitida; execução, transição, aceite e entrega não são autorizados por essa consulta.
-- Isolamento experimental em Podman, AT independentes e selos v1/v2/v3 identificados e preservados.
-- Migração SQLite explícita v1→v2 e leitura v2 implementadas no candidato `96bd4dc`; compatibilidade v1 preservada nas verificações executadas.
-- Nesse candidato: 28 complementares, 10 AT v1, 11 AT de policy, I1–I7/T1–T8 e smoke de leitura v2 com 10 chamadas PASS. Revisão independente de migração/leitura PASS.
+- Core modular: SQLite guarda o estado; Git guarda código; specs ficam em OpenSpec.
+- Consulta determinística de policy, sem conceder execução, transição, aceite ou entrega.
+- Migração explícita v1→v2 e leitura v2 implementadas/verificadas no candidato `96bd4dc`, preservando formatos v1, dados literais e sequências. Oito módulos pequenos; block permanece indisponível.
+- 30 complementares, dez AT v1, onze AT policy, I1–I7/T1–T8 e smoke CLI v2 de dez chamadas PASS. Revisão independente do produto PASS.
+- Migração e fronteira: sete métodos independentes PASS, incluindo concorrência e onze pontos de interrupção. Conjunto completo de 13 métodos: oito PASS, cinco FAIL de block não implementado, zero erros/skips; 140 chamadas auditadas.
+- IPC instrumentado corrigido e revisado; selos v1–v5 preservados/verificados. AT v5 idênticos ao v3. Falhas históricas e correções estão documentadas.
 
 ## Pendente
 
-- Concluir a validação de interrupções da migração: o AT M3 apresentou dois erros de infraestrutura; os pontos passaram isoladamente. Há uma corrida reproduzível na publicação dos arquivos de reconhecimento do observador; sua relação com os erros iniciais é inferência, pois o bridge v3 não preservou a causa bruta.
-- Corrigir o transporte instrumentado e repetir M3 com evidência completa. O resultado do conjunto novo ainda é parcial; não declarar a migração totalmente aceita.
-- Implementar e verificar PENDING→BLOCKED somente depois de concluir a migração. A operação block continua indisponível.
-- Coordenação automática de agentes, fluxo completo até entrega e interface guiada ainda não implementados. OpenSpec é usado documentalmente; sua CLI e o harness fast/full não estão disponíveis.
-- Instalação operacional protegida e aceite oficial do produto não demonstrados. Slice 1 continua em construção.
+- Implementar PENDING→BLOCKED pela entrada administrativa protegida, com journal/autorização atômicos, revisão otimista e idempotência; executar os cinco AT de bloqueio ainda falhando.
+- Executor de agentes, coordenação automática até entrega e interface guiada ainda não implementados. OpenSpec é usado documentalmente; sua CLI e o harness fast/full não estão disponíveis.
+- Instalação operacional protegida e aceite oficial do produto não demonstrados. O bootstrap usa dados sintéticos e não protege de quem escreve no host. Slice 1 incompleta.
 
 ## Próxima tarefa
 
-Corrigir a publicação dos arquivos IPC da instrumentação, preservar o selo v3, revisar/versionar a correção e repetir os testes de interrupção e regressão no mesmo candidato de migração. Não habilitar block nem agentes neste incremento.
+Implementar e verificar o bloqueio já especificado, preservando migração/leitura v2 e contratos v1. Não habilitar agentes ou declarar entrega oficial.
 
 ## Verificação
 
 - Complementares: `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests -v`.
-- Regressores de isolamento: `PYTHONDONTWRITEBYTECODE=1 python3 bootstrap/slice1/integrate_acceptance.py`.
-- [Contrato e design da migração](openspec/changes/slice1-block-run/proposal.md), [preparo e evidências anteriores](openspec/changes/slice1-block-run/verification.md), [revisão do candidato](openspec/changes/slice1-block-run/migration-review.json).
-- [AT atuais: resultados parciais](bootstrap/slice1/evidence/migration-candidate.json), [regressões](bootstrap/slice1/evidence/migration-regression.json), [smoke CLI v2](bootstrap/slice1/evidence/migration-read-smoke.json) e [diagnóstico IPC](bootstrap/slice1/evidence/migration-ipc-race.json).
-- Atualizar este estado e a memória com os resultados efetivos ao terminar a próxima tarefa; testes anteriores não equivalem a testes de uma sessão futura.
+- Isolamento: `PYTHONDONTWRITEBYTECODE=1 python3 bootstrap/slice1/integrate_acceptance.py`.
+- [Contrato](openspec/changes/slice1-block-run/proposal.md), [resultado e reprodução](openspec/changes/slice1-block-run/migration-verification.md), [resumo verificável](openspec/changes/slice1-block-run/migration-verification.json).
+- [AT v5](bootstrap/slice1/evidence/migration-candidate-v5.json) e [revisão](openspec/changes/slice1-block-run/migration-review.json).
+- Atualizar este estado e a memória com os resultados efetivos ao encerrar a próxima tarefa; resultados anteriores não equivalem a testes de uma sessão futura.

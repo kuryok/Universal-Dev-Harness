@@ -1,6 +1,6 @@
 # UDH — retomada curta
 
-Atualizado: 22/10/2026. Candidato migração: `96bd4dc`; selo v3: `d1362b11`.
+Atualizado: 22/10/2026. Candidato migração: `96bd4dc`; selo v5: `182d2ba7`.
 Retomada: ler [STATE.md](STATE.md), conferir Git e fontes. Memória não é requisito, autorização ou aceite.
 
 ## Estado
@@ -20,7 +20,7 @@ Retomada: ler [STATE.md](STATE.md), conferir Git e fontes. Memória não é requ
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- Migração/leitura v2 implementadas; 28 complementares, regressões e smoke PASS. M3 teve INFRA_ERROR; diagnóstico isolado passou, corrida IPC reproduzida. [Estado e próximo passo](STATE.md): corrigir observador, versionar/retestar antes de liberar bloqueio. Não declarar aceite completo. Sem execução de agentes.
+- Migração/leitura v2 verificadas: 30 complementares, regressões, smoke e M3 PASS; IPC corrigido/versionado, AT preservados. [Estado e próximo passo](STATE.md): implementar bloqueio atômico/idempotente; cinco AT de block ainda falham por ausência da operação. Sem agentes ou aceite oficial.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.

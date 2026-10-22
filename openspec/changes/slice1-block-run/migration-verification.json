@@ -1,0 +1,70 @@
+{
+  "migration_result": "PASS",
+  "candidate_commit": "96bd4dcb4e792941f8846d8446f01d90426b3c5d",
+  "source_hashes": {
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "35c2199d6c990d9e0f02f6250929ae6c1088cd9fb340f04cc930f22fa11c9f8e",
+    "udh/domain.py": "589db31e4aac42c2719bd3d15f1b9be2eb9f94fa30785deb01d3c0f6bd6b8130",
+    "udh/migrations.py": "d0cdcba75eb6f470caa69853ad264441a6b8a203b7c47fea583a7c7451f0059f",
+    "udh/operator.py": "96714d251cdba56dd9ae81232ea13423291371c065ec0083625ac42ca4f916ea",
+    "udh/policy.py": "a9e67014098b84f0fe8ad4269190c77c7d94ff7d84ceac8fbded321342906d1b",
+    "udh/service.py": "ebd5ac76c03536a1cdc008a621b19b9a2b648241c16ee47ff165f1eab1d9d8e4",
+    "udh/store.py": "f3de26dcc1b90306029376c960d0218ad667cdcaa6f11ac48a41d5417c13820b"
+  },
+  "core_modules": 8,
+  "complementary_tests": 30,
+  "at_suite_methods": 13,
+  "outcomes": {
+    "FAIL": 5,
+    "PASS": 8
+  },
+  "migration_and_boundary_methods": 7,
+  "full_block_result": "NOT_IMPLEMENTED",
+  "expected_block_failures": [
+    "BlockAcceptance.test_b1_persisted_block_and_v2_reader",
+    "BlockAcceptance.test_b3_distinct_concurrent_requests",
+    "BlockAcceptance.test_b3_equal_concurrent_requests",
+    "BlockAcceptance.test_b3_exact_replay_and_payload_conflicts",
+    "BlockAcceptance.test_b4_instrumented_interruption_and_replay"
+  ],
+  "interruption_checkpoints": [
+    "BEFORE_WRITE:1",
+    "BEFORE_WRITE:4",
+    "BEFORE_WRITE:10",
+    "BEFORE_WRITE:9",
+    "AFTER_COMMIT:1",
+    "BEFORE_WRITE:5",
+    "BEFORE_WRITE:2",
+    "BEFORE_WRITE:8",
+    "BEFORE_WRITE:7",
+    "BEFORE_WRITE:6",
+    "BEFORE_WRITE:3"
+  ],
+  "audited_calls": 140,
+  "infrastructure_errors": 0,
+  "regressions": {
+    "candidate_ref": "96bd4dcb4e792941f8846d8446f01d90426b3c5d",
+    "results": {
+      "v1": "PASS",
+      "v2": "PASS",
+      "I1_I7_T1_T8": "PASS"
+    },
+    "result": "PASS"
+  },
+  "cli_v2_smoke_calls": 10,
+  "product_review": "PASS",
+  "ipc_reviews": "PASS",
+  "seals": {
+    "v1": "sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704",
+    "v2": "sha256:438ce43f70e0137115f2c30920623eabf5bfd042035958951fdaafa151e41f3f",
+    "v3": "sha256:d1362b119315a504976adf573f802fd7b3e4b045e03554a1432fc43c76cf3e0a",
+    "v4": "sha256:49a07d7f8f4c55daaee039940288a5b17aacae94df623c7ec6ec7638d01c4183",
+    "v5": "sha256:182d2ba72a7b5dfb5648e650577dcc3bbbbd67048c72a3bf959406ce7dd89ac6"
+  },
+  "official_product_acceptance": false,
+  "slice1_complete": false,
+  "not_run": [
+    "harness fast/full: ausente",
+    "OpenSpec CLI: ausente"
+  ]
+}

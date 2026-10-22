@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "scope": "Revisão independente do incremento de migração explícita e leitura SQLite v2; bloqueio indisponível.",
+  "candidate_commit": "96bd4dcb4e792941f8846d8446f01d90426b3c5d",
+  "core_files": {
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "35c2199d6c990d9e0f02f6250929ae6c1088cd9fb340f04cc930f22fa11c9f8e",
+    "udh/domain.py": "589db31e4aac42c2719bd3d15f1b9be2eb9f94fa30785deb01d3c0f6bd6b8130",
+    "udh/migrations.py": "d0cdcba75eb6f470caa69853ad264441a6b8a203b7c47fea583a7c7451f0059f",
+    "udh/operator.py": "96714d251cdba56dd9ae81232ea13423291371c065ec0083625ac42ca4f916ea",
+    "udh/policy.py": "a9e67014098b84f0fe8ad4269190c77c7d94ff7d84ceac8fbded321342906d1b",
+    "udh/service.py": "ebd5ac76c03536a1cdc008a621b19b9a2b648241c16ee47ff165f1eab1d9d8e4",
+    "udh/store.py": "f3de26dcc1b90306029376c960d0218ad667cdcaa6f11ac48a41d5417c13820b"
+  },
+  "unresolved": [],
+  "conclusions": [
+    "DDL v2 corresponde ao contrato aprovado: três tabelas exatas, checks locais, unicidades e referências; comparação SQL preserva literais e exige nomes finais com aspas produzidos pelo rename do SQLite.",
+    "Migração usa mode=rw, foreign_keys ON e BEGIN IMMEDIATE; copia sequências e valores explícitos; remove events antes de runs; exige legacy_alter_table OFF; valida esquema, quick_check, foreign_key_check, invariantes e igualdade literal antes de user_version=2 e commit.",
+    "Erros pré-commit executam rollback; versão v2 íntegra é idempotente; banco ausente, esquema divergente, objetos extras/triggers e referências órfãs são recusados.",
+    "Formatos v1 permanecem sem revision/schema_version novos; init continua exclusivamente v1. Leitor v2 valida globalmente estado/revisão, ordem dos eventos, pedido/autorização, vínculo de run e evento e dados de domínio.",
+    "Operator expõe somente migrate neste incremento. Contexto é configuração, não credencial; proteção depende do launcher/controlador e da ausência de mounts/canal operacional no candidato. Não há nova autoridade por JSON/flag/token no domínio do adversário."
+  ],
+  "verification": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 TMPDIR=\"$PWD\" python3 -m unittest discover -s tests -v",
+    "result": "PASS",
+    "tests": 28,
+    "elapsed_seconds": 2.974,
+    "acceptance_tests": "Não executados nesta revisão; execução independente pelo controlador principal em andamento. Nenhuma declaração de full PASS."
+  },
+  "limits": [
+    "Parecer consultivo de revisão, sem aceite oficial nem conclusão da Slice 1.",
+    "Transição BLOCKED, escrita de journal e concorrência do bloqueio ainda não implementadas; não aprovadas por este parecer.",
+    "Isolamento válido no perfil bootstrap de contêiner; não protege contra escritor no host. Um processo com acesso direto ao banco pode fabricar seu próprio contexto e não está dentro da fronteira adversária aprovada.",
+    "Testes complementares não substituem AT independentes; interrupção de processo não prova queda de energia ou hardware.",
+    "Nenhum arquivo de produto, AT, infraestrutura ou selo alterado pelo revisor."
+  ]
+}
