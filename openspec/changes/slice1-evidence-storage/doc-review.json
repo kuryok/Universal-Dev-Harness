@@ -1,0 +1,30 @@
+{
+  "status": "DOCUMENTARY_PASS",
+  "review_id": "independent-evidence-storage-documentary-2026-10-22",
+  "spec": {
+    "path": "openspec/changes/slice1-evidence-storage/proposal.md",
+    "sha256": "4ed30376714ed168efc6bcacf0985eb5639f9e12176e356a2c20c57b4171fa35"
+  },
+  "scope": "Viabilidade documental do transporte de evidências e compatibilidade do bootstrap; não é aprovação humana, verificação de implementação ou aceite de produto.",
+  "unresolved_findings": [],
+  "resolved_findings": [
+    {
+      "finding": "Fontes I/T evoluídas não podem reconstruir selo1 nem satisfazer hashes de revisões históricas.",
+      "resolution": "Rota nova verifica/reutiliza selo1 e usa infrastructure-review.json próprio, identidade fixada antes da coleta real, preservando snapshots e revisões antigos."
+    },
+    {
+      "finding": "Trocar geração padrão de create_seal quebraria complementares antigos fora do escopo de escrita.",
+      "resolution": "API padrão conserva geração6 usando bytes/spec hashes do snapshot6 verificado; geração7 exige opt-in explícito e publicação6 apenas reutiliza identidade/revisão existente."
+    }
+  ],
+  "observations": [
+    "Baseline funcional mantém os 16 métodos v6 com 13 falhas novas e três passes esperados; aceite de transporte E1–E7 roda separadamente e exige todos PASS.",
+    "Hash DAG sem referência circular ao manifesto futuro; publicação exclusiva e fechamento integral descritos; evidências históricas permanecem intocadas."
+  ],
+  "limits": [
+    "Revisão somente documental; nenhum Core executado, implementação criada ou teste executável alterado.",
+    "Segurança de I/O, atomicidade sob falha, limites de descompressão, equivalência semântica e exportação offline ainda exigem provas E1–E9 na implementação futura.",
+    "Hashes identificam bytes e não provam origem; proteção não cobre proprietário com escrita no host.",
+    "Não substitui aprovação humana do recorte nem revisão independente dos bytes executáveis futuros."
+  ]
+}

@@ -1,0 +1,85 @@
+# Evidências do bootstrap sem duplicação de relatórios
+
+Estado: especificação produzida conforme autorização de 22/10/2026; desenho pronto para revisão/aprovação antes de implementar. Recorte de infraestrutura transitória da Slice 1. Não altera requisitos nem autoridades do Core. A implementação de migração/leitura SQLite v3 fica depois deste recorte.
+
+## Problema e objetivo
+
+O preparo `e6015a6` (mesma árvore de `e906411`) acrescentou 196.432 linhas, majoritariamente JSON. Baseline completo foi copiado para revisão e manifesto; relatórios de integração foram duplicados e arquivos históricos regenerados. O objetivo é guardar cada conteúdo detalhado novo uma vez, com referências verificáveis e resumos pequenos, mantendo reprodução offline e todos os gates atuais.
+
+Linhas não medem sozinhas o custo no Git. Medir bytes novos, arquivos alterados e duplicação de payload, incluindo objetos comprimidos, sem prometer tamanho constante para execuções diferentes. IDs de contêiner, datas e durações distintos produzem evidências distintas e devem permanecer literais.
+
+## Limites invioláveis
+
+- Não alterar, apagar, compactar retroativamente ou mover selos v1–v6, AT existentes, evidências históricas ou histórico Git. Sem amend/rebase para reduzir o commit anterior.
+- O armazenamento é auxiliar do verificador confiável, não memória do agente, banco operacional ou segunda autoridade. SQLite operacional, Core e política permanecem inalterados.
+- Evidência existe por inteiro, inclusive falhas, skips, infraestrutura, stdout/stderr, comandos, inspeções e provas de interrupção já coletadas. Não truncar, selecionar só sucessos ou remover campos para caber.
+- Hash prova identidade de bytes; não prova origem nem verdade. Publicação continua exigindo coleta confiável, revisão independente e gates determinísticos. Artefatos inacessíveis ao candidato e contêiner adversário.
+- Sem serviço remoto, rede, dependência nova, credencial, daemon, limpeza automática ou execução de agentes. Biblioteca padrão Python, armazenamento somente no projeto.
+
+## Formato proposto, versão própria
+
+O formato de evidência tem `schema=1`, independente do schema SQLite e da geração de AT. Ele só vale para artefatos novos; verificadores antigos conservam integralmente seu contrato.
+
+1. Objetos em `bootstrap/slice1/evidence/objects/sha256/<64hex>.json.gz`. Nome derivado exclusivamente do hash dos bytes comprimidos, nunca de caminho do relatório ou argv candidato. Objetos publicados são imutáveis.
+2. JSON lógico canônico: UTF-8, ensure_ascii=False, sort_keys=True, separators=(',',':'), allow_nan=False, sem newline final. Recusar chaves duplicadas e números não finitos ao ler. Canonização não normaliza strings, listas, motivos, datas ou números do relatório.
+3. Compressão gzip nível9, mtime=0 e filename vazio, usando GzipFile/BytesIO. Metadados não incluem caminho/data do host. Não exigir identidade binária entre versões Python/zlib: cada objeto registra seu hash efetivo. Mesmos bytes comprimidos têm um único arquivo; nova coleta não reutiliza resultado só porque candidato/spec são iguais.
+4. Referência exata: `{schema:1, kind:TIPO, codec:'json-gzip-v1', stored_sha256:HASH, stored_bytes:N, json_sha256:HASH, json_bytes:N}`. Tipos aceitos: audit, transcript, report, regression, review. Hashes hex minúsculos64; tamanhos inteiros positivos, nunca bool. Sem campos extras, URLs, caminhos, pickle ou conteúdo executável.
+5. Cada objeto tem envelope exato `{schema:1, kind:TIPO, payload:VALOR, links:MAPA}`. `links` contém somente referências tipadas; dados livres de payload nunca são interpretados como caminhos ou referências. Validador específico confere tipos/nomes de links e payload; não basta desserializar JSON.
+6. Audit e transcript são folhas. Report referencia audit/transcript e, quando necessário, regression. Regression referencia relatórios externos completos. Review referencia o report de baseline e regression; não incorpora seus payloads. Manifesto do selo referencia review e baseline. Repetir hashes/referências e pequenos escalares de identificação é permitido; copiar relatórios/auditorias/transcrições completos em outro payload não é.
+7. Resumos humanos em `evidence/runs/<uuid>/summary.json` são JSON legível, com schema, run_id UUID, candidato/hash dos módulos, identidade AT/specs, modo, contagens/status, referências e limitações. Imutáveis após publicação; não são entrada suficiente para aceitar. Nenhum arquivo global `latest` é requisito deste recorte.
+
+## Leitura, escrita e fechamento
+
+Raiz de objetos fixada pelo controlador confiável, não pelo documento. Validar ancestrais, tipo regular e ausência de symlinks/entradas especiais na raiz e no objeto. Abrir sem seguir symlinks e verificar o descritor; não executar nem importar conteúdo. Modelo de ameaça continua sem proteção contra proprietário que escreve no host.
+
+Limites antes de alocar/descompactar: objeto comprimido até16 MiB; JSON descompactado até64 MiB; grafo até256 objetos distintos e profundidade8. Ler gzip incrementalmente contando saída; recusar gzip truncado, conteúdo residual, membros concatenados, CRC inválido, tamanho/hash divergentes, codec/tipo desconhecido ou referências ausentes/cíclicas. Limites são recusa explícita de infraestrutura, sem evidência parcial publicada ou truncamento. Não verificar bytes e depois reabrir um caminho diferente para consumir conteúdo.
+
+Escrita: formar bytes/hash fora do destino final, criar temporário exclusivo no mesmo filesystem, flush/fsync e publicar sem sobrescrever por criação/link exclusivo suportado no Linux atual; fsync do diretório. Existente só é reutilizado após conferir bytes/hashes integralmente. Nunca replace em objeto publicado. Se cair antes do resumo/manifesto, objetos sem raiz podem permanecer; não são sucesso nem são apagados neste recorte. Temporários têm namespace distinto e não são referências válidas.
+
+Publicar folhas → relatórios → revisão → resumo/manifesto por último. Validar novamente a totalidade das referências antes da publicação final. Leitor só devolve PASS após fechamento íntegro e validação semântica do conteúdo. Ausência/corrupção de objeto vira INFRA_ERROR, nunca falha funcional esperada do baseline. Exportação offline copia resumo/manifesto e todos os objetos alcançáveis; a cópia deve ser verificável sem acesso ao repositório de origem. Objetos não alcançáveis não precisam viajar.
+
+## Compatibilidade e próximo selo
+
+Gerações1–6 mantêm verificadores, formatos, pins e snapshots. Não reinterpretar o `report_sha256` antigo como hash de gzip: são domínios diferentes. O novo verificador resolve referências apenas no novo schema/generation7 e então aplica as mesmas verificações semânticas completas de candidato, hashes, cobertura, resultados, auditorias e revisão.
+
+Próximo selo proposto: v7 encadeado ao pin v6 `7196e5f4eea1fc78806efcdbd2b1e231446b2632937d5aff69c4f2f8bf0d9b37`. Mudança exclusivamente no transporte das evidências e fontes controladoras nomeadas; reutiliza bytes exatos dos 16 AT/coverage v6. Baseline continua Core `ad2bd478fa8a07a06b6e1a1b832b1795fafe1c4d`, nove módulos fixados: exatamente13 NEW_FAILURE/3 EXISTING_PASS, sem errors/skips/infra. Novo manifesto fixa fontes e specs de desbloqueio mais este contrato. Nova aprovação funcional de unblock não é necessária; editar AT ou ampliar semântica exige delta próprio.
+
+Compatibilidade da API de publicação: `create_seal(root, destination, review=None)` conserva por padrão a geração6, exigida pelos complementares existentes. O ramo legado monta rascunho apenas a partir dos bytes/spec hashes do selo6 congelado e previamente verificado, não das fontes atuais evoluídas; status DRAFT/review nulo recompõem sua identidade antiga. Para publicação6, só verificar/reutilizar a identidade já publicada e sua revisão idêntica, sem recriar snapshot com fontes novas. A geração7 é opt-in explícito `create_seal(..., generation=7)`; o novo coordenador a solicita explicitamente. Nenhum teste antigo precisa ser alterado para aceitar um inventário novo.
+
+Evitar ciclo de hashes: identidade DRAFT tem status DRAFT/review nulo e fontes/specs, sem referência ao resultado que a executará. Report fixa essa identidade. Review fixa report. Manifesto PUBLISHED fixa referência review/report, sem estes conterem o hash futuro do próprio manifesto. Gate reconstrói DRAFT e compara ao report. A identidade publicada muda em relação ao rascunho, como no protocolo atual.
+
+Novo manifest.json até128 KiB; resumo e parecer humano até32 KiB cada. Baseline/revisão/manifesto não contêm payloads detalhados inline. Se ultrapassar, recusar publicação com diagnóstico; não cortar dados. Código/AT/specs continuam copiados e hashados no selo conforme contrato; a deduplicação deste recorte é de evidências, não mudança para checkout Git dependente de rede.
+
+## Eliminar reescrita acidental
+
+As novas rotas de coleta escrevem somente objetos/runs novos. `integration.json`, `boundary.json`, `block-instrumentation.json`, baselines/revisões/manifestos anteriores continuam byte a byte iguais após os testes novos.
+
+Fontes atuais integrate_acceptance/check_boundary ganham destino explícito confiável e seguro dentro de runs do projeto, com padrão de nova execução, em vez de sobrescrever nomes históricos. O chamador repassa o destino ao subprocesso de boundary. Esse argumento pertence ao controlador no host e não é exposto ao candidato. Recusar destinos históricos/protegidos, fora da raiz permitida ou redirecionados por symlink. Testes complementares de instrumentação usam saída temporária própria; não reescrevem artefato global.
+
+Coordenadores congelados não são editados. Para regressões antigas, chamar suas rotinas que devolvem dados em processo separado e armazenar o retorno na nova coleta; não executar entrypoints legados que sobrescrevem destinos históricos. Registrar módulo/hash e ajustes de caminhos confiáveis usados, sem importar Core no host. A nova rota I/T utiliza fontes evoluídas com seus hashes, preservando as verificações; não alegar execução congelada de código que foi adaptado.
+
+A rota I/T evoluída verifica/reutiliza o selo1 já publicado; não chama o publicador histórico para reconstruí-lo a partir de fontes atuais. `integrate_acceptance.py` e `check_boundary.py` evoluídos têm revisão própria e hashes novos em `infrastructure-review.json` deste change e no inventário do selo7, incluindo as dependências confiáveis que executam. As revisões bootstrap/integration antigas e as verificações de seus snapshots continuam intactas. A autoverificação do check_boundary novo usa somente a nova identidade fixada pelo controlador/revisão; nunca ignora hash divergente ou atualiza a revisão histórica para fazê-lo passar. A revisão deve preceder a coleta real usada para publicar7. Fontes congeladas continuam vinculadas às revisões antigas. E8 comprova separadamente equivalência dos critérios I/T e identidade das fontes realmente executadas.
+
+## Arquivos e sequência para futura implementação
+
+Permitidos, se este desenho for aprovado: utilitário confiável pequeno `bootstrap/slice1/evidence_store.py` (codec, referências e I/O, sem decisão de domínio); fontes block_seal.py, integrate_block.py, integrate_acceptance.py e check_boundary.py; testes complementares novos `tests/test_evidence_storage.py` e ajuste somente do destino em tests/test_block_infrastructure.py. Esse utilitário é infraestrutura do bootstrap, não componente novo do Core. Qualquer outra alteração exige delta. Nada em udh/, AT existentes, engines, CI, tools/harness.py ou harness.toml.
+
+Artefatos novos: objects/runs, selo v7, documentação/revisão/verificação neste change e STATE/MEMORY. Não sobrescrever arquivos existentes nesses caminhos. Novos cenários de aceite do transporte precisam de autoria independente e revisão antes de selar; caminhos propostos `bootstrap/slice1/evidence_acceptance/test_evidence.py` e coverage.json. Rodar separadamente dos 16 AT v6, declarando ambos no selo novo, sem enfraquecer ou reclassificar os antigos. A cobertura funcional mantém exatamente o mapa methods do v6 e seu baseline13/3. A cobertura de transporte é mapa distinto E1–E7, com todos os métodos PASS no controlador novo, zero errors/skips/infra; suas falhas nunca satisfazem NEW_FAILURE funcional. O gate exige os dois relatórios íntegros e a revisão E9, incluindo regressões E8.
+
+Implementar em incrementos: codec/leitura/publicação e testes sintéticos → ligação dos gates/resumos/rotas de saída → regressões reais e baseline → revisão independente e selo7. Antes de implementar, aprovar este desenho, incluindo arquivos protegidos e AT novos nomeados. A autorização de produzir a presente especificação não é aprovação antecipada dos seus detalhes.
+
+## Critérios e plano de verificação
+
+| ID | Critério executável na implementação |
+| --- | --- |
+| E1 | Roundtrip literal, hash/tamanho/codec conferidos; gravar conteúdo idêntico duas vezes cria um objeto e duas referências; uma nova execução é coletada de novo. |
+| E2 | Objeto ausente/adulterado, metadados falsos, JSON duplicado/NaN, gzip inválido/concatenado e limites excedidos recusam como infraestrutura. Sem publicação parcial nem aceitação por resumo. |
+| E3 | Symlink em ancestral/objeto, path traversal, caminhos externos e entradas especiais recusados; candidato/adversário sem mount/descritor/config de escrita da store. |
+| E4 | Escritores concorrentes idênticos convergem sem overwrite; conteúdo diferente não se substitui; falha antes/depois da publicação deixa raiz completa ou ausente. Objeto órfão não vale sucesso. |
+| E5 | Review/gate/manifesto carregam closure exata; referência trocada, tipo errado, ciclo, falta de auditoria ou candidato/spec/coverage divergentes impedem publicação. Testar truncamento de cobertura/outcomes e resumo PASS com relatório FAIL/INFRA_ERROR. |
+| E6 | Exportar closure para diretório sintético isolado, retirar acesso à origem e verificar novamente; nenhuma referência absoluta/externa exigida. |
+| E7 | Regeneração de resumos/revisão/manifesto a partir da mesma coleta não adiciona cópias do payload e respeita32/128 KiB. Medir bytes únicos armazenados e comparar com representação atual das mesmas evidências, mantendo igualdade lógica integral. Não medir redução apenas por linhas. |
+| E8 |39 complementares anteriores, 10 AT v1,11 policy,13 v5,I1–I7/T1–T8 e16 baseline v6 preservados. Snapshot antes/depois comprova Core, AT, selos1–6 e evidências históricas sem alteração. |
+| E9 | Revisão independente dos bytes, fechamento de hashes/identidadeDRAFT, limites, atomicidade e critérios; nenhum achado pendente; candidato permanece sem v3/unblock. |
+
+Pronto da especificação: caminhos/limites/gates/transição descritos, medições locais registradas em verification.md, estado/memória atualizados, nenhuma mudança executável ou em evidência histórica. Pronto da implementação futura exige E1–E9 com execução nesta sessão futura e evidências completas; aprovação verbal ou parecer LLM isolado não concede aceite.

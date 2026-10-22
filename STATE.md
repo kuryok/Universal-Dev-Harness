@@ -17,12 +17,13 @@ Este arquivo orienta a retomada; não aprova requisitos nem substitui OpenSpec, 
 ## Pendente
 
 - [Desbloqueio BLOCKED/1→PENDING/2](openspec/changes/slice1-unblock-run/proposal.md) e preparo nomeado aprovados. DDL v3 refinado; novos AT independentes e perfil administrativo preparados. Core ainda sem migração/leitura v3 e sem unblock.
+- Evidências novas precisam evitar payloads duplicados e reescrita dos relatórios históricos; desenho proposto preserva selos1–6 e conteúdo integral.
 - Executor de agentes, coordenação automática até entrega e interface guiada ainda não implementados. OpenSpec é usado documentalmente; sua CLI e o harness fast/full não estão disponíveis.
 - Instalação operacional protegida e aceite oficial do produto não demonstrados. Bootstrap usa dados sintéticos e não protege contra quem escreve no host. Slice 1 incompleta.
 
 ## Próxima tarefa
 
-Implementar migração explícita/leitura v3, preservando v1/v2. Preparo v6 concluído com revisão independente PASS. Verificar antes de habilitar unblock e replay histórico. Contrato já aprovado; não integrar agentes.
+Aprovar o [formato de evidências sem duplicação](openspec/changes/slice1-evidence-storage/proposal.md), especificado por autorização do usuário, com revisão documental PASS; ainda sem implementação. Depois implementar/verificar o transporte e selo v7 antes de retomar migração/leitura v3. Contrato funcional de desbloqueio segue aprovado; preservar v1/v2 e não integrar agentes.
 
 ## Verificação
 

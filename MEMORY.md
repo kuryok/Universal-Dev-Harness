@@ -20,7 +20,7 @@ Retomada: ler [STATE.md](STATE.md), conferir Git e fontes. Memória não é requ
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- [Próximo passo](STATE.md): contrato de [desbloqueio](openspec/changes/slice1-unblock-run/proposal.md) e preparo aprovados. DDL/perfil2/AT novos preparados: 39 complementares PASS; baseline16 (13 falhas esperadas/3 PASS), sem infraestrutura. Selo6 `7196e5f4` publicado/revisado PASS; implementar/verificar migração/leitura v3 antes de unblock/replay. Core ainda v1/v2; sem agentes.
+- [Próximo passo](STATE.md): aprovar [evidências sem duplicação](openspec/changes/slice1-evidence-storage/proposal.md), especificação autorizada/revisada documentalmente, ainda sem código. Propõe objetos comprimidos por hash/resumos pequenos, preservando selos1–6/histórico. Implementar/verificar transporte antes de retomar v3/unblock já aprovado. Preparo6 `7196e5f4` verificado anteriormente:39 complementares, baseline13falhas/3PASS. Core v1/v2; agentes indisponíveis.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.
