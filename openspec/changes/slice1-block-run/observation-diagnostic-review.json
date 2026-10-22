@@ -1,0 +1,55 @@
+{
+  "status": "DIAGNOSTIC_CONFIRMED",
+  "candidate_commit": "96bd4dcb4e792941f8846d8446f01d90426b3c5d",
+  "reviewed_source": "Bytes originais fixados em seals/v3, não os arquivos raiz já corrigidos.",
+  "v3_source_sha256": {
+    "controller/operator_process.py": "3f89ea4596483796d07f9ea12dc411be0eb35038c01263b257f3ec4dfd034de2",
+    "controller/block_fixtures/fault_launcher.py": "9ed0fa4fe3910dd55e733b7b224ff6b5a123e4ce43235dad5f37ef7f7dc8a3da",
+    "controller/operator_bridge.py": "804be74a5f23218bc748d987e45ddb6957e402d638a48527b4980ea964d1e81d"
+  },
+  "findings": [
+    {
+      "id": "IPC_ACK_PUBLICATION",
+      "certainty": "CONFIRMED_CODE_AND_LOCAL_REPRODUCTION",
+      "location": "controller/operator_process.py:318; controller/block_fixtures/fault_launcher.py:34-39",
+      "description": "write_text publica o pathname ACK antes de terminar o conteúdo. O leitor espera apenas exists e imediatamente compara read_text ao nonce; um interleaving válido observa string vazia e termina a instrumentação. No trace SQLite, a exceção conduz a os._exit(125)."
+    },
+    {
+      "id": "IPC_DONE_PUBLICATION",
+      "certainty": "CONFIRMED_CODE_AND_LOCAL_REPRODUCTION_OF_PATTERN",
+      "location": "controller/block_fixtures/fault_launcher.py:82; controller/operator_process.py:323-326",
+      "description": "done.json também é publicado diretamente antes do fechamento; o controlador pode observar JSON vazio/parcial e classificá-lo como erro de infraestrutura."
+    },
+    {
+      "id": "RAW_DIAGNOSTIC_LOSS",
+      "certainty": "CONFIRMED_CODE_AND_EVIDENCE",
+      "location": "controller/operator_bridge.py:116-130",
+      "description": "A versão v3 recusa interrupção sem prova antes de persistir o resultado bruto run_fault no audit. A evidência original mantém o erro genérico e não permite atribuir sua causa exata à corrida ACK/done."
+    }
+  ],
+  "independent_local_reproduction": {
+    "direct_publication_exposes_empty": true,
+    "temporary_publication_hides_partial": true,
+    "replace_exposes_complete_nonce": true,
+    "scope": "Interleaving determinístico de arquivos no diretório do projeto; não reexecução dos AT nem do runtime."
+  },
+  "evidence_assessment": {
+    "migration_candidate": "v3: 13 métodos; 7 PASS, 5 FAIL de bloqueio indisponível e 1 ERROR de migração instrumentada, com subcasos BEFORE_WRITE:6 e AFTER_COMMIT:1. Migração não passou integralmente.",
+    "isolated_diagnostic": "Dois registros: BEFORE_WRITE:6 e AFTER_COMMIT:1, OBSERVED_INTERRUPT, código137, marker_received=true, process_killed=true, removed=true, template SHA coincidente com v3.",
+    "causal_conclusion": "A corrida existe e é suficiente para provocar INFRA_ERROR. Atribuí-la aos dois erros originais é inferência plausível, não causa histórica comprovada: os dados brutos originais foram descartados.",
+    "product_conclusion": "As evidências revistas não demonstram defeito SQLite do produto. Também não provam ausência universal de defeitos nem PASS do M3."
+  },
+  "recommended_fix": [
+    "Publicar cada ACK e done em temporário exclusivo no mesmo diretório, fechar a escrita e usar replace para o nome final; manter os predicados de validação atuais.",
+    "Persistir o resultado bruto da observação no audit antes de classificá-lo ou lançar erro.",
+    "Preservar selos v1/v2/v3 e AT originais; vincular nova geração aos bytes corrigidos e executar revisão e verificação independentes.",
+    "Reexecutar descoberta e todos os checkpoints M3, replay/recuperação e regressões sob a nova geração; manter falhas históricas registradas."
+  ],
+  "limits": [
+    "Nenhum arquivo protegido ou produto alterado por este revisor.",
+    "Nenhum AT ou contêiner reexecutado nesta revisão diagnóstica.",
+    "Correção atual na raiz não recebeu aprovação de revisão neste relatório; revisão independente própria permanece necessária.",
+    "Publicação por rename resolve visibilidade concorrente neste perfil; não é prova de durabilidade sob queda de energia.",
+    "Parecer consultivo; não substitui coleta confiável, aceite nem habilita bloqueio."
+  ]
+}

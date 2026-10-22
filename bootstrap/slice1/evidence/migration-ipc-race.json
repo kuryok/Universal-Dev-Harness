@@ -1,0 +1,6 @@
+{
+  "pattern_race_reproduced": true,
+  "atomic_publication_hides_partial": true,
+  "initial_infra_error_raw_cause": "não preservada pelo bridge v3; relação com esta corrida é inferência",
+  "product_sqlite_failure_observed": false
+}

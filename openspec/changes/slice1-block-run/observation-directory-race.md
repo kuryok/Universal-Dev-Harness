@@ -1,0 +1,7 @@
+# Corrida observada na enumeração do IPC — geração 5
+
+Na execução completa do mesmo candidato de migração, o v4 preservou a causa exata do INFRA_ERROR: FileNotFoundError em 000006.pending durante a enumeração/lstat dos arquivos, antes do checkpoint BEFORE_WRITE:10. Evidência: migration-candidate-v4.json, raw_observation.stderr. O runtime confirmou limpeza; não houve aceitação desse erro como falha funcional.
+
+A publicação atômica de marcadores remove o nome temporário por rename; iterar nomes e depois executar lstat não é uma operação atômica. Correção no controlador já autorizado: tolerar exclusivamente FileNotFoundError de nomes temporários de publicação conhecidos (NNNNNN.pending ou done.pending). Qualquer arquivo final desaparecido continua erro; qualquer symlink/arquivo especial ainda presente continua recusado. Cada marcador/done final continua lido por regular() e validado com nonce, sequência, contêiner e conteúdo. Não confiar em um temporário que desapareceu como prova de observação.
+
+Extrair essa verificação privada em função testável. Complementares determinísticos devem reproduzir desaparecimento entre iterdir/lstat e provar que symlink com nome temporário e desaparecimento de nome final continuam recusados. Sem alteração do produto, AT, timeout, critérios ou bytes dos selos anteriores. Preservar também v4 e publicar geração5, predecessor exato 49a07d7f8f4c55daaee039940288a5b17aacae94df623c7ec6ec7638d01c4183, após baseline e revisão independente. Reexecutar os mesmos AT contra o mesmo Core; não mascarar resultados v3/v4.

@@ -1,4 +1,4 @@
-"""Publicação exclusiva da geração 3; preserva as gerações anteriores."""
+"""Publicação exclusiva da geração 5; preserva os contratos congelados das gerações 3 e 4."""
 import json
 from pathlib import Path
 import shutil
@@ -11,7 +11,11 @@ from policy_seal import verify_seal as verify_v2
 PREVIOUS = 'sha256:438ce43f70e0137115f2c30920623eabf5bfd042035958951fdaafa151e41f3f'
 BASELINE_COMMIT = '966036bb67fd36301ab9f638949ad31d13717bc1'
 BASELINE_FILES = {'udh/__init__.py': 'c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01', 'udh/__main__.py': '35c2199d6c990d9e0f02f6250929ae6c1088cd9fb340f04cc930f22fa11c9f8e', 'udh/domain.py': 'da32490a19dd0d3d5b3611d3fff4116297de3f0aee3ef652fb944a1d0be9c16a', 'udh/policy.py': 'a9e67014098b84f0fe8ad4269190c77c7d94ff7d84ceac8fbded321342906d1b', 'udh/service.py': '38b5419f7a906e0e4e6300e35ac2cbc627ea7e5e1cf8d91ea5471b2ccfebfcf0', 'udh/store.py': '9e65b7fb9d0efac8a23407d9171c4a7cd19da9a58ba73a7ab0b1c46fc44dae20'}
-APPROVAL = 'Preparo dos AT e infraestrutura de bloqueio aprovado em 21/10/2026'
+V3_PIN = 'sha256:d1362b119315a504976adf573f802fd7b3e4b045e03554a1432fc43c76cf3e0a'
+V3_APPROVAL = 'Preparo dos AT e infraestrutura de bloqueio aprovado em 21/10/2026'
+V4_PIN = 'sha256:49a07d7f8f4c55daaee039940288a5b17aacae94df623c7ec6ec7638d01c4183'
+V4_APPROVAL = 'Correção da publicação IPC sob o contrato instrumentado aprovado; continuação em 22/10/2026'
+APPROVAL = 'Correção da corrida observada de enumeração IPC sob o mesmo contrato aprovado'
 SOURCE_FILES = {
     'tests/test_migration.py': 'bootstrap/slice1/block_acceptance/test_migration.py',
     'tests/test_block.py': 'bootstrap/slice1/block_acceptance/test_block.py',
@@ -25,7 +29,7 @@ SOURCE_FILES = {
         'integrate_policy', 'integrate_acceptance')},
 }
 SPEC_FILES = tuple('openspec/changes/slice1-block-run/' + name for name in
-                   ('proposal.md', 'design.md', 'acceptance-handoff.md', 'fault-observation.md'))
+                   ('proposal.md', 'design.md', 'acceptance-handoff.md', 'fault-observation.md', 'observation-publication-fix.md', 'observation-directory-race.md'))
 
 
 def validate_review(review, files):
@@ -90,15 +94,16 @@ def verify_seal(destination, expected_at_version):
         if set(body) != {'schema', 'generation', 'previous_at_version', 'status', 'files', 'specs', 'approval', 'provenance', 'review'}:
             raise SealError('Corpo inválido')
         if (type(body['schema']) is not int or body['schema'] != 1
-                or type(body['generation']) is not int or body['generation'] != 3
-                or body['previous_at_version'] != PREVIOUS or body['approval'] != APPROVAL
+                or type(body['generation']) is not int or body['generation'] not in (3, 4, 5)
+                or body['previous_at_version'] != ({3: PREVIOUS, 4: V3_PIN, 5: V4_PIN}[body['generation']])
+                or body['approval'] != ({3: V3_APPROVAL, 4: V4_APPROVAL, 5: APPROVAL}[body['generation']])
                 or body['provenance'] != 'independent-block-acceptance'):
             raise SealError('Cadeia ou origem inválida')
         if (manifest['at_version'] != expected_at_version
                 or expected_at_version != 'sha256:' + _hash(_canonical(body))
                 or raw != _canonical(manifest) + b'\n'):
             raise SealError('STALE: identidade divergente')
-        for mapping, names in ((body['files'], SOURCE_FILES), (body['specs'], SPEC_FILES)):
+        for mapping, names in ((body['files'], SOURCE_FILES), (body['specs'], SPEC_FILES[:body['generation'] + 1])):
             if not isinstance(mapping, dict) or set(mapping) != set(names):
                 raise SealError('Lista de arquivos inválida')
             if any(not isinstance(v, str) or len(v) != 64 or any(c not in '0123456789abcdef' for c in v) for v in mapping.values()):
@@ -137,6 +142,8 @@ def create_seal(root, destination, review=None):
     root = _safe(Path(root), directory=True)
     verify_v1(root / 'bootstrap/slice1/seals/v1', 'sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704')
     verify_v2(root / 'bootstrap/slice1/seals/v2', PREVIOUS)
+    verify_seal(root / 'bootstrap/slice1/seals/v3', V3_PIN)
+    verify_seal(root / 'bootstrap/slice1/seals/v4', V4_PIN)
     destination = Path(destination).absolute()
     _safe(destination.parent, directory=True)
     try:
@@ -144,15 +151,15 @@ def create_seal(root, destination, review=None):
     except ValueError as exc:
         raise SealError('Destino fora do projeto') from exc
     if review is not None:
-        if relative.as_posix() != 'seals/v3':
-            raise SealError('Publicação exige seals/v3')
+        if relative.as_posix() != 'seals/v5':
+            raise SealError('Publicação exige seals/v5')
     elif not any(part.startswith('block-integration-') for part in relative.parts):
         raise SealError('Rascunho exige diretório temporário próprio')
     contents = {name: _safe(root / source).read_bytes() for name, source in SOURCE_FILES.items()}
     files = {name: _hash(data) for name, data in contents.items()}
     if review is not None:
         validate_review(review, files)
-    body = dict(schema=1, generation=3, previous_at_version=PREVIOUS,
+    body = dict(schema=1, generation=5, previous_at_version=V4_PIN,
                 status='PUBLISHED' if review is not None else 'DRAFT', files=files,
                 specs={name: _hash(_safe(root / name).read_bytes()) for name in SPEC_FILES},
                 approval=APPROVAL, provenance='independent-block-acceptance', review=review)

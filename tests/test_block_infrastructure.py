@@ -123,3 +123,27 @@ def main(argv=None, *, context=None):
     def test_publication_rejects_missing_independent_review(self):
         with self.assertRaises(block_seal.SealError):
             block_seal.create_seal(BASE.parents[1],BASE/'seals/v3',review={})
+
+    def test_ipc_publication_never_exposes_partial_acknowledgement(self):
+        acknowledgement = self.root / 'ack'
+        pending = self.root / 'ack.pending'
+        with pending.open('w') as output:
+            self.assertFalse(acknowledgement.exists())
+            output.write('nonce completo')
+            self.assertFalse(acknowledgement.exists())
+        pending.replace(acknowledgement)
+        self.assertEqual(acknowledgement.read_text(), 'nonce completo')
+
+    def test_observation_scan_handles_only_vanished_temporary_names(self):
+        from unittest.mock import patch
+        from operator_process import _check_observation_entries
+        pending = self.root / '000001.pending'
+        with patch.object(Path, 'iterdir', return_value=iter([pending])):
+            _check_observation_entries(self.root)
+        final = self.root / '000001.json'
+        with patch.object(Path, 'iterdir', return_value=iter([final])):
+            with self.assertRaises(FileNotFoundError):
+                _check_observation_entries(self.root)
+        pending.symlink_to(self.root / 'missing')
+        with self.assertRaises(ValueError):
+            _check_observation_entries(self.root)

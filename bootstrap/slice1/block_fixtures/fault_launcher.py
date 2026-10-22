@@ -79,6 +79,8 @@ try:
     sys.argv = ['/control/operator_launcher.py', *sys.argv[1:]]
     runpy.run_path('/control/operator_launcher.py', run_name='__main__')
 finally:
-    (ROOT / 'done.json').write_text(json.dumps({
+    done = ROOT / 'done.pending'
+    done.write_text(json.dumps({
         'schema': 1, 'container_name': SESSION['container_name'],
         'nonce': SESSION['nonce'], 'count': SEQUENCE}, sort_keys=True) + '\n')
+    done.replace(ROOT / 'done.json')

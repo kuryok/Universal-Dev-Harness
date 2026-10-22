@@ -114,6 +114,7 @@ def main():
                 raise ValueError('Observação inválida')
             checkpoint = None if args[1] == 'list' else args[1]
             result = operator.run_fault(args[2:], checkpoint=checkpoint, timeout=15)
+            record['raw_observation'] = result
             instrumentation = dict(launcher_sha256=result['fault_template_sha256'],
                 core_manifest_sha256=config['core_manifest_sha256'], core_bytes_modified=False)
             if checkpoint is None and result['outcome'] == 'EXIT':

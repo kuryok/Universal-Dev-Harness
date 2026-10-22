@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 import selectors
 import signal
@@ -83,6 +84,19 @@ def _command(command, deadline):
     if time.monotonic() >= deadline:
         raise TimeoutError("Prazo do runtime esgotado")
     return _collect(_spawn(command), deadline)
+
+
+def _check_observation_entries(directory):
+    """Um temporário pode sumir pelo rename; nomes finais nunca são dispensados."""
+    for entry in directory.iterdir():
+        try:
+            mode = entry.lstat().st_mode
+        except FileNotFoundError:
+            if re.fullmatch(r'(?:[0-9]{6}|done)\.pending', entry.name):
+                continue
+            raise
+        if not stat.S_ISREG(mode):
+            raise ValueError('Entrada especial no canal de observação')
 
 
 class OperatorProcess:
@@ -281,9 +295,7 @@ class OperatorProcess:
             def observe(info):
                 sequence = 1
                 while time.monotonic() < deadline:
-                    for entry in directory.iterdir():
-                        if not stat.S_ISREG(entry.lstat().st_mode):
-                            raise ValueError('Entrada especial no canal de observação')
+                    _check_observation_entries(directory)
                     marker = directory / f'{sequence:06d}.json'
                     if marker.exists():
                         raw = regular(directory, marker.name)
@@ -315,7 +327,9 @@ class OperatorProcess:
                             proof.update(marker=record, kill=killed,
                                          inspected_container_id=info.get('Id'))
                             return
-                        (directory / f'{sequence:06d}.ack').write_text(session['nonce'])
+                        pending_ack = directory / f'{sequence:06d}.ack.pending'
+                        pending_ack.write_text(session['nonce'])
+                        pending_ack.replace(directory / f'{sequence:06d}.ack')
                         sequence += 1
                         continue
                     done = directory / 'done.json'

@@ -8,7 +8,7 @@
         "podman",
         "create",
         "--name",
-        "udh-operator-b173599b18cf43409644eefcdfc610ca",
+        "udh-operator-40ab63317d804276b7cf9ad52092436c",
         "--pull=never",
         "--network=none",
         "--read-only",
@@ -27,14 +27,14 @@
         "--volume",
         "/usr/lib64:/lib64:ro",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core:/core:ro",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core:/core:ro",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control:/control:ro",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control:/control:ro",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state:/state:rw",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state:/state:rw",
         "--workdir=/state",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-9iljwrjw:/observe:rw",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-pblnuvde:/observe:rw",
         "--volume",
         "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block_fixtures/fault_launcher.py:/fault_launcher.py:ro",
         "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
@@ -45,14 +45,14 @@
         "--to",
         "2"
       ],
-      "container_name": "udh-operator-b173599b18cf43409644eefcdfc610ca",
+      "container_name": "udh-operator-40ab63317d804276b7cf9ad52092436c",
       "returncode": 0,
       "stdout": "",
       "stderr": "",
       "outcome": "EXIT",
       "inspect": {
-        "Id": "e250cf6ea2e8e3d0bb5eb1661f929557cd774bb3b8b6057063805d82c7aa7563",
-        "Created": "2026-10-21T17:33:04.862726267-03:00",
+        "Id": "7343ecf842e55d0f8075727b9a039a35e85fe5bd886730712c3737d5f114d00d",
+        "Created": "2026-10-22T09:12:39.564005482-03:00",
         "Path": "/usr/bin/python3",
         "Args": [
           "-B",
@@ -69,13 +69,13 @@
           "Restarting": false,
           "OOMKilled": false,
           "Dead": false,
-          "Pid": 118959,
-          "ConmonPid": 118953,
+          "Pid": 184657,
+          "ConmonPid": 184654,
           "ExitCode": 0,
           "Error": "",
-          "StartedAt": "2026-10-21T17:33:04.941774864-03:00",
+          "StartedAt": "2026-10-22T09:12:39.686635488-03:00",
           "FinishedAt": "0001-01-01T00:00:00Z",
-          "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-e250cf6ea2e8e3d0bb5eb1661f929557cd774bb3b8b6057063805d82c7aa7563.scope",
+          "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-7343ecf842e55d0f8075727b9a039a35e85fe5bd886730712c3737d5f114d00d.scope",
           "CheckpointedAt": "0001-01-01T00:00:00Z",
           "RestoredAt": "0001-01-01T00:00:00Z"
         },
@@ -85,14 +85,14 @@
         "Rootfs": "",
         "Pod": "",
         "ResolvConfPath": "",
-        "HostnamePath": "/run/user/1000/containers/overlay-containers/e250cf6ea2e8e3d0bb5eb1661f929557cd774bb3b8b6057063805d82c7aa7563/userdata/hostname",
-        "HostsPath": "/run/user/1000/containers/overlay-containers/e250cf6ea2e8e3d0bb5eb1661f929557cd774bb3b8b6057063805d82c7aa7563/userdata/hosts",
-        "StaticDir": "/home/debian/.local/share/containers/storage/overlay-containers/e250cf6ea2e8e3d0bb5eb1661f929557cd774bb3b8b6057063805d82c7aa7563/userdata",
-        "OCIConfigPath": "/home/debian/.local/share/containers/storage/overlay-containers/e250cf6ea2e8e3d0bb5eb1661f929557cd774bb3b8b6057063805d82c7aa7563/userdata/config.json",
+        "HostnamePath": "/run/user/1000/containers/overlay-containers/7343ecf842e55d0f8075727b9a039a35e85fe5bd886730712c3737d5f114d00d/userdata/hostname",
+        "HostsPath": "/run/user/1000/containers/overlay-containers/7343ecf842e55d0f8075727b9a039a35e85fe5bd886730712c3737d5f114d00d/userdata/hosts",
+        "StaticDir": "/home/debian/.local/share/containers/storage/overlay-containers/7343ecf842e55d0f8075727b9a039a35e85fe5bd886730712c3737d5f114d00d/userdata",
+        "OCIConfigPath": "/home/debian/.local/share/containers/storage/overlay-containers/7343ecf842e55d0f8075727b9a039a35e85fe5bd886730712c3737d5f114d00d/userdata/config.json",
         "OCIRuntime": "crun",
-        "ConmonPidFile": "/run/user/1000/containers/overlay-containers/e250cf6ea2e8e3d0bb5eb1661f929557cd774bb3b8b6057063805d82c7aa7563/userdata/conmon.pid",
-        "PidFile": "/run/user/1000/containers/overlay-containers/e250cf6ea2e8e3d0bb5eb1661f929557cd774bb3b8b6057063805d82c7aa7563/userdata/pidfile",
-        "Name": "udh-operator-b173599b18cf43409644eefcdfc610ca",
+        "ConmonPidFile": "/run/user/1000/containers/overlay-containers/7343ecf842e55d0f8075727b9a039a35e85fe5bd886730712c3737d5f114d00d/userdata/conmon.pid",
+        "PidFile": "/run/user/1000/containers/overlay-containers/7343ecf842e55d0f8075727b9a039a35e85fe5bd886730712c3737d5f114d00d/userdata/pidfile",
+        "Name": "udh-operator-40ab63317d804276b7cf9ad52092436c",
         "RestartCount": 0,
         "Driver": "overlay",
         "MountLabel": "",
@@ -105,9 +105,9 @@
           "Name": "overlay",
           "Data": {
             "LowerDir": "/home/debian/.local/share/containers/storage/overlay/7a5912bb0a1516c2634bed3c117b0ab73ef66c1e53b6f18236fa9810c0dfb917/diff:/home/debian/.local/share/containers/storage/overlay/08bc4e534116aa76b16015484b82eac51f9a593416feae9296c8a2d4bb7aa4a2/diff",
-            "MergedDir": "/home/debian/.local/share/containers/storage/overlay/745bd658a1bf6a02ae5614521139ba6bd47bae022929ac09a8356b8758056fe4/merged",
-            "UpperDir": "/home/debian/.local/share/containers/storage/overlay/745bd658a1bf6a02ae5614521139ba6bd47bae022929ac09a8356b8758056fe4/diff",
-            "WorkDir": "/home/debian/.local/share/containers/storage/overlay/745bd658a1bf6a02ae5614521139ba6bd47bae022929ac09a8356b8758056fe4/work"
+            "MergedDir": "/home/debian/.local/share/containers/storage/overlay/bc0f94ff555905481781dd0c848c26cb1b4c5e742d2748f72ce915f5646cf9b3/merged",
+            "UpperDir": "/home/debian/.local/share/containers/storage/overlay/bc0f94ff555905481781dd0c848c26cb1b4c5e742d2748f72ce915f5646cf9b3/diff",
+            "WorkDir": "/home/debian/.local/share/containers/storage/overlay/bc0f94ff555905481781dd0c848c26cb1b4c5e742d2748f72ce915f5646cf9b3/work"
           }
         },
         "Mounts": [
@@ -125,7 +125,7 @@
           },
           {
             "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core",
             "Destination": "/core",
             "Driver": "",
             "Mode": "",
@@ -137,7 +137,7 @@
           },
           {
             "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control",
             "Destination": "/control",
             "Driver": "",
             "Mode": "",
@@ -149,7 +149,7 @@
           },
           {
             "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state",
             "Destination": "/state",
             "Driver": "",
             "Mode": "",
@@ -161,7 +161,7 @@
           },
           {
             "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-9iljwrjw",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-pblnuvde",
             "Destination": "/observe",
             "Driver": "",
             "Mode": "",
@@ -224,7 +224,7 @@
           "LinkLocalIPv6Address": "",
           "LinkLocalIPv6PrefixLen": 0,
           "Ports": {},
-          "SandboxKey": "/proc/118959/ns/net",
+          "SandboxKey": "/proc/184657/ns/net",
           "Networks": {
             "none": {
               "EndpointID": "",
@@ -248,7 +248,7 @@
         "KubeExitCodePropagation": "invalid",
         "lockNumber": 0,
         "Config": {
-          "Hostname": "e250cf6ea2e8",
+          "Hostname": "7343ecf842e5",
           "Domainname": "",
           "User": "1000:1000",
           "AttachStdin": false,
@@ -261,7 +261,7 @@
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "container=podman",
             "HOME=/state",
-            "HOSTNAME=e250cf6ea2e8"
+            "HOSTNAME=7343ecf842e5"
           ],
           "Cmd": [
             "/usr/bin/python3",
@@ -293,7 +293,7 @@
             "podman",
             "create",
             "--name",
-            "udh-operator-b173599b18cf43409644eefcdfc610ca",
+            "udh-operator-40ab63317d804276b7cf9ad52092436c",
             "--pull=never",
             "--network=none",
             "--read-only",
@@ -312,14 +312,14 @@
             "--volume",
             "/usr/lib64:/lib64:ro",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core:/core:ro",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core:/core:ro",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control:/control:ro",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control:/control:ro",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state:/state:rw",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state:/state:rw",
             "--workdir=/state",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-9iljwrjw:/observe:rw",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-pblnuvde:/observe:rw",
             "--volume",
             "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block_fixtures/fault_launcher.py:/fault_launcher.py:ro",
             "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
@@ -339,10 +339,10 @@
         "HostConfig": {
           "Binds": [
             "/usr/lib64:/lib64:ro,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core:/core:ro,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control:/control:ro,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state:/state:rw,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-9iljwrjw:/observe:rw,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core:/core:ro,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control:/control:ro,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state:/state:rw,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-pblnuvde:/observe:rw,rprivate,rbind",
             "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block_fixtures/fault_launcher.py:/fault_launcher.py:ro,rprivate,rbind",
             "/usr:/usr:ro,rprivate,rbind",
             "/usr/lib:/lib:ro,rprivate,rbind"
@@ -476,14 +476,14 @@
       "removed": true,
       "create": {
         "returncode": 0,
-        "stdout": "e250cf6ea2e8e3d0bb5eb1661f929557cd774bb3b8b6057063805d82c7aa7563\n",
+        "stdout": "7343ecf842e55d0f8075727b9a039a35e85fe5bd886730712c3737d5f114d00d\n",
         "stderr": "",
         "outcome": null
       },
       "cleanup": {
         "remove": {
           "returncode": 0,
-          "stdout": "udh-operator-b173599b18cf43409644eefcdfc610ca\n",
+          "stdout": "udh-operator-40ab63317d804276b7cf9ad52092436c\n",
           "stderr": "",
           "outcome": null
         },
@@ -498,24 +498,24 @@
       "checkpoints": [
         {
           "checkpoint": "BEFORE_WRITE:1",
-          "container_name": "udh-operator-b173599b18cf43409644eefcdfc610ca",
-          "nonce": "ba12eaaa3e7545fe8859d5e2f76dea8a",
+          "container_name": "udh-operator-40ab63317d804276b7cf9ad52092436c",
+          "nonce": "4bbf26601c5944a0acf378c13d2b8227",
           "schema": 1,
           "sequence": 1,
           "sql_sha256": "86c9c793d7ed87c374b16d99c4038fa96109cc9dd3019dd306022a102ca102a6"
         },
         {
           "checkpoint": "BEFORE_WRITE:2",
-          "container_name": "udh-operator-b173599b18cf43409644eefcdfc610ca",
-          "nonce": "ba12eaaa3e7545fe8859d5e2f76dea8a",
+          "container_name": "udh-operator-40ab63317d804276b7cf9ad52092436c",
+          "nonce": "4bbf26601c5944a0acf378c13d2b8227",
           "schema": 1,
           "sequence": 2,
           "sql_sha256": "b70cdc54e73047068e7a24ef30108e37561ca9587cafe7930b56675a313a9ec7"
         },
         {
           "checkpoint": "AFTER_COMMIT:1",
-          "container_name": "udh-operator-b173599b18cf43409644eefcdfc610ca",
-          "nonce": "ba12eaaa3e7545fe8859d5e2f76dea8a",
+          "container_name": "udh-operator-40ab63317d804276b7cf9ad52092436c",
+          "nonce": "4bbf26601c5944a0acf378c13d2b8227",
           "schema": 1,
           "sequence": 3
         }
@@ -523,7 +523,7 @@
       "checkpoint": null,
       "marker_received": false,
       "process_killed": false,
-      "fault_template_sha256": "9ed0fa4fe3910dd55e733b7b224ff6b5a123e4ce43235dad5f37ef7f7dc8a3da",
+      "fault_template_sha256": "eb8fb7224990a2aafbffe32bd37a0804dd62d1bb909e124936300c24f717a65e",
       "observation_proof": {},
       "observation_mode": "instrumented-sqlite-trace"
     },
@@ -532,7 +532,7 @@
         "podman",
         "create",
         "--name",
-        "udh-operator-d84d1777b9304feaa2c428315f89f445",
+        "udh-operator-3858cb9ee96d41c19b47e4166209627b",
         "--pull=never",
         "--network=none",
         "--read-only",
@@ -551,14 +551,14 @@
         "--volume",
         "/usr/lib64:/lib64:ro",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core:/core:ro",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core:/core:ro",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control:/control:ro",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control:/control:ro",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state:/state:rw",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state:/state:rw",
         "--workdir=/state",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-4kw6xph4:/observe:rw",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-syquw5jx:/observe:rw",
         "--volume",
         "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block_fixtures/fault_launcher.py:/fault_launcher.py:ro",
         "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
@@ -569,14 +569,14 @@
         "--to",
         "2"
       ],
-      "container_name": "udh-operator-d84d1777b9304feaa2c428315f89f445",
+      "container_name": "udh-operator-3858cb9ee96d41c19b47e4166209627b",
       "returncode": 137,
       "stdout": "",
       "stderr": "",
       "outcome": "OBSERVED_INTERRUPT",
       "inspect": {
-        "Id": "6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1",
-        "Created": "2026-10-21T17:33:05.090747057-03:00",
+        "Id": "7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd",
+        "Created": "2026-10-22T09:12:39.932933568-03:00",
         "Path": "/usr/bin/python3",
         "Args": [
           "-B",
@@ -593,13 +593,13 @@
           "Restarting": false,
           "OOMKilled": false,
           "Dead": false,
-          "Pid": 119036,
-          "ConmonPid": 119033,
+          "Pid": 184740,
+          "ConmonPid": 184737,
           "ExitCode": 0,
           "Error": "",
-          "StartedAt": "2026-10-21T17:33:05.183698337-03:00",
+          "StartedAt": "2026-10-22T09:12:40.075052682-03:00",
           "FinishedAt": "0001-01-01T00:00:00Z",
-          "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1.scope",
+          "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd.scope",
           "CheckpointedAt": "0001-01-01T00:00:00Z",
           "RestoredAt": "0001-01-01T00:00:00Z"
         },
@@ -609,14 +609,14 @@
         "Rootfs": "",
         "Pod": "",
         "ResolvConfPath": "",
-        "HostnamePath": "/run/user/1000/containers/overlay-containers/6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1/userdata/hostname",
-        "HostsPath": "/run/user/1000/containers/overlay-containers/6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1/userdata/hosts",
-        "StaticDir": "/home/debian/.local/share/containers/storage/overlay-containers/6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1/userdata",
-        "OCIConfigPath": "/home/debian/.local/share/containers/storage/overlay-containers/6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1/userdata/config.json",
+        "HostnamePath": "/run/user/1000/containers/overlay-containers/7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd/userdata/hostname",
+        "HostsPath": "/run/user/1000/containers/overlay-containers/7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd/userdata/hosts",
+        "StaticDir": "/home/debian/.local/share/containers/storage/overlay-containers/7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd/userdata",
+        "OCIConfigPath": "/home/debian/.local/share/containers/storage/overlay-containers/7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd/userdata/config.json",
         "OCIRuntime": "crun",
-        "ConmonPidFile": "/run/user/1000/containers/overlay-containers/6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1/userdata/conmon.pid",
-        "PidFile": "/run/user/1000/containers/overlay-containers/6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1/userdata/pidfile",
-        "Name": "udh-operator-d84d1777b9304feaa2c428315f89f445",
+        "ConmonPidFile": "/run/user/1000/containers/overlay-containers/7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd/userdata/conmon.pid",
+        "PidFile": "/run/user/1000/containers/overlay-containers/7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd/userdata/pidfile",
+        "Name": "udh-operator-3858cb9ee96d41c19b47e4166209627b",
         "RestartCount": 0,
         "Driver": "overlay",
         "MountLabel": "",
@@ -629,39 +629,15 @@
           "Name": "overlay",
           "Data": {
             "LowerDir": "/home/debian/.local/share/containers/storage/overlay/7a5912bb0a1516c2634bed3c117b0ab73ef66c1e53b6f18236fa9810c0dfb917/diff:/home/debian/.local/share/containers/storage/overlay/08bc4e534116aa76b16015484b82eac51f9a593416feae9296c8a2d4bb7aa4a2/diff",
-            "MergedDir": "/home/debian/.local/share/containers/storage/overlay/f1805a4634e8a3a28e89f31096f9369ae683807f1bf5d596511fc7e151ea4a52/merged",
-            "UpperDir": "/home/debian/.local/share/containers/storage/overlay/f1805a4634e8a3a28e89f31096f9369ae683807f1bf5d596511fc7e151ea4a52/diff",
-            "WorkDir": "/home/debian/.local/share/containers/storage/overlay/f1805a4634e8a3a28e89f31096f9369ae683807f1bf5d596511fc7e151ea4a52/work"
+            "MergedDir": "/home/debian/.local/share/containers/storage/overlay/68fec1475dee800c28b7905e8dffeaab64756f69d5f035bf473e330889aa6a8f/merged",
+            "UpperDir": "/home/debian/.local/share/containers/storage/overlay/68fec1475dee800c28b7905e8dffeaab64756f69d5f035bf473e330889aa6a8f/diff",
+            "WorkDir": "/home/debian/.local/share/containers/storage/overlay/68fec1475dee800c28b7905e8dffeaab64756f69d5f035bf473e330889aa6a8f/work"
           }
         },
         "Mounts": [
           {
             "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core",
-            "Destination": "/core",
-            "Driver": "",
-            "Mode": "",
-            "Options": [
-              "rbind"
-            ],
-            "RW": false,
-            "Propagation": "rprivate"
-          },
-          {
-            "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control",
-            "Destination": "/control",
-            "Driver": "",
-            "Mode": "",
-            "Options": [
-              "rbind"
-            ],
-            "RW": false,
-            "Propagation": "rprivate"
-          },
-          {
-            "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state",
             "Destination": "/state",
             "Driver": "",
             "Mode": "",
@@ -673,7 +649,7 @@
           },
           {
             "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-4kw6xph4",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-syquw5jx",
             "Destination": "/observe",
             "Driver": "",
             "Mode": "",
@@ -730,6 +706,30 @@
             ],
             "RW": false,
             "Propagation": "rprivate"
+          },
+          {
+            "Type": "bind",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core",
+            "Destination": "/core",
+            "Driver": "",
+            "Mode": "",
+            "Options": [
+              "rbind"
+            ],
+            "RW": false,
+            "Propagation": "rprivate"
+          },
+          {
+            "Type": "bind",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control",
+            "Destination": "/control",
+            "Driver": "",
+            "Mode": "",
+            "Options": [
+              "rbind"
+            ],
+            "RW": false,
+            "Propagation": "rprivate"
           }
         ],
         "Dependencies": [],
@@ -748,7 +748,7 @@
           "LinkLocalIPv6Address": "",
           "LinkLocalIPv6PrefixLen": 0,
           "Ports": {},
-          "SandboxKey": "/proc/119036/ns/net",
+          "SandboxKey": "/proc/184740/ns/net",
           "Networks": {
             "none": {
               "EndpointID": "",
@@ -772,7 +772,7 @@
         "KubeExitCodePropagation": "invalid",
         "lockNumber": 0,
         "Config": {
-          "Hostname": "6aa9dc7b0ec9",
+          "Hostname": "7a9a3fb8775d",
           "Domainname": "",
           "User": "1000:1000",
           "AttachStdin": false,
@@ -785,7 +785,7 @@
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "container=podman",
             "HOME=/state",
-            "HOSTNAME=6aa9dc7b0ec9"
+            "HOSTNAME=7a9a3fb8775d"
           ],
           "Cmd": [
             "/usr/bin/python3",
@@ -817,7 +817,7 @@
             "podman",
             "create",
             "--name",
-            "udh-operator-d84d1777b9304feaa2c428315f89f445",
+            "udh-operator-3858cb9ee96d41c19b47e4166209627b",
             "--pull=never",
             "--network=none",
             "--read-only",
@@ -836,14 +836,14 @@
             "--volume",
             "/usr/lib64:/lib64:ro",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core:/core:ro",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core:/core:ro",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control:/control:ro",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control:/control:ro",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state:/state:rw",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state:/state:rw",
             "--workdir=/state",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-4kw6xph4:/observe:rw",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-syquw5jx:/observe:rw",
             "--volume",
             "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block_fixtures/fault_launcher.py:/fault_launcher.py:ro",
             "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
@@ -862,14 +862,14 @@
         },
         "HostConfig": {
           "Binds": [
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core:/core:ro,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control:/control:ro,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state:/state:rw,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-4kw6xph4:/observe:rw,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state:/state:rw,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-syquw5jx:/observe:rw,rprivate,rbind",
             "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block_fixtures/fault_launcher.py:/fault_launcher.py:ro,rprivate,rbind",
             "/usr:/usr:ro,rprivate,rbind",
             "/usr/lib:/lib:ro,rprivate,rbind",
-            "/usr/lib64:/lib64:ro,rprivate,rbind"
+            "/usr/lib64:/lib64:ro,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core:/core:ro,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control:/control:ro,rprivate,rbind"
           ],
           "CgroupManager": "systemd",
           "CgroupMode": "private",
@@ -1000,7 +1000,7 @@
       "removed": true,
       "create": {
         "returncode": 0,
-        "stdout": "6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1\n",
+        "stdout": "7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd\n",
         "stderr": "",
         "outcome": null
       },
@@ -1008,7 +1008,7 @@
       "cleanup": {
         "remove": {
           "returncode": 0,
-          "stdout": "udh-operator-d84d1777b9304feaa2c428315f89f445\n",
+          "stdout": "udh-operator-3858cb9ee96d41c19b47e4166209627b\n",
           "stderr": "",
           "outcome": null
         },
@@ -1024,16 +1024,16 @@
       "checkpoints": [
         {
           "checkpoint": "BEFORE_WRITE:1",
-          "container_name": "udh-operator-d84d1777b9304feaa2c428315f89f445",
-          "nonce": "135de9980c874817864d8bb2df09c13c",
+          "container_name": "udh-operator-3858cb9ee96d41c19b47e4166209627b",
+          "nonce": "e6718077fc014e12bd93d19f023db5de",
           "schema": 1,
           "sequence": 1,
           "sql_sha256": "86c9c793d7ed87c374b16d99c4038fa96109cc9dd3019dd306022a102ca102a6"
         },
         {
           "checkpoint": "BEFORE_WRITE:2",
-          "container_name": "udh-operator-d84d1777b9304feaa2c428315f89f445",
-          "nonce": "135de9980c874817864d8bb2df09c13c",
+          "container_name": "udh-operator-3858cb9ee96d41c19b47e4166209627b",
+          "nonce": "e6718077fc014e12bd93d19f023db5de",
           "schema": 1,
           "sequence": 2,
           "sql_sha256": "b70cdc54e73047068e7a24ef30108e37561ca9587cafe7930b56675a313a9ec7"
@@ -1042,23 +1042,23 @@
       "checkpoint": "BEFORE_WRITE:2",
       "marker_received": true,
       "process_killed": true,
-      "fault_template_sha256": "9ed0fa4fe3910dd55e733b7b224ff6b5a123e4ce43235dad5f37ef7f7dc8a3da",
+      "fault_template_sha256": "eb8fb7224990a2aafbffe32bd37a0804dd62d1bb909e124936300c24f717a65e",
       "observation_proof": {
         "marker": {
           "checkpoint": "BEFORE_WRITE:2",
-          "container_name": "udh-operator-d84d1777b9304feaa2c428315f89f445",
-          "nonce": "135de9980c874817864d8bb2df09c13c",
+          "container_name": "udh-operator-3858cb9ee96d41c19b47e4166209627b",
+          "nonce": "e6718077fc014e12bd93d19f023db5de",
           "schema": 1,
           "sequence": 2,
           "sql_sha256": "b70cdc54e73047068e7a24ef30108e37561ca9587cafe7930b56675a313a9ec7"
         },
         "kill": {
           "returncode": 0,
-          "stdout": "udh-operator-d84d1777b9304feaa2c428315f89f445\n",
+          "stdout": "udh-operator-3858cb9ee96d41c19b47e4166209627b\n",
           "stderr": "",
           "outcome": null
         },
-        "inspected_container_id": "6aa9dc7b0ec9f37e82afea6edcfa65f5ba170e090d1a3789de792dcda5d96cf1"
+        "inspected_container_id": "7a9a3fb8775dc141a30300f60918275c03524f7fe3bf7ea1fd4e7254a5e20ffd"
       },
       "observation_mode": "instrumented-sqlite-trace"
     },
@@ -1067,7 +1067,7 @@
         "podman",
         "create",
         "--name",
-        "udh-operator-18a22ebd885d47cda4e952ef26d54481",
+        "udh-operator-b4cf6d7bcc7c4642af499a0e56467691",
         "--pull=never",
         "--network=none",
         "--read-only",
@@ -1086,14 +1086,14 @@
         "--volume",
         "/usr/lib64:/lib64:ro",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core:/core:ro",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core:/core:ro",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control:/control:ro",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control:/control:ro",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state:/state:rw",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state:/state:rw",
         "--workdir=/state",
         "--volume",
-        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-zauavhix:/observe:rw",
+        "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-8parenae:/observe:rw",
         "--volume",
         "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block_fixtures/fault_launcher.py:/fault_launcher.py:ro",
         "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
@@ -1104,14 +1104,14 @@
         "--to",
         "2"
       ],
-      "container_name": "udh-operator-18a22ebd885d47cda4e952ef26d54481",
+      "container_name": "udh-operator-b4cf6d7bcc7c4642af499a0e56467691",
       "returncode": 137,
       "stdout": "",
       "stderr": "",
       "outcome": "OBSERVED_INTERRUPT",
       "inspect": {
-        "Id": "8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb",
-        "Created": "2026-10-21T17:33:05.369485038-03:00",
+        "Id": "4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d",
+        "Created": "2026-10-22T09:12:40.325257238-03:00",
         "Path": "/usr/bin/python3",
         "Args": [
           "-B",
@@ -1128,13 +1128,13 @@
           "Restarting": false,
           "OOMKilled": false,
           "Dead": false,
-          "Pid": 119118,
-          "ConmonPid": 119115,
+          "Pid": 184830,
+          "ConmonPid": 184827,
           "ExitCode": 0,
           "Error": "",
-          "StartedAt": "2026-10-21T17:33:05.474342839-03:00",
+          "StartedAt": "2026-10-22T09:12:40.46279621-03:00",
           "FinishedAt": "0001-01-01T00:00:00Z",
-          "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb.scope",
+          "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d.scope",
           "CheckpointedAt": "0001-01-01T00:00:00Z",
           "RestoredAt": "0001-01-01T00:00:00Z"
         },
@@ -1144,14 +1144,14 @@
         "Rootfs": "",
         "Pod": "",
         "ResolvConfPath": "",
-        "HostnamePath": "/run/user/1000/containers/overlay-containers/8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb/userdata/hostname",
-        "HostsPath": "/run/user/1000/containers/overlay-containers/8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb/userdata/hosts",
-        "StaticDir": "/home/debian/.local/share/containers/storage/overlay-containers/8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb/userdata",
-        "OCIConfigPath": "/home/debian/.local/share/containers/storage/overlay-containers/8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb/userdata/config.json",
+        "HostnamePath": "/run/user/1000/containers/overlay-containers/4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d/userdata/hostname",
+        "HostsPath": "/run/user/1000/containers/overlay-containers/4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d/userdata/hosts",
+        "StaticDir": "/home/debian/.local/share/containers/storage/overlay-containers/4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d/userdata",
+        "OCIConfigPath": "/home/debian/.local/share/containers/storage/overlay-containers/4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d/userdata/config.json",
         "OCIRuntime": "crun",
-        "ConmonPidFile": "/run/user/1000/containers/overlay-containers/8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb/userdata/conmon.pid",
-        "PidFile": "/run/user/1000/containers/overlay-containers/8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb/userdata/pidfile",
-        "Name": "udh-operator-18a22ebd885d47cda4e952ef26d54481",
+        "ConmonPidFile": "/run/user/1000/containers/overlay-containers/4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d/userdata/conmon.pid",
+        "PidFile": "/run/user/1000/containers/overlay-containers/4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d/userdata/pidfile",
+        "Name": "udh-operator-b4cf6d7bcc7c4642af499a0e56467691",
         "RestartCount": 0,
         "Driver": "overlay",
         "MountLabel": "",
@@ -1164,15 +1164,27 @@
           "Name": "overlay",
           "Data": {
             "LowerDir": "/home/debian/.local/share/containers/storage/overlay/7a5912bb0a1516c2634bed3c117b0ab73ef66c1e53b6f18236fa9810c0dfb917/diff:/home/debian/.local/share/containers/storage/overlay/08bc4e534116aa76b16015484b82eac51f9a593416feae9296c8a2d4bb7aa4a2/diff",
-            "MergedDir": "/home/debian/.local/share/containers/storage/overlay/f1a66672030357572831e0622fd6b745a6daf6424a4e1761c7573fafdbf6fe64/merged",
-            "UpperDir": "/home/debian/.local/share/containers/storage/overlay/f1a66672030357572831e0622fd6b745a6daf6424a4e1761c7573fafdbf6fe64/diff",
-            "WorkDir": "/home/debian/.local/share/containers/storage/overlay/f1a66672030357572831e0622fd6b745a6daf6424a4e1761c7573fafdbf6fe64/work"
+            "MergedDir": "/home/debian/.local/share/containers/storage/overlay/dacb4117fa121a6e60629cff0921879476041479bb96ba672f1104be56cb25fc/merged",
+            "UpperDir": "/home/debian/.local/share/containers/storage/overlay/dacb4117fa121a6e60629cff0921879476041479bb96ba672f1104be56cb25fc/diff",
+            "WorkDir": "/home/debian/.local/share/containers/storage/overlay/dacb4117fa121a6e60629cff0921879476041479bb96ba672f1104be56cb25fc/work"
           }
         },
         "Mounts": [
           {
             "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-zauavhix",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state",
+            "Destination": "/state",
+            "Driver": "",
+            "Mode": "",
+            "Options": [
+              "rbind"
+            ],
+            "RW": true,
+            "Propagation": "rprivate"
+          },
+          {
+            "Type": "bind",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-8parenae",
             "Destination": "/observe",
             "Driver": "",
             "Mode": "",
@@ -1232,7 +1244,7 @@
           },
           {
             "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core",
             "Destination": "/core",
             "Driver": "",
             "Mode": "",
@@ -1244,7 +1256,7 @@
           },
           {
             "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control",
+            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control",
             "Destination": "/control",
             "Driver": "",
             "Mode": "",
@@ -1252,18 +1264,6 @@
               "rbind"
             ],
             "RW": false,
-            "Propagation": "rprivate"
-          },
-          {
-            "Type": "bind",
-            "Source": "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state",
-            "Destination": "/state",
-            "Driver": "",
-            "Mode": "",
-            "Options": [
-              "rbind"
-            ],
-            "RW": true,
             "Propagation": "rprivate"
           }
         ],
@@ -1283,7 +1283,7 @@
           "LinkLocalIPv6Address": "",
           "LinkLocalIPv6PrefixLen": 0,
           "Ports": {},
-          "SandboxKey": "/proc/119118/ns/net",
+          "SandboxKey": "/proc/184830/ns/net",
           "Networks": {
             "none": {
               "EndpointID": "",
@@ -1307,7 +1307,7 @@
         "KubeExitCodePropagation": "invalid",
         "lockNumber": 0,
         "Config": {
-          "Hostname": "8706058fe8b1",
+          "Hostname": "4b7284b61ca0",
           "Domainname": "",
           "User": "1000:1000",
           "AttachStdin": false,
@@ -1317,10 +1317,10 @@
           "OpenStdin": false,
           "StdinOnce": false,
           "Env": [
-            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "container=podman",
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "HOME=/state",
-            "HOSTNAME=8706058fe8b1"
+            "HOSTNAME=4b7284b61ca0"
           ],
           "Cmd": [
             "/usr/bin/python3",
@@ -1352,7 +1352,7 @@
             "podman",
             "create",
             "--name",
-            "udh-operator-18a22ebd885d47cda4e952ef26d54481",
+            "udh-operator-b4cf6d7bcc7c4642af499a0e56467691",
             "--pull=never",
             "--network=none",
             "--read-only",
@@ -1371,14 +1371,14 @@
             "--volume",
             "/usr/lib64:/lib64:ro",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core:/core:ro",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core:/core:ro",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control:/control:ro",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control:/control:ro",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state:/state:rw",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state:/state:rw",
             "--workdir=/state",
             "--volume",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-zauavhix:/observe:rw",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-8parenae:/observe:rw",
             "--volume",
             "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block_fixtures/fault_launcher.py:/fault_launcher.py:ro",
             "docker.io/library/alpine@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
@@ -1397,14 +1397,14 @@
         },
         "HostConfig": {
           "Binds": [
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/udh-observe-zauavhix:/observe:rw,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/state:/state:rw,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/udh-observe-8parenae:/observe:rw,rprivate,rbind",
             "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block_fixtures/fault_launcher.py:/fault_launcher.py:ro,rprivate,rbind",
             "/usr:/usr:ro,rprivate,rbind",
             "/usr/lib:/lib:ro,rprivate,rbind",
             "/usr/lib64:/lib64:ro,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/core:/core:ro,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/control:/control:ro,rprivate,rbind",
-            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-j2h1ulye/state:/state:rw,rprivate,rbind"
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/core:/core:ro,rprivate,rbind",
+            "/home/debian/Área de trabalho/Universal Dev Harness/bootstrap/slice1/block-integration-v5z5py9h/control:/control:ro,rprivate,rbind"
           ],
           "CgroupManager": "systemd",
           "CgroupMode": "private",
@@ -1535,7 +1535,7 @@
       "removed": true,
       "create": {
         "returncode": 0,
-        "stdout": "8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb\n",
+        "stdout": "4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d\n",
         "stderr": "",
         "outcome": null
       },
@@ -1543,7 +1543,7 @@
       "cleanup": {
         "remove": {
           "returncode": 0,
-          "stdout": "udh-operator-18a22ebd885d47cda4e952ef26d54481\n",
+          "stdout": "udh-operator-b4cf6d7bcc7c4642af499a0e56467691\n",
           "stderr": "",
           "outcome": null
         },
@@ -1559,24 +1559,24 @@
       "checkpoints": [
         {
           "checkpoint": "BEFORE_WRITE:1",
-          "container_name": "udh-operator-18a22ebd885d47cda4e952ef26d54481",
-          "nonce": "18944dfa95a54868b4daf46bb062f4bc",
+          "container_name": "udh-operator-b4cf6d7bcc7c4642af499a0e56467691",
+          "nonce": "4f234cd6257142fda98192141c6a2dfb",
           "schema": 1,
           "sequence": 1,
           "sql_sha256": "86c9c793d7ed87c374b16d99c4038fa96109cc9dd3019dd306022a102ca102a6"
         },
         {
           "checkpoint": "BEFORE_WRITE:2",
-          "container_name": "udh-operator-18a22ebd885d47cda4e952ef26d54481",
-          "nonce": "18944dfa95a54868b4daf46bb062f4bc",
+          "container_name": "udh-operator-b4cf6d7bcc7c4642af499a0e56467691",
+          "nonce": "4f234cd6257142fda98192141c6a2dfb",
           "schema": 1,
           "sequence": 2,
           "sql_sha256": "b70cdc54e73047068e7a24ef30108e37561ca9587cafe7930b56675a313a9ec7"
         },
         {
           "checkpoint": "AFTER_COMMIT:1",
-          "container_name": "udh-operator-18a22ebd885d47cda4e952ef26d54481",
-          "nonce": "18944dfa95a54868b4daf46bb062f4bc",
+          "container_name": "udh-operator-b4cf6d7bcc7c4642af499a0e56467691",
+          "nonce": "4f234cd6257142fda98192141c6a2dfb",
           "schema": 1,
           "sequence": 3
         }
@@ -1584,22 +1584,22 @@
       "checkpoint": "AFTER_COMMIT:1",
       "marker_received": true,
       "process_killed": true,
-      "fault_template_sha256": "9ed0fa4fe3910dd55e733b7b224ff6b5a123e4ce43235dad5f37ef7f7dc8a3da",
+      "fault_template_sha256": "eb8fb7224990a2aafbffe32bd37a0804dd62d1bb909e124936300c24f717a65e",
       "observation_proof": {
         "marker": {
           "checkpoint": "AFTER_COMMIT:1",
-          "container_name": "udh-operator-18a22ebd885d47cda4e952ef26d54481",
-          "nonce": "18944dfa95a54868b4daf46bb062f4bc",
+          "container_name": "udh-operator-b4cf6d7bcc7c4642af499a0e56467691",
+          "nonce": "4f234cd6257142fda98192141c6a2dfb",
           "schema": 1,
           "sequence": 3
         },
         "kill": {
           "returncode": 0,
-          "stdout": "udh-operator-18a22ebd885d47cda4e952ef26d54481\n",
+          "stdout": "udh-operator-b4cf6d7bcc7c4642af499a0e56467691\n",
           "stderr": "",
           "outcome": null
         },
-        "inspected_container_id": "8706058fe8b1df8552fcd14261f74c4ce72b38314b3b38dd3d56638671f81dbb"
+        "inspected_container_id": "4b7284b61ca00fbafa7fa831e2fae62ebebea3865f988f2afd8a06af7f476e9d"
       },
       "observation_mode": "instrumented-sqlite-trace"
     }
