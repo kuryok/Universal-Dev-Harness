@@ -1,7 +1,7 @@
 # UDH — retomada curta
 
-Atualizado: 21/10/2026. Core/policy: `bfb2cbb`; selo v3: `d1362b11`.
-Nota contextual: conferir Git e fontes; não é requisito, autorização ou aceite.
+Atualizado: 22/10/2026. Candidato migração: `96bd4dc`; selo v3: `d1362b11`.
+Retomada: ler [STATE.md](STATE.md), conferir Git e fontes. Memória não é requisito, autorização ou aceite.
 
 ## Estado
 - Slice 0 encerrada para VM Linux/API gratuita; produto completo não certificado.
@@ -20,7 +20,7 @@ Nota contextual: conferir Git e fontes; não é requisito, autorização ou acei
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- Bloqueio/migração aprovados; preparo AT/runtime concluído: 20 complementares, regressões e revisão PASS; 13 AT com baseline negativo confirmado. Selo v3 publicado; Core ainda sem migração. [Resultados](openspec/changes/slice1-block-run/verification.md). Próximo: implementar migração/leitura v2, verificar antes do bloqueio. Sem agentes.
+- Migração/leitura v2 implementadas; 28 complementares, regressões e smoke PASS. M3 teve INFRA_ERROR; diagnóstico isolado passou, corrida IPC reproduzida. [Estado e próximo passo](STATE.md): corrigir observador, versionar/retestar antes de liberar bloqueio. Não declarar aceite completo. Sem execução de agentes.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.

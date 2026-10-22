@@ -1,8 +1,10 @@
 # Briefing do agente: construção do Universal Dev Harness (UDH)
 
-No início de cada sessão, leia este arquivo e [MEMORY.md](MEMORY.md), depois confira o estado do Git. Consulte as fontes indicadas apenas quando necessárias à tarefa; não carregue todos os documentos por padrão. Estes arquivos **não substituem** o baseline normativo.
+No início de cada sessão, leia este arquivo, [STATE.md](STATE.md) e [MEMORY.md](MEMORY.md), depois confira o estado do Git. Consulte as fontes indicadas apenas quando necessárias à tarefa; não carregue todos os documentos por padrão. Estes arquivos **não substituem** o baseline normativo.
 
 Mantenha `MEMORY.md` com **até 35 linhas e 300 palavras**: estado confirmado, próximo passo, impedimentos e links. Ao pausar, substitua informações obsoletas; não acumule histórico, logs ou transcrições. A memória não aprova requisitos nem substitui OpenSpec, Git ou evidências.
+
+Use `STATE.md` para o panorama atual: funciona, pendências, próxima tarefa e verificação. Use `MEMORY.md` para contexto curto, cuidados e links de retomada. Atualize ambos ao encerrar uma tarefa, substituindo informações obsoletas. Mantenha `STATE.md` com até 60 linhas e 450 palavras, sem acumular histórico/logs. Nenhum dos dois substitui requisitos no OpenSpec, estado operacional no SQLite ou evidências; se divergirem, confira as fontes e corrija os documentos.
 
 ## O que estamos construindo
 
