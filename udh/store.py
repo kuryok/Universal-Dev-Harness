@@ -6,6 +6,7 @@ import sqlite3
 
 from .domain import CoreError, Event, BlockedEvent, Run
 from . import migrations
+from .transitions import ConflictError
 
 
 _NONEMPTY = "length(trim({field}, char(9)||char(10)||char(11)||char(12)||char(13)||' ')) > 0"
@@ -187,3 +188,49 @@ class SQLiteStore:
                 connection.rollback()
                 raise
         return result
+
+    def block(self, request, *, created_at, authorization_id, context):
+        with self._connection('rw') as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            try:
+                if self._validate_schema(connection) != 2:
+                    raise CoreError('Bloqueio exige migração explícita para SQLite v2.')
+                existing = connection.execute(
+                    'SELECT * FROM block_requests WHERE request_id = ?',
+                    (request.request_id,),
+                ).fetchone()
+                if existing is not None:
+                    request.check_replay(run_id=existing['run_id'],
+                        expected_revision=existing['expected_revision'], reason=existing['reason'])
+                else:
+                    request.check_pending(self._load(connection, request.run_id))
+                    event = connection.execute(
+                        "INSERT INTO events (run_id, kind, created_at) VALUES (?, 'RUN_BLOCKED', ?)",
+                        (request.run_id, created_at),
+                    ).lastrowid
+                    connection.execute(
+                        'INSERT INTO block_requests (request_id, run_id, expected_revision, reason, '
+                        'event_sequence, authorization_id, controller_route, core_manifest_sha256, '
+                        'control_sha256, authorization_rule_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (request.request_id, request.run_id, request.expected_revision, request.reason,
+                         event, authorization_id, context['controller_route'], context['core_manifest_sha256'],
+                         context['control_sha256'], context['authorization_rule_version']),
+                    )
+                    changed = connection.execute(
+                        "UPDATE runs SET state = 'BLOCKED', revision = 1 WHERE id = ? AND state = 'PENDING' AND revision = ?",
+                        (request.run_id, request.expected_revision),
+                    ).rowcount
+                    if changed != 1:
+                        raise ConflictError('Execução mudou antes da confirmação do bloqueio.')
+                self._validate_schema(connection)
+                run = self._load(connection, request.run_id)
+                blocked = run.events[1]
+                result = dict(schema_version=2, request_id=blocked.request_id, run_id=run.run_id,
+                    from_state='PENDING', to_state='BLOCKED', revision=run.revision,
+                    event_sequence=blocked.sequence, created_at=blocked.created_at,
+                    authorization_id=blocked.authorization_id)
+                connection.commit()
+                return result
+            except BaseException:
+                connection.rollback()
+                raise

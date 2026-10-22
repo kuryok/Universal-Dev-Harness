@@ -5,6 +5,7 @@ from uuid import uuid4
 from .domain import Run, require_run_id, require_text
 from .store import SQLiteStore
 from .policy import evaluate
+from .transitions import BlockRequest, AuthorizationError, operator_context_valid
 
 
 class CoreService:
@@ -33,3 +34,11 @@ class CoreService:
 
     def migrate(self) -> dict:
         return self.store.migrate()
+
+    def block(self, run_id, expected_revision, request_id, reason, *, context):
+        if not operator_context_valid(context):
+            raise AuthorizationError('Operação exige a entrada administrativa protegida.')
+        request = BlockRequest(require_run_id(run_id), expected_revision, request_id, reason)
+        return self.store.block(request, created_at=datetime.now(timezone.utc).isoformat(
+            timespec='microseconds').replace('+00:00', 'Z'),
+            authorization_id=str(uuid4()), context=context)
