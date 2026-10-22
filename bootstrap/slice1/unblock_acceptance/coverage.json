@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "methods": {
+    "UnblockAcceptance.test_u1_persisted_unblock": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U1"
+      ],
+      "evidence": "Medições persistidas comparadas aos pins exportados pelo controlador confiável, além dos vínculos e estado SQLite."
+    },
+    "UnblockAcceptance.test_u2_legacy_denial_without_database_access": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U2"
+      ],
+      "limits": "DENY precede erro de conteúdo de banco sentinela inválido, e preserva bytes. Não é prova de ausência de syscalls; o caminho de autorização antes de I/O exige inspeção/revisão externa."
+    },
+    "UnblockAcceptance.test_u2_adversary_claims_and_substitution": {
+      "baseline_expected": "EXISTING_PASS",
+      "scenarios": [
+        "U2"
+      ],
+      "limits": "Exit125 permanece INFRA_ERROR. A sonda complementar executa o Core somente no contêiner adversário e não altera seus bytes. Zero chamadas de sqlite3.connect nos três contextos ensaiados não prova ausência de syscalls do SO nem autenticação de um contexto completo forjado; metadados não são credencial portátil. A autoridade depende dos mounts/launcher protegidos, também inspecionados.",
+      "evidence": "Sonda confiável exige rejeição --db/--db= antes do runtime; adulteração da configuração protegida; e sonda complementar em contêiner adversário sem state/control que chama main com None, approved=True e schema2 incompleto, substituindo sqlite3.connect para comprovar zero chamadas nesse caminho."
+    },
+    "UnblockAcceptance.test_u3_replay_conflicts_and_namespaces": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U3"
+      ]
+    },
+    "UnblockAcceptance.test_u3_concurrent_equal_and_distinct": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U3"
+      ]
+    },
+    "UnblockAcceptance.test_u4_historical_replay_and_terminal_cycle": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U4"
+      ]
+    },
+    "UnblockAcceptance.test_u5_migration_preserves_all_legacy_values": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U5"
+      ]
+    },
+    "UnblockAcceptance.test_u5_invalid_sources_unchanged": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U5"
+      ]
+    },
+    "UnblockAcceptance.test_u6_migration_concurrent": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U6"
+      ]
+    },
+    "UnblockAcceptance.test_u6_migration_each_write_and_commit": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U6"
+      ],
+      "baseline_failure_contract": "Ausência funcional v3/unblock no Core fixado produz falha funcional. Timeout, prefixos inválidos, exit124/125 ou markers ausentes após sucesso são INFRA_ERROR e nunca satisfazem baseline negativo.",
+      "limits": "Observação instrumentada por processo confiável, sem alteração de bytes do Core; kill após marker e recuperação SQLite. Não prova queda de energia/hardware; hook cooperativo isolado não prova interrupção."
+    },
+    "UnblockAcceptance.test_u6_unblock_each_write_and_commit": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U6"
+      ],
+      "baseline_failure_contract": "Ausência funcional v3/unblock no Core fixado produz falha funcional. Timeout, prefixos inválidos, exit124/125 ou markers ausentes após sucesso são INFRA_ERROR e nunca satisfazem baseline negativo.",
+      "limits": "Observação instrumentada por processo confiável, sem alteração de bytes do Core; kill após marker e recuperação SQLite. Não prova queda de energia/hardware; hook cooperativo isolado não prova interrupção."
+    },
+    "UnblockAcceptance.test_u7_semantically_invalid_journals_refused": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U7"
+      ]
+    },
+    "UnblockAcceptance.test_u8_common_cli_and_policy_limits": {
+      "baseline_expected": "EXISTING_PASS",
+      "scenarios": [
+        "U8"
+      ]
+    },
+    "UnblockAcceptance.test_u8_unblock_flags_cannot_grant_targets": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U8"
+      ]
+    },
+    "UnblockAcceptance.test_r1_legacy_v2_seed_and_replay_preserved": {
+      "baseline_expected": "EXISTING_PASS",
+      "scenarios": [
+        "R1"
+      ]
+    },
+    "UnblockAcceptance.test_u3_create_key_namespace_and_current_state_replay": {
+      "baseline_expected": "NEW_FAILURE",
+      "scenarios": [
+        "U3",
+        "U4"
+      ]
+    }
+  },
+  "pending": {
+    "R1": {
+      "status": "CHECK_EXTERNAL",
+      "blocks_publication": true,
+      "blocks_functional_execution": false,
+      "reason": "Executar 36 complementares, 13 AT v5, dez AT v1, onze AT policy, I1–I7/T1–T8 e verificar selos v1–v5 sem alterações. O método local preserva somente preparo/replay v2."
+    },
+    "R2": {
+      "status": "CHECK_EXTERNAL",
+      "blocks_publication": true,
+      "blocks_functional_execution": false,
+      "reason": "Revisão independente de SQL final exato, fronteira/perfis, replay entre versões, modularidade e hashes/evidências correspondentes."
+    }
+  }
+}

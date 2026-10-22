@@ -1,6 +1,6 @@
 # Slice 1 — desbloqueio administrativo de BLOCKED
 
-Estado: proposta para aprovação humana, somente especificação. Base implementada: `ad2bd47`; evidências `1fc61db`; selo v5 `182d2ba7…`. Não modifica documentos/AT/controladores fixados nos selos existentes.
+Estado: contrato e preparo nomeado aprovados pelo usuário em 22/10/2026; implementação em incrementos. Base implementada: `ad2bd47`; evidências `1fc61db`; selo v5 `182d2ba7…`. Não modifica documentos/AT/controladores fixados nos selos existentes.
 
 ## Objetivo e limites
 

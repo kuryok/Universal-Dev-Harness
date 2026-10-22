@@ -10,6 +10,12 @@ from types import MappingProxyType
 CORE_MANIFEST_SHA256 = '__CORE_MANIFEST_SHA256__'
 CONTROL_SHA256 = '__CONTROL_SHA256__'
 
+# Os perfis são definidos pelo controlador; argumentos e ambiente não os selecionam.
+ALLOWED_PROFILES = MappingProxyType({
+    1: ('MIGRATE_V2', 'BLOCK_PENDING'),
+    2: ('MIGRATE_V2', 'BLOCK_PENDING', 'MIGRATE_V3', 'UNBLOCK_RUN'),
+})
+
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
@@ -55,9 +61,11 @@ def validate(core, control, manifest_pin, config_pin):
         raise ValueError('Manifesto administrativo inválido')
     if not isinstance(config, dict) or type(config.get('schema')) is not int:
         raise ValueError('Configuração administrativa inválida')
-    if config != {'schema': 1, 'db_path': '/state/udh.sqlite',
-                  'allowed_operations': ['MIGRATE_V2', 'BLOCK_PENDING'],
-                  'core_manifest_sha256': manifest_pin}:
+    operations = ALLOWED_PROFILES.get(config['schema'])
+    if (operations is None
+            or config != {'schema': config['schema'], 'db_path': '/state/udh.sqlite',
+                          'allowed_operations': list(operations),
+                          'core_manifest_sha256': manifest_pin}):
         raise ValueError('Configuração administrativa inválida')
     files = manifest['files']
     if not isinstance(files, dict) or not files:
@@ -73,6 +81,10 @@ def validate(core, control, manifest_pin, config_pin):
     if actual != set(files):
         raise ValueError('Inventário do Core divergente')
     for name, expected in files.items():
+        if (not isinstance(name, str) or not isinstance(expected, str)
+                or len(expected) != 64
+                or any(char not in '0123456789abcdef' for char in expected)):
+            raise ValueError('Mapa de módulos inválido')
         if not name.startswith('udh/') or not name.endswith('.py'):
             raise ValueError('Arquivo fora dos módulos aprovados')
         if digest(regular(core, name)) != expected:

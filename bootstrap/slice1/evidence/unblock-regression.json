@@ -1,0 +1,49 @@
+{
+  "candidate_ref": "ad2bd478fa8a07a06b6e1a1b832b1795fafe1c4d",
+  "classification": "bootstrap-regression-not-product-acceptance",
+  "results": {
+    "v1": "PASS",
+    "v2": "PASS",
+    "v5": "PASS",
+    "complementary": "PASS",
+    "I1_I7_T1_T8": "PASS"
+  },
+  "complementary": {
+    "tests_run": 39,
+    "result": "PASS",
+    "provenance": "Resultado informado pelo coordenador raiz nesta sessão; não reexecutado por este revisor.",
+    "command": "PYTHONDONTWRITEBYTECODE=1 TMPDIR=\"$PWD/bootstrap/slice1\" python3 -m unittest discover -s tests -v",
+    "duration_seconds": 3.824,
+    "initial_attempt": "Um erro por design.md ausente durante autoria; resolvido na execução final sem afrouxar teste."
+  },
+  "details": {
+    "v1": "bootstrap/slice1/evidence/unblock-regression-v1.json",
+    "v2": "bootstrap/slice1/evidence/unblock-regression-v2.json",
+    "v5": "bootstrap/slice1/evidence/unblock-regression-v5.json",
+    "integration": "bootstrap/slice1/evidence/unblock-regression-integration.json",
+    "integrity": "bootstrap/slice1/evidence/unblock-regression-integrity.json"
+  },
+  "coordinator_v5": {
+    "source": "bootstrap/slice1/seals/v5/controller/integrate_block.py",
+    "in_memory_path_overrides": [
+      "ROOT=repository_root",
+      "BASE=repository_root/bootstrap/slice1"
+    ],
+    "seal_verified_before_after": true
+  },
+  "result": "PASS",
+  "limits": [
+    "Não demonstra aceite/entrega de produto ou proteção contra proprietário do host.",
+    "Integração I/T exercita fixtures do bootstrap, não cenários funcionais do candidato."
+  ],
+  "seal_integrity": "PASS",
+  "audit_v5": {
+    "records": 171,
+    "classifications": {
+      "FUNCTIONAL_EXIT": 153,
+      "ADVERSARY_CHECK": 1,
+      "OBSERVATION": 17
+    },
+    "infrastructure_errors": 0
+  }
+}

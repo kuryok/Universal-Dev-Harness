@@ -22,6 +22,10 @@ def adversary_probe(core, state, control, config):
         shutil.copytree(core, candidate)
         work.mkdir()
         source = Path(__file__).parent / 'block_fixtures/adversary_probe.py'
+        extended = 'legacy_operator' in config
+        if extended:
+            (candidate / 'legacy_probe.py').write_bytes(source.read_bytes())
+            source = Path(__file__).parent / 'block_fixtures/unblock_probe.py'
         (candidate / 'probe.py').write_bytes(source.read_bytes())
         runtime = IsolatedProcess(candidate, work).run('probe.py')
         if runtime['outcome'] != 'EXIT' or runtime['returncode'] != 0 or not runtime['removed']:
@@ -29,11 +33,15 @@ def adversary_probe(core, state, control, config):
         data = json.loads(runtime['stdout'])
         mounts = (runtime.get('inspect') or {}).get('Mounts', [])
         private = (state, control, Path(config['audit']))
+        if 'legacy_operator' in config:
+            private += (Path(config['legacy_operator']['control']),)
+        if 'primary_control' in config:
+            private += (Path(config['primary_control']),)
         if any(any(path == Path(m['Source']) or path.is_relative_to(Path(m['Source']))
                    for path in private) for m in mounts):
             raise ValueError('Montagem privada exposta ao adversário')
         rejected = {}
-        for variant in ('snapshot', 'symlink'):
+        for variant in (('snapshot', 'symlink', 'config') if extended else ('snapshot', 'symlink')):
             base = folder / variant
             base.mkdir()
             changed_core, changed_control, changed_state = (base / part for part in ('core','control','state'))
@@ -43,9 +51,11 @@ def adversary_probe(core, state, control, config):
             target = changed_core / 'udh/__init__.py'
             if variant == 'snapshot':
                 target.write_bytes(target.read_bytes() + b'\n# fixture alterada\n')
-            else:
+            elif variant == 'symlink':
                 target.unlink()
                 target.symlink_to(core / 'udh/__init__.py')
+            else:
+                (changed_control / 'config.json').write_text('{}')
             try:
                 OperatorProcess(changed_core, changed_state, changed_control,
                     core_manifest_sha256=config['core_manifest_sha256'],
@@ -60,6 +70,22 @@ def adversary_probe(core, state, control, config):
             inherited_admin_fds_absent=not data['extra_fds'] and data['admin_environment_absent'],
             authority_claims_rejected=data['authority_claims_rejected'],
             snapshot_substitution_rejected=rejected['snapshot'], symlink_rejected=rejected['symlink'])
+        if extended:
+            db_rejections = []
+            for override in (['--db', '/state/override.sqlite'], ['--db=/state/override.sqlite']):
+                protected = OperatorProcess(core, state, control,
+                    core_manifest_sha256=config['core_manifest_sha256'],
+                    control_sha256=config['control_sha256'], launcher_sha256=config['launcher_sha256'])
+                try:
+                    protected.run(['unblock', *override])
+                except ValueError as error:
+                    db_rejections.append(str(error) == 'Banco é fixado pelo controlador administrativo'
+                                         and protected.container_name is None)
+                else:
+                    db_rejections.append(False)
+            checks.update(db_override_rejected=all(db_rejections),
+                configuration_substitution_rejected=rejected['config'],
+                unblock_context_denied_without_sqlite=data['unblock_context_denied_without_sqlite'])
         if not all(checks.values()):
             raise ValueError('Isolamento administrativo não comprovado')
         return dict(checks=checks, runtime_removed=True), runtime
@@ -79,17 +105,25 @@ def main():
         core, state, control, seal, audit = (Path(config[name]) for name in
                                            ('core', 'state', 'control', 'seal', 'audit'))
         paths = [core, state, control, seal, audit]
+        if 'legacy_operator' in config:
+            paths.append(Path(config['legacy_operator']['control']))
         for path in paths:
             if not path.is_absolute() or path.is_symlink() or not path.is_dir():
                 raise ValueError('Diretório inválido')
         if any(a == b or a.is_relative_to(b) or b.is_relative_to(a)
                for i, a in enumerate(paths) for b in paths[i+1:]):
             raise ValueError('Diretórios de controle sobrepostos')
-        verify_seal(seal, config['at_version'])
+        manifest = verify_seal(seal, config['at_version'])
         if candidate_hashes(core) != config['core_hashes']:
             raise ValueError('Snapshot alterado')
         safe_data_tree(state)
         args = sys.argv[1:]
+        if args[:1] == ['--legacy']:
+            if manifest['body']['generation'] != 6 or 'legacy_operator' not in config:
+                raise ValueError('Perfil legado indisponível')
+            config = {**config, **config['legacy_operator'], 'primary_control': str(control)}
+            control = Path(config['control'])
+            args = args[1:]
         seed_core = bool(args and args[0] == '--core')
         if seed_core:
             args = args[1:]

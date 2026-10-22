@@ -1,4 +1,4 @@
-"""Publicação exclusiva da geração 5; preserva os contratos congelados das gerações 3 e 4."""
+"""Publicação exclusiva da geração 6; preserva os contratos congelados das gerações 3 a 5."""
 import json
 from pathlib import Path
 import shutil
@@ -31,6 +31,22 @@ SOURCE_FILES = {
 SPEC_FILES = tuple('openspec/changes/slice1-block-run/' + name for name in
                    ('proposal.md', 'design.md', 'acceptance-handoff.md', 'fault-observation.md', 'observation-publication-fix.md', 'observation-directory-race.md'))
 
+V5_PIN = 'sha256:182d2ba72a7b5dfb5648e650577dcc3bbbbd67048c72a3bf959406ce7dd89ac6'
+UNBLOCK_APPROVAL = 'Desbloqueio e preparo protegido aprovados em 22/10/2026'
+UNBLOCK_BASELINE_COMMIT = 'ad2bd478fa8a07a06b6e1a1b832b1795fafe1c4d'
+UNBLOCK_BASELINE_FILES = {'udh/__init__.py': 'c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01', 'udh/__main__.py': '35c2199d6c990d9e0f02f6250929ae6c1088cd9fb340f04cc930f22fa11c9f8e', 'udh/domain.py': '589db31e4aac42c2719bd3d15f1b9be2eb9f94fa30785deb01d3c0f6bd6b8130', 'udh/migrations.py': 'd0cdcba75eb6f470caa69853ad264441a6b8a203b7c47fea583a7c7451f0059f', 'udh/operator.py': '4316e9b3b72375d9fbf389cb85606b4e821b2b399a742e2303745593e1e4a851', 'udh/policy.py': 'a9e67014098b84f0fe8ad4269190c77c7d94ff7d84ceac8fbded321342906d1b', 'udh/service.py': 'e225536da6296dd3de52c0b44eb636e11605859b7e228c9663f659c50c84178f', 'udh/store.py': 'f3545bea6c5ef6e6f7746de60aa87f0cde8e5fbaf6e98aef1fc6ed90994f1420', 'udh/transitions.py': '5e3b16cb4b0e170b46d2e6a204ae78f429c92c9e812bc2fb0368b4bc63f3ec19'}
+UNBLOCK_SOURCE_FILES = {name: source for name, source in SOURCE_FILES.items() if not name.startswith('tests/')}
+UNBLOCK_SOURCE_FILES['controller/block_fixtures/unblock_probe.py'] = 'bootstrap/slice1/block_fixtures/unblock_probe.py'
+UNBLOCK_SOURCE_FILES.update({'tests/test_unblock.py': 'bootstrap/slice1/unblock_acceptance/test_unblock.py',
+                             'tests/coverage.json': 'bootstrap/slice1/unblock_acceptance/coverage.json'})
+UNBLOCK_SPEC_FILES = tuple('openspec/changes/slice1-unblock-run/' + name for name in ('proposal.md', 'design.md'))
+
+def source_files(generation):
+    return UNBLOCK_SOURCE_FILES if generation == 6 else SOURCE_FILES
+
+def spec_files(generation):
+    return UNBLOCK_SPEC_FILES if generation == 6 else SPEC_FILES[:generation + 1]
+
 
 def validate_review(review, files):
     if (not isinstance(review, dict) or review.get('status') != 'PASS'
@@ -42,12 +58,15 @@ def validate_review(review, files):
 
 
 def validate_baseline(body):
+    current = body['generation'] == 6
+    baseline_commit = UNBLOCK_BASELINE_COMMIT if current else BASELINE_COMMIT
+    baseline_files = UNBLOCK_BASELINE_FILES if current else BASELINE_FILES
     gate = body['review']['baseline_gate']
     report = gate.get('report')
     if (not isinstance(report, dict)
             or gate.get('report_sha256') != _hash(_canonical(report))
-            or report.get('candidate_ref') != BASELINE_COMMIT
-            or report.get('candidate_hashes') != BASELINE_FILES
+            or report.get('candidate_ref') != baseline_commit
+            or report.get('candidate_hashes') != baseline_files
             or report.get('baseline_discrimination') != 'PASS'
             or report.get('mode') != 'BASELINE' or report.get('result') != 'PASS'
             or report.get('errors') != [] or report.get('skipped') != []
@@ -64,8 +83,8 @@ def validate_baseline(body):
     if pending and report.get('external_checks', {}).get('R1') != 'PASS':
         raise SealError('Regressão externa obrigatória')
     external = report.get('external_evidence', {})
-    if (external.get('result') != 'PASS' or external.get('candidate_ref') != BASELINE_COMMIT
-            or external.get('results') != {'v1':'PASS','v2':'PASS','I1_I7_T1_T8':'PASS'}
+    if (external.get('result') != 'PASS' or external.get('candidate_ref') != baseline_commit
+            or external.get('results') != ({'v1':'PASS','v2':'PASS','v5':'PASS','complementary':'PASS','I1_I7_T1_T8':'PASS'} if current else {'v1':'PASS','v2':'PASS','I1_I7_T1_T8':'PASS'})
             or report.get('external_evidence_sha256') != _hash(_canonical(external) + b'\n')):
         raise SealError('Evidência externa não corresponde à regressão')
     tests = report.get('coverage', {}).get('methods', {})
@@ -94,16 +113,16 @@ def verify_seal(destination, expected_at_version):
         if set(body) != {'schema', 'generation', 'previous_at_version', 'status', 'files', 'specs', 'approval', 'provenance', 'review'}:
             raise SealError('Corpo inválido')
         if (type(body['schema']) is not int or body['schema'] != 1
-                or type(body['generation']) is not int or body['generation'] not in (3, 4, 5)
-                or body['previous_at_version'] != ({3: PREVIOUS, 4: V3_PIN, 5: V4_PIN}[body['generation']])
-                or body['approval'] != ({3: V3_APPROVAL, 4: V4_APPROVAL, 5: APPROVAL}[body['generation']])
+                or type(body['generation']) is not int or body['generation'] not in (3, 4, 5, 6)
+                or body['previous_at_version'] != ({3: PREVIOUS, 4: V3_PIN, 5: V4_PIN, 6: V5_PIN}[body['generation']])
+                or body['approval'] != ({3: V3_APPROVAL, 4: V4_APPROVAL, 5: APPROVAL, 6: UNBLOCK_APPROVAL}[body['generation']])
                 or body['provenance'] != 'independent-block-acceptance'):
             raise SealError('Cadeia ou origem inválida')
         if (manifest['at_version'] != expected_at_version
                 or expected_at_version != 'sha256:' + _hash(_canonical(body))
                 or raw != _canonical(manifest) + b'\n'):
             raise SealError('STALE: identidade divergente')
-        for mapping, names in ((body['files'], SOURCE_FILES), (body['specs'], SPEC_FILES[:body['generation'] + 1])):
+        for mapping, names in ((body['files'], source_files(body['generation'])), (body['specs'], spec_files(body['generation']))):
             if not isinstance(mapping, dict) or set(mapping) != set(names):
                 raise SealError('Lista de arquivos inválida')
             if any(not isinstance(v, str) or len(v) != 64 or any(c not in '0123456789abcdef' for c in v) for v in mapping.values()):
@@ -124,7 +143,7 @@ def verify_seal(destination, expected_at_version):
             else:
                 _safe(path)
                 seen.add(relative)
-        if seen != set(SOURCE_FILES) | {'manifest.json'}:
+        if seen != set(source_files(body['generation'])) | {'manifest.json'}:
             raise SealError('Arquivos ausentes ou extras')
         for name, digest in body['files'].items():
             if _hash(_safe(destination / name).read_bytes()) != digest:
@@ -144,6 +163,7 @@ def create_seal(root, destination, review=None):
     verify_v2(root / 'bootstrap/slice1/seals/v2', PREVIOUS)
     verify_seal(root / 'bootstrap/slice1/seals/v3', V3_PIN)
     verify_seal(root / 'bootstrap/slice1/seals/v4', V4_PIN)
+    verify_seal(root / 'bootstrap/slice1/seals/v5', V5_PIN)
     destination = Path(destination).absolute()
     _safe(destination.parent, directory=True)
     try:
@@ -151,24 +171,24 @@ def create_seal(root, destination, review=None):
     except ValueError as exc:
         raise SealError('Destino fora do projeto') from exc
     if review is not None:
-        if relative.as_posix() != 'seals/v5':
-            raise SealError('Publicação exige seals/v5')
+        if relative.as_posix() != 'seals/v6':
+            raise SealError('Publicação exige seals/v6')
     elif not any(part.startswith('block-integration-') for part in relative.parts):
         raise SealError('Rascunho exige diretório temporário próprio')
-    contents = {name: _safe(root / source).read_bytes() for name, source in SOURCE_FILES.items()}
+    contents = {name: _safe(root / source).read_bytes() for name, source in UNBLOCK_SOURCE_FILES.items()}
     files = {name: _hash(data) for name, data in contents.items()}
     if review is not None:
         validate_review(review, files)
-    body = dict(schema=1, generation=5, previous_at_version=V4_PIN,
+    body = dict(schema=1, generation=6, previous_at_version=V5_PIN,
                 status='PUBLISHED' if review is not None else 'DRAFT', files=files,
-                specs={name: _hash(_safe(root / name).read_bytes()) for name in SPEC_FILES},
-                approval=APPROVAL, provenance='independent-block-acceptance', review=review)
+                specs={name: _hash(_safe(root / name).read_bytes()) for name in UNBLOCK_SPEC_FILES},
+                approval=UNBLOCK_APPROVAL, provenance='independent-block-acceptance', review=review)
     if review is not None:
         validate_baseline(body)
-        evidence = json.loads(_safe(root / 'bootstrap/slice1/evidence/block-baseline.json').read_bytes())
+        evidence = json.loads(_safe(root / 'bootstrap/slice1/evidence/unblock-baseline.json').read_bytes())
         if evidence != review['baseline_gate']['report']:
             raise SealError('Artefato de baseline diverge da revisão')
-        external = json.loads(_safe(root / 'bootstrap/slice1/evidence/block-regression.json').read_bytes())
+        external = json.loads(_safe(root / 'bootstrap/slice1/evidence/unblock-regression.json').read_bytes())
         if external != evidence['external_evidence']:
             raise SealError('Artefato de regressão diverge da revisão')
     manifest = {'at_version': 'sha256:' + _hash(_canonical(body)), 'body': body}

@@ -16,13 +16,13 @@ Este arquivo orienta a retomada; não aprova requisitos nem substitui OpenSpec, 
 
 ## Pendente
 
-- Aprovar [desbloqueio BLOCKED/1→PENDING/2](openspec/changes/slice1-unblock-run/proposal.md): proposta revisada documentalmente, SQLite v3 opt-in e replay histórico preservado. Sem implementação nova.
+- [Desbloqueio BLOCKED/1→PENDING/2](openspec/changes/slice1-unblock-run/proposal.md) e preparo nomeado aprovados. DDL v3 refinado; novos AT independentes e perfil administrativo preparados. Core ainda sem migração/leitura v3 e sem unblock.
 - Executor de agentes, coordenação automática até entrega e interface guiada ainda não implementados. OpenSpec é usado documentalmente; sua CLI e o harness fast/full não estão disponíveis.
 - Instalação operacional protegida e aceite oficial do produto não demonstrados. Bootstrap usa dados sintéticos e não protege contra quem escreve no host. Slice 1 incompleta.
 
 ## Próxima tarefa
 
-Obter aprovação do contrato de desbloqueio e do preparo de AT/perfil administrativo nomeados na proposta. Depois preparar evidências independentes e migrar/implementar em incrementos verificados. Não integrar agentes.
+Implementar migração explícita/leitura v3, preservando v1/v2. Preparo v6 concluído com revisão independente PASS. Verificar antes de habilitar unblock e replay histórico. Contrato já aprovado; não integrar agentes.
 
 ## Verificação
 
@@ -30,4 +30,4 @@ Obter aprovação do contrato de desbloqueio e do preparo de AT/perfil administr
 - Isolamento: `PYTHONDONTWRITEBYTECODE=1 python3 bootstrap/slice1/integrate_acceptance.py`.
 - [Contrato](openspec/changes/slice1-block-run/proposal.md), [resultado e reprodução](openspec/changes/slice1-block-run/block-verification.md), [resumo verificável](openspec/changes/slice1-block-run/block-verification.json).
 - [AT v5](bootstrap/slice1/evidence/block-candidate.json) e [revisão](openspec/changes/slice1-block-run/block-review.json).
-- Atualizar este estado e a memória com resultados efetivos ao encerrar a próxima tarefa; resultados anteriores não equivalem a testes de uma sessão futura.
+- Preparo atual: 39 complementares PASS; baseline novo 16 métodos (13 falhas funcionais esperadas, três PASS), 150 chamadas sem infraestrutura/errors/skips. Selo v6 `7196e5f4` publicado/verificado, revisão PASS. [Verificação](openspec/changes/slice1-unblock-run/verification.md). Não demonstra desbloqueio funcionando.
