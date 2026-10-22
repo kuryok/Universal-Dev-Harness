@@ -17,13 +17,13 @@ Este arquivo orienta a retomada; não aprova requisitos nem substitui OpenSpec, 
 ## Pendente
 
 - [Desbloqueio BLOCKED/1→PENDING/2](openspec/changes/slice1-unblock-run/proposal.md) e preparo nomeado aprovados. DDL v3 refinado; novos AT independentes e perfil administrativo preparados. Core ainda sem migração/leitura v3 e sem unblock.
-- Evidências novas precisam evitar payloads duplicados e reescrita dos relatórios históricos; desenho proposto preserva selos1–6 e conteúdo integral.
+- Codec de evidências implementado/verificado: JSON/gzip estritos, hashes/limites, fechamento e publicação exclusiva. 67 complementares PASS e revisão independente PASS. Gates/CLIs/exportação/selo7 ainda pendentes; selos1–6 e relatórios históricos preservados.
 - Executor de agentes, coordenação automática até entrega e interface guiada ainda não implementados. OpenSpec é usado documentalmente; sua CLI e o harness fast/full não estão disponíveis.
 - Instalação operacional protegida e aceite oficial do produto não demonstrados. Bootstrap usa dados sintéticos e não protege contra quem escreve no host. Slice 1 incompleta.
 
 ## Próxima tarefa
 
-Aprovar o [formato de evidências sem duplicação](openspec/changes/slice1-evidence-storage/proposal.md), revalidado com correções de orçamento total, exportação completa e CLI sem reescrita; experimentos de deduplicação/compatibilidade PASS, ainda sem implementação. Se mantida a prioridade operacional, implementar/verificar transporte e selo v7 antes de retomar v3; armazenamento não é dependência funcional do Core. Contrato funcional de desbloqueio segue aprovado; preservar v1/v2 e não integrar agentes.
+Integrar referências aos gates e novas rotas de saída conforme o [contrato de evidências](openspec/changes/slice1-evidence-storage/proposal.md), preservando API default6 e recusando reescrita histórica. Codec aprovado concluído; [resultado](openspec/changes/slice1-evidence-storage/codec-verification.md). Depois validar exportação/regressões e selo7, antes de retomar v3/unblock. Não integrar agentes.
 
 ## Verificação
 

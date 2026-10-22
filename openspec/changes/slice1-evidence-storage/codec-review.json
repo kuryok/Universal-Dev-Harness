@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "review_id": "independent-evidence-codec-increment-2026-10-22",
+  "scope": "Incremento codec, referências tipadas, publicação de objetos e fechamento estrutural. Não inclui gates, novo selo, exportação offline ou Core.",
+  "files": {
+    "bootstrap/slice1/evidence_store.py": "a9b95835ee982d3b301b7530acd7a7aee8c82972d25c613f3d70322a471f8a38",
+    "tests/test_evidence_storage.py": "41d37235bf85e15c0b88a0ceb7d06ddfff5b1efd8671130d3d661966f8f2a745",
+    "tests/test_block_infrastructure.py": "92de0d9b6860aef36b1623ee5ee67d333bd40b2c5ab22a0ff749cb5f6499a208",
+    "openspec/changes/slice1-evidence-storage/proposal.md": "5fe7314fd71f04fac56ef6a6149f111e46c85afd782dd151d7a95a6278258f43"
+  },
+  "unresolved_findings": [],
+  "verification": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 TMPDIR=\"$PWD/bootstrap/slice1\" python3 -m unittest discover -s tests -p test_evidence_storage.py -v",
+    "tests_run": 28,
+    "result": "PASS",
+    "duration_seconds": 0.34,
+    "git_diff_check": "PASS",
+    "inspection": [
+      "JSON estrito/canônico, números finitos, hashes/tamanhos/tipos exatos e gzip limitado com CRC e membro único.",
+      "Descritores com O_NOFOLLOW/O_NONBLOCK, percurso de ancestrais sem symlinks e consumo sem reabrir arquivo por caminho.",
+      "Publicação exclusiva por hard link, fsync antes/depois e recusa explícita com objeto órfão completo após falha de sincronização de diretório.",
+      "Orçamentos individuais/agregados por hash único, referências repetidas consistentes, ciclo e altura dos descendentes compartilhados.",
+      "Única mudança em test_block_infrastructure: destino do relatório de instrumentação movido do histórico para diretório temporário próprio.",
+      "Processo filho POSIX próprio interrompido após marker confirmado antes/depois de os.link; pré-link sem objeto final, pós-link órfão completo verificável, sem sucesso retornado."
+    ]
+  },
+  "limits": [
+    "Falhas de fsync/link são sintéticas; teste adicional mata processo filho próprio em dois checkpoints instrumentados reais. Não prova queda de energia, crash de kernel ou durabilidade em todo filesystem.",
+    "walk é iterador parcial; fechamento só é comprovado após esgotamento sem erro ou retorno de validate. Não usar primeiro yield como sucesso.",
+    "Validação estrutural do envelope não substitui semântica de candidato/cobertura/resultados/revisão nos gates futuros.",
+    "Limites lógicos não são garantia de RSS exato do parser; o utilitário não mantém cache de todos os payloads, mas consumidores podem reter valores retornados.",
+    "Root fixada no projeto é restrição do incremento atual; exportação/verificação offline ainda não implementadas.",
+    "Nenhum Core, AT histórico ou publicação de selo executado por este revisor.",
+    "Não protege contra proprietário com escrita no host."
+  ]
+}

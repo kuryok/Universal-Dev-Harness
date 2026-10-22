@@ -90,7 +90,7 @@ def main(argv=None, *, context=None):
                 self.assertEqual(rows(),expected)
                 observations.append(result)
 
-        (BASE/'evidence/block-instrumentation.json').write_text(json.dumps(dict(
+        (self.root/'block-instrumentation.json').write_text(json.dumps(dict(
             result='PASS', experiment='synthetic-sqlite-writer', core_is_product=False,
             observations=observations),ensure_ascii=False,indent=2)+'\n')
 
