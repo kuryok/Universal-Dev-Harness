@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "review_id": "independent-current-it-infrastructure-corrected-2026-10-22",
+  "reviewer_context": "Contexto independente que não implementou fontes. Revisão atualizada antes de qualquer coleta real deste incremento, conforme informação do coordenador; nenhuma coleta I/T realizada por este revisor.",
+  "files": {
+    "bootstrap/slice1/trust_snapshot.py": "08b71af238e1a5577daf44187008523ffb06329b5108bb830c14bac8d4f1a15e",
+    "bootstrap/slice1/isolated_process.py": "f3fc10740b69dfc8bfd42de8a26ba2cc5c45e31d8313c426af2eaf921e6c1c3e",
+    "bootstrap/slice1/check_boundary.py": "1dccecc88af3dd933e9d2e4f63a68a5f3af7db7d35eec89140d0b787476aa631",
+    "bootstrap/slice1/integrate_acceptance.py": "214cfc423e8c2b1d924b42d2382c655416b49c6808292a85c33c43d5e755562a",
+    "bootstrap/slice1/evidence_store.py": "ccf384085b5c8cbe930344c3b6b38f45833493a0a544663a6e900ee5fe1bac5a",
+    "bootstrap/slice1/cli_bridge.py": "9e5f5ca00a9a04973dc28731c2610e32859596c7097577bd6ae074a66f48860e",
+    "bootstrap/slice1/seal_version.py": "8ca410e2cdd4211cbd5dab2cd8fa14ee9e7193e17ca09be7016c9f50bfa6d851",
+    "bootstrap/slice1/fixtures/adversary.py": "f015e94f87e601517a900178dd9028e4fdcdadb117f23228dd57820a26568ec7",
+    "bootstrap/slice1/fixtures/hang.py": "0b79ca764317e9ced9d98d8bfb0497dcf4de645d21283b7efb8ec7ec65f66f24",
+    "bootstrap/slice1/fixtures/import_effect.py": "23f8667b5e9f8a12fe17c23db937e8b3ade473d0443a079e537ba219fa8331c7",
+    "bootstrap/slice1/fixtures/output_flood.py": "831c1a028cb71344e80764a1f6e171c50a67dd123bcd0c126681a388d8871593",
+    "bootstrap/slice1/fixtures/positive.py": "5e87c99208b11c9369d0d676238790f065b14da44ff98ad1e2445cc73a3256dc",
+    "bootstrap/slice1/fixtures/process_visibility.py": "8530a0b66f668cc54252b2a6cc3f174c7674dfd235059aef48647d9f52fc3158",
+    "bootstrap/slice1/fixtures/termination.py": "3d798ec784d008b6857fa6b3521ad67993780fd4a8511afe1774b9cfa73f3dae"
+  },
+  "unresolved_findings": [],
+  "host_does_not_import_candidate": true,
+  "supersedes_precollection_review_sha256": "4def231053db84ba0479f640e30af8088df60bf0b33ec87a1cf086fada12cddf",
+  "scope": "Identidade e segurança estrutural das14fontes/fixtures I/T. Sem publicar selo7 nem certificar critérios I/T ainda não executados.",
+  "resolved_findings": [
+    "Gate externo passou a exigir hashes candidatos/launcher, pins AT, métodos e limpeza esperados; casos inválidos exit124/125/classificação incoerente e identidades divergentes foram recusados em reprodução sintética independente.",
+    "Resumo passou a incluir candidate_hashes/specs/counts; conteúdo plano e metadados de baseline/manifesto contemplados."
+  ],
+  "verification": {
+    "codec_run_tests": 38,
+    "result": "PASS",
+    "duration_seconds": 0.621,
+    "command": "PYTHONDONTWRITEBYTECODE=1 TMPDIR=\"$PWD/bootstrap/slice1\" python3 -m unittest discover -s tests -p test_evidence_storage.py -q",
+    "gate_repro": "Controle válido PASS e sete variações inválidas rejeitadas; sem Core/runtime.",
+    "external_method_pins": "Mapas de métodos/hashes comparados às evidências de regressão v1/v2/v5 anteriormente coletadas."
+  },
+  "limits": [
+    "Parecer não substitui coleta real I1–I7/T1–T8, regressões completas ou AT independentes de transporte.",
+    "Mudança de qualquer fonte fixada invalida este parecer para coletas posteriores até revisão correspondente.",
+    "Gates novos/publicação/exportação exigem revisão final própria; publicação7 ainda indisponível.",
+    "A correção do gate foi reproduzida isoladamente; infraestruturaI/T fixa somente o mapa exato enumerado, sem block_seal.",
+    "Fault injection sintética e interrupção instrumentada não comprovam queda de energia ou crash do kernel.",
+    "Não há proteção contra proprietário com escrita no host."
+  ]
+}

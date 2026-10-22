@@ -268,28 +268,189 @@ class EvidenceStore:
         envelope = decode(reference, data)
         for _, item in self._walk(reference, proposed=envelope):
             del item
-        pending = '.pending-' + uuid.uuid4().hex
         try:
             with _directory(self.root) as directory:
-                created = False
-                try:
-                    descriptor = os.open(pending, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
-                                         0o600, dir_fd=directory)
-                    created = True
-                    with os.fdopen(descriptor, 'wb') as output:
-                        output.write(data)
-                        output.flush()
-                        os.fsync(output.fileno())
-                    try:
-                        os.link(pending, reference['stored_sha256'] + '.json.gz', src_dir_fd=directory,
-                                dst_dir_fd=directory, follow_symlinks=False)
-                    except FileExistsError:
-                        if _read_at(directory, reference) != data:
-                            raise EvidenceError('Objeto existente diverge dos bytes esperados.')
-                    os.fsync(directory)
-                finally:
-                    if created:
-                        os.unlink(pending, dir_fd=directory)
+                _publish_at(directory, reference['stored_sha256'] + '.json.gz', data, reference)
         except OSError:
             raise EvidenceError('Falha na publicação atômica da evidência.') from None
         return reference
+
+
+EVIDENCE_ROOT = PROJECT_ROOT / 'bootstrap/slice1/evidence'
+MAX_SUMMARY_BYTES = 32 * 1024
+
+
+def _publish_at(directory, name, data, reference=None):
+    pending = '.pending-' + uuid.uuid4().hex
+    created = False
+    try:
+        descriptor = os.open(pending, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                             0o600, dir_fd=directory)
+        created = True
+        with os.fdopen(descriptor, 'wb') as output:
+            output.write(data)
+            output.flush()
+            os.fsync(output.fileno())
+        try:
+            os.link(pending, name, src_dir_fd=directory, dst_dir_fd=directory, follow_symlinks=False)
+        except FileExistsError:
+            if reference is None or _read_at(directory, reference) != data:
+                raise EvidenceError('Destino existente não pode ser sobrescrito.')
+        os.fsync(directory)
+    finally:
+        if created:
+            os.unlink(pending, dir_fd=directory)
+
+
+def _mkdir_project(path):
+    path = Path(path)
+    if not path.is_absolute() or '..' in path.parts or not path.is_relative_to(PROJECT_ROOT):
+        raise EvidenceError('Diretório fora da raiz autorizada.')
+    try:
+        with _directory(PROJECT_ROOT) as base:
+            current = os.dup(base)
+            try:
+                for part in path.relative_to(PROJECT_ROOT).parts:
+                    try:
+                        os.mkdir(part, mode=0o700, dir_fd=current)
+                        os.fsync(current)
+                    except FileExistsError:
+                        pass
+                    child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC,
+                                    dir_fd=current)
+                    os.close(current)
+                    current = child
+            finally:
+                os.close(current)
+    except OSError:
+        raise EvidenceError('Diretório de coleta ausente ou redirecionado.') from None
+
+
+def default_store():
+    root = EVIDENCE_ROOT / 'objects/sha256'
+    _mkdir_project(root)
+    return EvidenceStore(root)
+
+
+def validate_output(output):
+    """Confere destino novo sem criar diretórios ou coletar dados."""
+    path = EVIDENCE_ROOT / 'runs' / str(uuid.uuid4()) / 'summary.json' if output is None else Path(output)
+    if not path.is_absolute() or '..' in path.parts or path.name != 'summary.json':
+        raise EvidenceError('Destino deve ser um resumo novo sob evidence/runs/UUID/.')
+    try:
+        if path.parent.parent != EVIDENCE_ROOT / 'runs' or str(uuid.UUID(path.parent.name)) != path.parent.name:
+            raise ValueError()
+        for ancestor in [*reversed(path.parent.parents), path.parent, path]:
+            if ancestor.is_symlink() or (ancestor.exists() and ancestor != path and not ancestor.is_dir()):
+                raise ValueError()
+        if path.exists():
+            raise ValueError()
+    except (ValueError, OSError):
+        raise EvidenceError('Destino histórico, existente ou redirecionado não é permitido.') from None
+    return path
+
+
+def store_report(store, report, *, regression=None):
+    """Separa os três layouts conhecidos; não interpreta campos livres como referências."""
+    if type(report) is not dict or 'collection_layout' in report:
+        raise EvidenceError('Relatório de coleta inválido.')
+    _json_value(report)
+    nested = type(report.get('baseline')) is dict and 'audit' in report['baseline']
+    if ((nested or 'runs' in report) and ('audit' in report or 'transcript' in report)
+            or nested and 'runs' in report):
+        raise EvidenceError('Layouts de coleta mistos não são permitidos.')
+    payload = dict(report)
+    audit, transcript = payload.pop('audit', []), payload.pop('transcript', '')
+    layout = 'flat'
+    if 'baseline' in payload and type(payload['baseline']) is dict and 'audit' in payload['baseline']:
+        baseline = dict(payload['baseline'])
+        audit, transcript = baseline.pop('audit'), baseline.pop('text_report', '')
+        payload['baseline'] = baseline
+        layout = 'integration'
+    elif 'runs' in payload:
+        runs = payload.pop('runs')
+        if type(runs) is not dict:
+            raise EvidenceError('Execuções de fronteira inválidas.')
+        audit = [dict(label=label, run=value) for label, value in runs.items()]
+        layout = 'boundary'
+    payload['collection_layout'] = layout
+    links = dict(audit=store.put('audit', audit), transcript=store.put('transcript', transcript))
+    if regression is not None:
+        links['regression'] = regression
+    return store.put('report', payload, links)
+
+
+def _summary(payload, reference, run_id):
+    baseline = payload.get('baseline')
+    baseline = baseline if type(baseline) is dict else {}
+    manifest = payload.get('manifest')
+    manifest = manifest if type(manifest) is dict else {}
+    body = manifest.get('body')
+    body = body if type(body) is dict else {}
+    counts = {}
+    for key in ('failures', 'errors', 'skipped'):
+        value = payload.get(key, baseline.get(key))
+        counts[key] = len(value) if type(value) is list else value if type(value) is int else None
+    return dict(schema=1, run_id=run_id, report=reference, result=payload.get('result'),
+                mode=payload.get('mode'), candidate_ref=payload.get('candidate_ref', baseline.get('candidate_reference')),
+                candidate_hashes=payload.get('candidate_hashes', baseline.get('candidate_hashes')),
+                at_version=payload.get('at_version'), specs=payload.get('specs', body.get('specs')),
+                tests_run=payload.get('tests_run', baseline.get('tests_run')), counts=counts,
+                limits=payload.get('limits', payload.get('limitations', [])))
+
+
+def save_run(report, output=None, *, regression=None):
+    """Publica coleta nova; o resumo não concede aceite nem substitui o fechamento."""
+    destination = validate_output(output)
+    store = default_store()
+    reference = store_report(store, report, regression=regression)
+    store.validate(reference)
+    summary = _summary(store.read(reference)['payload'], reference, destination.parent.name)
+    raw = _canonical(summary) + b'\n'
+    if len(raw) > MAX_SUMMARY_BYTES:
+        raise EvidenceError('Resumo excede o limite de bytes.')
+    _mkdir_project(destination.parent)
+    try:
+        with _directory(destination.parent) as directory:
+            _publish_at(directory, 'summary.json', raw)
+    except OSError:
+        raise EvidenceError('Falha na publicação do resumo.') from None
+    return destination, summary
+
+
+def read_run(path):
+    """Confere resumo e fechamento; nunca abre caminhos vindos do payload."""
+    path = Path(path)
+    if (not path.is_absolute() or '..' in path.parts or path.name != 'summary.json'
+            or path.parent.parent != EVIDENCE_ROOT / 'runs'):
+        raise EvidenceError('Resumo fora da raiz de coleta.')
+    try:
+        if str(uuid.UUID(path.parent.name)) != path.parent.name:
+            raise ValueError()
+        with _directory(path.parent) as directory:
+            descriptor = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC,
+                                 dir_fd=directory)
+            try:
+                info = os.fstat(descriptor)
+                if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_SUMMARY_BYTES:
+                    raise EvidenceError('Resumo não regular ou excessivo.')
+                raw = os.read(descriptor, MAX_SUMMARY_BYTES + 1)
+                if len(raw) != info.st_size or len(raw) > MAX_SUMMARY_BYTES:
+                    raise EvidenceError('Bytes do resumo divergentes.')
+            finally:
+                os.close(descriptor)
+        summary = json.loads(raw.decode('utf-8'), object_pairs_hook=_pairs, parse_constant=_constant)
+        if (type(summary) is not dict or set(summary) != set(_summary({}, {}, ''))
+                or type(summary['schema']) is not int or summary['schema'] != 1):
+            raise EvidenceError('Campos de resumo inválidos.')
+        reference = _reference(summary['report'])
+        if reference['kind'] != 'report':
+            raise EvidenceError('Resumo não aponta para relatório.')
+        store = EvidenceStore(EVIDENCE_ROOT / 'objects/sha256')
+        store.validate(reference)
+        payload = store.read(reference)['payload']
+        if summary != _summary(payload, reference, path.parent.name) or raw != _canonical(summary) + b'\n':
+            raise EvidenceError('Resumo diverge da coleta íntegra.')
+        return store, reference, payload
+    except (OSError, ValueError, TypeError, KeyError, UnicodeError, MemoryError, RecursionError):
+        raise EvidenceError('Resumo ou fechamento inválido.') from None

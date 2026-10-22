@@ -1,4 +1,5 @@
-"""Integra AT confiáveis ao candidato isolado e publica o selo do bootstrap."""
+"""Verifica AT congelados no candidato isolado e publica somente evidências novas."""
+import argparse
 import ast
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -15,13 +16,15 @@ import tempfile
 import unittest
 import uuid
 
+sys.dont_write_bytecode = True
+
 from cli_bridge import candidate_hashes, safe_data_tree
-from seal_version import SOURCE_FILES, SealError, create_seal, verify_seal
+from seal_version import SOURCE_FILES, SealError, verify_seal
+from check_boundary import independent_review
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / 'bootstrap/slice1'
-REVIEW_PATH = ROOT / 'openspec/changes/slice1-core-state/integration-review.json'
-EVIDENCE = BASE / 'evidence/integration.json'
+V1_PIN = 'sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704'
 LAUNCHER = '''import runpy, sys
 sys.path.insert(0, '/candidate')
 sys.argv[0] = 'udh'
@@ -120,7 +123,8 @@ def run_suite(seal, manifest, temporary):
     return summary, module, settings, candidate, work, control
 
 
-def main():
+def build_report():
+    """Reutiliza o selo v1 congelado e produz somente a coleta atual."""
     sys.dont_write_bytecode = True
     report = {'classification': 'bootstrap-at-integration-not-product-acceptance',
               'run_id': uuid.uuid4().hex, 'created_at': datetime.now(timezone.utc).isoformat(),
@@ -129,13 +133,6 @@ def main():
                   'Selo protegido do candidato contido, não desta sessão/proprietário no host.',
                   'Somente versão inicial; atualização/revogação de versões não implementadas.',
               ]}
-    if EVIDENCE.is_file():
-        previous_raw = EVIDENCE.read_bytes()
-        previous = json.loads(previous_raw)
-        report['previous_attempts'] = previous.pop('previous_attempts', []) + [{
-            'sha256': sha(previous_raw), 'report': previous,
-        }]
-
     def check(name, action):
         try:
             report['criteria'][name] = {'status': 'PASS', 'evidence': action()}
@@ -144,15 +141,12 @@ def main():
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
             report['criteria'][name] = {'status': 'INFRA_ERROR', 'reason': str(error)}
 
-    review = json.loads(REVIEW_PATH.read_text()) if REVIEW_PATH.is_file() else None
+    reviewed, review = independent_review()
+    report['infrastructure_review'] = review
     with tempfile.TemporaryDirectory(prefix='integration-', dir=BASE) as directory:
         temporary = Path(directory)
-        if review is None:
-            seal = temporary / 'draft-seal'
-        else:
-            (BASE / 'seals').mkdir(exist_ok=True)
-            seal = BASE / 'seals/v1'
-        manifest = create_seal(ROOT, seal, review)
+        seal = BASE / 'seals/v1'
+        manifest = verify_seal(seal, V1_PIN)
         report.update(at_version=manifest['at_version'], seal_status=manifest['body']['status'],
                       manifest=manifest)
         baseline, module, settings, candidate, work, control = run_suite(seal, manifest, temporary)
@@ -239,7 +233,7 @@ def main():
             return {'invalid_prefixes_rejected': 5, 'bridge125_is_infrastructure': True}
 
         def i5():
-            require(create_seal(ROOT, seal, review) == manifest, 'Repetição alterou a identidade')
+            require(verify_seal(seal, V1_PIN) == manifest, 'Repetição alterou a identidade')
             outcomes = []
             for variant in ('bytes', 'missing', 'symlink', 'extra', 'manifest', 'outside-path'):
                 copied = temporary / ('corrupted-' + variant)
@@ -281,11 +275,14 @@ def main():
                     'published': body['status'] == 'PUBLISHED', 'approval': body['approval']}
 
         def i7():
-            result = subprocess.run([sys.executable, '-B', str(BASE / 'check_boundary.py')],
-                                    capture_output=True, text=True, timeout=60)
-            boundary = json.loads((BASE / 'evidence/boundary.json').read_text())
-            require(result.returncode == 0 and boundary['result'] == 'PASS',
-                    'Regressão T1–T8 não passou')
+            from check_boundary import build_report as boundary_report
+            from evidence_store import default_store, save_run
+            boundary = boundary_report()
+            boundary_path, boundary_summary = save_run(boundary)
+            report['boundary_summary_path'] = str(boundary_path)
+            report['regression_ref'] = default_store().put(
+                'regression', {'result': boundary['result']}, {'boundary': boundary_summary['report']})
+            require(boundary['result'] == 'PASS', 'Regressão T1–T8 não passou')
             for source in list(SOURCE_FILES.values()):
                 if source.endswith('.py'):
                     ast.parse((ROOT / source).read_text(), filename=source)
@@ -297,7 +294,9 @@ def main():
 
         for index, action in enumerate((i1, i2, i3, i4, i5, i6, i7), 1):
             check(f'I{index}', action)
-        if review is None:
+        current_reviewed, current_review = independent_review()
+        reviewed = reviewed and current_reviewed and current_review == review
+        if not reviewed:
             for name in ('I1', 'I6'):
                 if report['criteria'][name]['status'] == 'PASS':
                     report['criteria'][name]['status'] = 'NOT_RUN'
@@ -305,11 +304,26 @@ def main():
         verify_seal(seal, manifest['at_version'])
     report['temporary_removed'] = not temporary.exists()
     report['result'] = 'PASS' if all(item['status'] == 'PASS' for item in report['criteria'].values()) else 'INCOMPLETE_OR_FAILED'
-    EVIDENCE.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+    return report
+
+
+def main(argv=None):
+    from evidence_store import save_run, validate_output
+    parser = argparse.ArgumentParser(description='Verifica integração em uma nova execução.')
+    parser.add_argument('--output', help='Resumo novo sob evidence/runs/UUID/.')
+    args = parser.parse_args(argv)
+    try:
+        destination = validate_output(args.output)
+        report = build_report()
+        destination, summary = save_run(report, destination,
+                                        regression=report.pop('regression_ref', None))
+    except (ValueError, OSError, MemoryError, RecursionError):
+        print('Infraestrutura de evidências: destino ou coleta inválidos.', file=sys.stderr)
+        return 125
     for name, value in report['criteria'].items():
         print(name, value['status'], value.get('reason', ''))
     print('Selo:', report['at_version'], report['seal_status'])
-    print('Evidência:', EVIDENCE)
+    print('Evidência:', destination)
     return 0 if report['result'] == 'PASS' else 1
 
 

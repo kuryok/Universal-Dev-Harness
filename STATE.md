@@ -17,13 +17,13 @@ Este arquivo orienta a retomada; não aprova requisitos nem substitui OpenSpec, 
 ## Pendente
 
 - [Desbloqueio BLOCKED/1→PENDING/2](openspec/changes/slice1-unblock-run/proposal.md) e preparo nomeado aprovados. DDL v3 refinado; novos AT independentes e perfil administrativo preparados. Core ainda sem migração/leitura v3 e sem unblock.
-- Codec de evidências implementado/verificado: JSON/gzip estritos, hashes/limites, fechamento e publicação exclusiva. 67 complementares PASS e revisão independente PASS. Gates/CLIs/exportação/selo7 ainda pendentes; selos1–6 e relatórios históricos preservados.
+- Codec, gate referenciado e novas saídas implementados:85 complementares PASS e revisão independente PASS. I1–I7/T1–T8 PASS; baseline16 com13 falhas esperadas/3 PASS,150 chamadas sem infraestrutura. Geral INCOMPLETE: regressões completas, exportação/AT de transporte e selo7 pendentes; selos1–6/histórico intactos.
 - Executor de agentes, coordenação automática até entrega e interface guiada ainda não implementados. OpenSpec é usado documentalmente; sua CLI e o harness fast/full não estão disponíveis.
 - Instalação operacional protegida e aceite oficial do produto não demonstrados. Bootstrap usa dados sintéticos e não protege contra quem escreve no host. Slice 1 incompleta.
 
 ## Próxima tarefa
 
-Integrar referências aos gates e novas rotas de saída conforme o [contrato de evidências](openspec/changes/slice1-evidence-storage/proposal.md), preservando API default6 e recusando reescrita histórica. Codec aprovado concluído; [resultado](openspec/changes/slice1-evidence-storage/codec-verification.md). Depois validar exportação/regressões e selo7, antes de retomar v3/unblock. Não integrar agentes.
+Implementar/testar fechamento e exportação offline conforme o [contrato](openspec/changes/slice1-evidence-storage/proposal.md); preparar AT independentes de transporte e regressões completas antes de publicar7. [Resultado dos gates/saídas](openspec/changes/slice1-evidence-storage/integration-verification.md). Depois retomar v3/unblock. Não integrar agentes.
 
 ## Verificação
 

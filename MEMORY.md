@@ -20,7 +20,7 @@ Retomada: ler [STATE.md](STATE.md), conferir Git e fontes. Memória não é requ
 - A3/B5 parciais; assinatura e WSL2 não executados. Detalhes no relatório.
 - VM Debian com Podman; binários existentes montados RO, sem novas instalações. Não atribuir limitações à máquina física.
 - Preferências: sem skills globais; informar próximo passo ao terminar. Não imprimir credenciais nem ambiente.
-- [Próximo passo](STATE.md): codec aprovado implementado/verificado: 67 complementares PASS, revisão PASS; [resultado](openspec/changes/slice1-evidence-storage/codec-verification.md). Integrar referências aos gates e novas saídas, depois exportação/regressões/selo7 conforme contrato. Core v1/v2, v3/unblock pendentes; agentes indisponíveis. Selos1–6 e evidências históricas intactos. Transporte é infraestrutura, não dependência funcional do Core.
+- [Próximo passo](STATE.md): gates/saídas novos verificados:85 complementares e I/T PASS; baseline16(13 falhas esperadas/3 PASS), geral INCOMPLETE. [Resultado](openspec/changes/slice1-evidence-storage/integration-verification.md). Implementar exportação offline, AT de transporte e regressões completas antes de publicar7. Core v1/v2; v3/unblock pendentes; agentes indisponíveis. Selos1–6/histórico intactos.
 
 ## Pendências locais
 - Arquitetura `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md` ainda fora do Git; baseline antigo excluído no working tree. Mudanças preexistentes: não restaurar/incorporar silenciosamente. Emenda ADR-018 A pendente.

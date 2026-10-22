@@ -1,0 +1,58 @@
+{
+  "status": "PASS",
+  "review_id": "independent-evidence-integration-increment-2026-10-22",
+  "scope": "Revisão independente dos cinco fontes de infraestrutura e complementares do incremento de gates/coletas append-only. Não conclui E1–E9, não publica7 e não aceita produto.",
+  "files": {
+    "bootstrap/slice1/evidence_store.py": "ccf384085b5c8cbe930344c3b6b38f45833493a0a544663a6e900ee5fe1bac5a",
+    "bootstrap/slice1/block_seal.py": "d3d1e8dd520ea876925d71bdd0341acf2aebbd3933c1beb5379f848d54895ec5",
+    "bootstrap/slice1/integrate_block.py": "c417165485d3ffd591359dd525671027aff144060640d5435e27c8a8a2a29715",
+    "bootstrap/slice1/integrate_acceptance.py": "214cfc423e8c2b1d924b42d2382c655416b49c6808292a85c33c43d5e755562a",
+    "bootstrap/slice1/check_boundary.py": "1dccecc88af3dd933e9d2e4f63a68a5f3af7db7d35eec89140d0b787476aa631",
+    "tests/test_evidence_storage.py": "b8583fd4011ffb37edf69a3479f7e846eb75ea61e73431225784c0192a496478",
+    "openspec/changes/slice1-evidence-storage/proposal.md": "5fe7314fd71f04fac56ef6a6149f111e46c85afd782dd151d7a95a6278258f43",
+    "openspec/changes/slice1-evidence-storage/integration.md": "651b1b3b3fddfe9d209b79725bda65451422179eb34e39d4c2dbe08c94b7bbaa"
+  },
+  "unresolved_findings": [],
+  "resolved_findings": [
+    {
+      "finding": "Regressões externas aceitavam identidade divergente e exit125 sob resumoPASS.",
+      "resolution": "Pins AT, nove módulos/launcher, métodos fixos e limpeza exigidos; categorias/outcomes e exit124/125 recusados."
+    },
+    {
+      "finding": "Resumo humano omitia hashes/specs e contagens previstos.",
+      "resolution": "Resumo inclui candidate_hashes/specs/counts e extrai identidade do baseline/manifesto da coleta integrada."
+    },
+    {
+      "finding": "Critérios I/T marcadosPASS com auditorias vazias satisfaziam gate.",
+      "resolution": "Gate exige layouts, baseline stub10métodos/18falhas/identidade exata, revisão14hashes, auditorias completas de integração/fronteira e provas de interrupção coerentes."
+    }
+  ],
+  "verification": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 TMPDIR=\"$PWD/bootstrap/slice1\" python3 -m unittest discover -s tests -p test_evidence_storage.py -q",
+    "tests_run": 46,
+    "result": "PASS",
+    "duration_seconds": 7.425,
+    "infrastructure_review_current": "PASS; mapa14componentes anterior à coleta real preservado",
+    "syntax": "PASS; AST dos arquivos Python revisados",
+    "inspection": [
+      "create_seal default6 usa snapshot congelado; geração7 opt-in DRAFT; publicação7 indisponível.",
+      "CLI --baseline antiga exit2 sem iniciar coleta; novas saídas exclusivas e recusa de destinos históricos.",
+      "Coleta7 declara executor funcional6 fixado e exige bytes AT/coverage idênticos; nenhum Core importado no host.",
+      "Fechamento referenciado valida identidadeDRAFT, candidato, cobertura e resultados13/3; não confunde falha de infraestrutura com negativa funcional.",
+      "Normalização conserva layouts conhecidos e dados coletados; auditorias/transcrições ligadas por referências."
+    ],
+    "fixture_maintenance": "Positivo do gate usa corpo sintético com14hashes da revisão histórica preservada, sem alterar essa evidência. Snapshot7 real é verificado separadamente; negativo exige recusa se corpo/baseline coerentes substituem medição de helper."
+  },
+  "infrastructure_review": {
+    "path": "openspec/changes/slice1-evidence-storage/infrastructure-review.json",
+    "sha256": "f61b3e695fa1bddd25f81ca41bee870a6c558f35f2d1960ccff1b38bb39a6a57"
+  },
+  "limits": [
+    "Validação de fontes e testes sintéticos não substitui coleta funcional final vinculada a estes hashes nem regressões completas da próxima etapa.",
+    "Coleta I/T real anterior foi informada comoPASS pelo coordenador e é consumida pelos testes do gate; este revisor não a reexecutou nem iniciou Podman em paralelo.",
+    "Uma primeira coleta funcional registrou falha de limpeza de runtime; não é sucesso e deve permanecer preservada. A coleta intermediária posterior não fixa necessariamente os fontes finais deste parecer.",
+    "Positivo do gate nos complementares usa fixtures de regressão históricas e composição sintética explicitamente rotulada; não constitui regressão corrente nem autorização para publicar7.",
+    "Exportação offline, AT independentes de transporte e revisão/publicação7 continuam pendentes e explicitamente bloqueadas.",
+    "Injeção de falhas e interrupção instrumentada não provam queda de energia/hardware; proteção não cobre proprietário com escrita no host."
+  ]
+}

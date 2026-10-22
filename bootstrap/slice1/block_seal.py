@@ -41,11 +41,62 @@ UNBLOCK_SOURCE_FILES.update({'tests/test_unblock.py': 'bootstrap/slice1/unblock_
                              'tests/coverage.json': 'bootstrap/slice1/unblock_acceptance/coverage.json'})
 UNBLOCK_SPEC_FILES = tuple('openspec/changes/slice1-unblock-run/' + name for name in ('proposal.md', 'design.md'))
 
+V6_PIN = 'sha256:7196e5f4eea1fc78806efcdbd2b1e231446b2632937d5aff69c4f2f8bf0d9b37'
+EVIDENCE_APPROVAL = 'Continuação aprovada: referências e novas saídas de evidências'
+EVIDENCE_SOURCE_FILES = dict(UNBLOCK_SOURCE_FILES)
+EVIDENCE_SOURCE_FILES.update({f'controller/{name}.py': f'bootstrap/slice1/{name}.py'
+    for name in ('evidence_store', 'check_boundary', 'trust_snapshot')})
+EVIDENCE_SOURCE_FILES.update({f'controller/fixtures/{name}.py': f'bootstrap/slice1/fixtures/{name}.py'
+    for name in ('adversary', 'hang', 'import_effect', 'output_flood', 'positive', 'process_visibility', 'termination')})
+EVIDENCE_SPEC_FILES = UNBLOCK_SPEC_FILES + tuple('openspec/changes/slice1-evidence-storage/' + name
+    for name in ('proposal.md', 'integration.md'))
+
+# Identidades derivadas dos AT congelados v1, v2 e v5, sem importá-los.
+EXTERNAL_METHODS = {'v1': ('CoreStateAcceptance.test_a10_concurrent_divergent_requests',
+        'CoreStateAcceptance.test_a10_concurrent_identical_requests',
+        'CoreStateAcceptance.test_a1_reinitialization_preserves_run',
+        'CoreStateAcceptance.test_a2_incompatible_fixtures_unchanged',
+        'CoreStateAcceptance.test_a3_durable_across_processes',
+        'CoreStateAcceptance.test_a4_event_failure_rolls_back',
+        'CoreStateAcceptance.test_a5_invalid_inputs_and_missing_database',
+        'CoreStateAcceptance.test_a6_literal_references',
+        'CoreStateAcceptance.test_a7_no_promotion_and_persistent_state_constraint',
+        'CoreStateAcceptance.test_a9_idempotence_and_conflicting_payload'),
+ 'v2': ('PolicyAcceptance.test_p1_read_existing_run',
+        'PolicyAcceptance.test_p2_denied_actions',
+        'PolicyAcceptance.test_p3_authority_flags_rejected',
+        'PolicyAcceptance.test_p3_unknown_actions_are_literal',
+        'PolicyAcceptance.test_p4_empty_action_precedes_domain_and_database',
+        'PolicyAcceptance.test_p4_incompatible_database_unchanged',
+        'PolicyAcceptance.test_p4_invalid_uuid_precedes_unknown_action',
+        'PolicyAcceptance.test_p4_missing_database_precedes_unknown_action',
+        'PolicyAcceptance.test_p4_unknown_run_precedes_unknown_action',
+        'PolicyAcceptance.test_p5_stable_response_and_canonical_hash',
+        'PolicyAcceptance.test_regression_v1_metadata'),
+ 'v5': ('BlockAcceptance.test_b1_persisted_block_and_v2_reader',
+        'BlockAcceptance.test_b2_adversary_isolation_and_claims',
+        'BlockAcceptance.test_b3_distinct_concurrent_requests',
+        'BlockAcceptance.test_b3_equal_concurrent_requests',
+        'BlockAcceptance.test_b3_exact_replay_and_payload_conflicts',
+        'BlockAcceptance.test_b4_instrumented_interruption_and_replay',
+        'BlockAcceptance.test_b5_common_policy_and_unsupported_targets_no_effect',
+        'MigrationAcceptance.test_m1_empty_and_populated_preserve_and_replay',
+        'MigrationAcceptance.test_m2_invalid_database_unchanged',
+        'MigrationAcceptance.test_m2_missing_rejected_without_creation',
+        'MigrationAcceptance.test_m3_concurrent_migration',
+        'MigrationAcceptance.test_m3_instrumented_interruption_and_replay',
+        'MigrationAcceptance.test_r1_v1_formats_and_common_refusal')}
+CLI_LAUNCHER_SHA256 = '5f887097c8c313a25f554cc1b6e149d88eeca527ed192b1bd6df8e33bf99bab6'
+
+STUB_FILES = {'_udh_cli.py': '5f887097c8c313a25f554cc1b6e149d88eeca527ed192b1bd6df8e33bf99bab6',
+ 'udh/__init__.py': '1c4fe51cbe922a5cd54857b5e9bae55165ab41588467deac36e9731fbcc9f915',
+ 'udh/__main__.py': '627390014aafc963a7454a8e6aadd53ac37a5a292f319cdafc8a899f4d9521b0'}
+
 def source_files(generation):
-    return UNBLOCK_SOURCE_FILES if generation == 6 else SOURCE_FILES
+    return EVIDENCE_SOURCE_FILES if generation == 7 else UNBLOCK_SOURCE_FILES if generation == 6 else SOURCE_FILES
 
 def spec_files(generation):
-    return UNBLOCK_SPEC_FILES if generation == 6 else SPEC_FILES[:generation + 1]
+    return EVIDENCE_SPEC_FILES if generation == 7 else UNBLOCK_SPEC_FILES if generation == 6 else SPEC_FILES[:generation + 1]
 
 
 def validate_review(review, files):
@@ -113,21 +164,25 @@ def verify_seal(destination, expected_at_version):
         if set(body) != {'schema', 'generation', 'previous_at_version', 'status', 'files', 'specs', 'approval', 'provenance', 'review'}:
             raise SealError('Corpo inválido')
         if (type(body['schema']) is not int or body['schema'] != 1
-                or type(body['generation']) is not int or body['generation'] not in (3, 4, 5, 6)
-                or body['previous_at_version'] != ({3: PREVIOUS, 4: V3_PIN, 5: V4_PIN, 6: V5_PIN}[body['generation']])
-                or body['approval'] != ({3: V3_APPROVAL, 4: V4_APPROVAL, 5: APPROVAL, 6: UNBLOCK_APPROVAL}[body['generation']])
+                or type(body['generation']) is not int or body['generation'] not in (3, 4, 5, 6, 7)
+                or body['previous_at_version'] != ({3: PREVIOUS, 4: V3_PIN, 5: V4_PIN, 6: V5_PIN, 7: V6_PIN}[body['generation']])
+                or body['approval'] != ({3: V3_APPROVAL, 4: V4_APPROVAL, 5: APPROVAL, 6: UNBLOCK_APPROVAL, 7: EVIDENCE_APPROVAL}[body['generation']])
                 or body['provenance'] != 'independent-block-acceptance'):
             raise SealError('Cadeia ou origem inválida')
         if (manifest['at_version'] != expected_at_version
                 or expected_at_version != 'sha256:' + _hash(_canonical(body))
                 or raw != _canonical(manifest) + b'\n'):
             raise SealError('STALE: identidade divergente')
+        if body['generation'] == 7 and len(raw) > 128 * 1024:
+            raise SealError('Manifesto7 excede o limite.')
         for mapping, names in ((body['files'], source_files(body['generation'])), (body['specs'], spec_files(body['generation']))):
             if not isinstance(mapping, dict) or set(mapping) != set(names):
                 raise SealError('Lista de arquivos inválida')
             if any(not isinstance(v, str) or len(v) != 64 or any(c not in '0123456789abcdef' for c in v) for v in mapping.values()):
                 raise SealError('Hash inválido')
         if body['status'] == 'PUBLISHED':
+            if body['generation'] == 7:
+                raise SealError('Publicação7 indisponível antes dos AT de transporte e exportação.')
             validate_review(body['review'], body['files'])
             validate_baseline(body)
         elif body['status'] != 'DRAFT' or body['review'] is not None:
@@ -138,7 +193,10 @@ def verify_seal(destination, expected_at_version):
                 raise SealError('Symlink recusado')
             relative = path.relative_to(destination).as_posix()
             if path.is_dir():
-                if relative not in ('tests', 'controller', 'controller/block_fixtures'):
+                allowed = ('tests', 'controller', 'controller/block_fixtures')
+                if body['generation'] == 7:
+                    allowed += ('controller/fixtures',)
+                if relative not in allowed:
                     raise SealError('Diretório extra')
             else:
                 _safe(path)
@@ -157,13 +215,14 @@ def verify_seal(destination, expected_at_version):
         raise SealError('Selo inválido') from exc
 
 
-def create_seal(root, destination, review=None):
+def create_seal(root, destination, review=None, *, generation=6):
     root = _safe(Path(root), directory=True)
+    if type(generation) is not int or generation not in (6, 7):
+        raise SealError('Geração de selo inválida.')
     verify_v1(root / 'bootstrap/slice1/seals/v1', 'sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704')
     verify_v2(root / 'bootstrap/slice1/seals/v2', PREVIOUS)
-    verify_seal(root / 'bootstrap/slice1/seals/v3', V3_PIN)
-    verify_seal(root / 'bootstrap/slice1/seals/v4', V4_PIN)
-    verify_seal(root / 'bootstrap/slice1/seals/v5', V5_PIN)
+    for number, pin in ((3, V3_PIN), (4, V4_PIN), (5, V5_PIN), (6, V6_PIN)):
+        frozen = verify_seal(root / f'bootstrap/slice1/seals/v{number}', pin)
     destination = Path(destination).absolute()
     _safe(destination.parent, directory=True)
     try:
@@ -171,26 +230,23 @@ def create_seal(root, destination, review=None):
     except ValueError as exc:
         raise SealError('Destino fora do projeto') from exc
     if review is not None:
-        if relative.as_posix() != 'seals/v6':
-            raise SealError('Publicação exige seals/v6')
-    elif not any(part.startswith('block-integration-') for part in relative.parts):
+        if generation == 7:
+            raise SealError('Publicação7 indisponível antes dos AT de transporte e exportação.')
+        if relative.as_posix() != 'seals/v6' or review != frozen['body']['review']:
+            raise SealError('Geração6 só permite verificar publicação congelada idêntica.')
+        return verify_seal(destination, V6_PIN)
+    if not any(part.startswith('block-integration-') for part in relative.parts):
         raise SealError('Rascunho exige diretório temporário próprio')
-    contents = {name: _safe(root / source).read_bytes() for name, source in UNBLOCK_SOURCE_FILES.items()}
-    files = {name: _hash(data) for name, data in contents.items()}
-    if review is not None:
-        validate_review(review, files)
-    body = dict(schema=1, generation=6, previous_at_version=V5_PIN,
-                status='PUBLISHED' if review is not None else 'DRAFT', files=files,
-                specs={name: _hash(_safe(root / name).read_bytes()) for name in UNBLOCK_SPEC_FILES},
-                approval=UNBLOCK_APPROVAL, provenance='independent-block-acceptance', review=review)
-    if review is not None:
-        validate_baseline(body)
-        evidence = json.loads(_safe(root / 'bootstrap/slice1/evidence/unblock-baseline.json').read_bytes())
-        if evidence != review['baseline_gate']['report']:
-            raise SealError('Artefato de baseline diverge da revisão')
-        external = json.loads(_safe(root / 'bootstrap/slice1/evidence/unblock-regression.json').read_bytes())
-        if external != evidence['external_evidence']:
-            raise SealError('Artefato de regressão diverge da revisão')
+    if generation == 6:
+        body = dict(frozen['body'], status='DRAFT', review=None)
+        contents = {name: _safe(root / 'bootstrap/slice1/seals/v6' / name).read_bytes()
+                    for name in body['files']}
+    else:
+        contents = {name: _safe(root / source).read_bytes() for name, source in EVIDENCE_SOURCE_FILES.items()}
+        body = dict(schema=1, generation=7, previous_at_version=V6_PIN, status='DRAFT',
+                    files={name: _hash(data) for name, data in contents.items()},
+                    specs={name: _hash(_safe(root / name).read_bytes()) for name in EVIDENCE_SPEC_FILES},
+                    approval=EVIDENCE_APPROVAL, provenance='independent-block-acceptance', review=None)
     manifest = {'at_version': 'sha256:' + _hash(_canonical(body)), 'body': body}
     if destination.exists() or destination.is_symlink():
         return verify_seal(destination, manifest['at_version'])
@@ -210,3 +266,184 @@ def create_seal(root, destination, review=None):
     finally:
         if staging.exists():
             shutil.rmtree(staging)
+
+
+def validate_referenced_baseline(body, store, reference, *, coverage_bytes):
+    """Valida coleta7 de um corpo já verificado; não publica selo nem aceita produto."""
+    try:
+        if body['generation'] != 7 or type(body['generation']) is not int:
+            raise SealError('Gate referenciado exige geração7.')
+        if _hash(coverage_bytes) != body['files']['tests/coverage.json']:
+            raise SealError('Cobertura não corresponde aos bytes selados.')
+        coverage = json.loads(coverage_bytes)
+        store.validate(reference)
+        envelope = store.read(reference)
+        if envelope['kind'] != 'report':
+            raise SealError('Baseline não aponta para relatório.')
+        report, links = envelope['payload'], envelope['links']
+        draft = dict(body, status='DRAFT', review=None)
+        if (report.get('candidate_ref') != UNBLOCK_BASELINE_COMMIT
+                or report.get('candidate_hashes') != UNBLOCK_BASELINE_FILES
+                or report.get('at_version') != 'sha256:' + _hash(_canonical(draft))
+                or report.get('execution_at_version') != V6_PIN
+                or report.get('source_files') != body['files'] or report.get('specs') != body['specs']
+                or report.get('coverage') != coverage or report.get('mode') != 'BASELINE'
+                or report.get('collection_layout') != 'flat'
+                or report.get('baseline_discrimination') != 'PASS' or report.get('result') != 'PASS'
+                or report.get('errors') != [] or report.get('skipped') != []
+                or report.get('temporary_removed') is not True):
+            raise SealError('Baseline diverge da identidade, fontes ou resultados esperados.')
+        methods = coverage['methods']
+        if (len(methods) != 16
+                or sum(item.get('baseline_expected') == 'NEW_FAILURE' for item in methods.values()) != 13
+                or sum(item.get('baseline_expected') == 'EXISTING_PASS' for item in methods.values()) != 3):
+            raise SealError('Cobertura funcional não conserva os16 métodos do v6.')
+        expected = {name: 'FAIL' if item['baseline_expected'] == 'NEW_FAILURE' else 'PASS'
+                    for name, item in methods.items()}
+        if (type(report.get('tests_run')) is not int or report['tests_run'] != 16
+                or report.get('outcomes') != expected
+                or report.get('failed_methods') != sorted(name for name, outcome in expected.items() if outcome == 'FAIL')):
+            raise SealError('Resultados não discriminam o baseline funcional completo.')
+        pending = coverage.get('pending', {})
+        if (any(name not in ('R1', 'R2') or item.get('blocks_functional_execution', True)
+                for name, item in pending.items()) or report.get('external_checks') != {'R1': 'PASS'}):
+            raise SealError('Pendência ou regressão externa não satisfeita.')
+        audit = store.read(links['audit'])['payload']
+        if not audit:
+            raise SealError('Baseline sem auditoria.')
+        for row in audit:
+            _checked_audit(row)
+        del audit
+        external = store.read(links['regression'])
+        names = ('v1', 'v2', 'v5', 'complementary', 'i1_i7_t1_t8')
+        if (external['kind'] != 'regression'
+                or external['payload'].get('candidate_ref') != UNBLOCK_BASELINE_COMMIT
+                or external['payload'].get('result') != 'PASS'
+                or external['payload'].get('results') != {name: 'PASS' for name in names}
+                or set(external['links']) != set(names)):
+            raise SealError('Regressão referenciada não corresponde ao candidato.')
+        for name, child in external['links'].items():
+            _validate_external(name, store, child, files=body['files'])
+        return dict(status='PASS', tests_run=16, infrastructure_errors=0)
+    except (ValueError, TypeError, KeyError, AttributeError, OSError, MemoryError, RecursionError) as error:
+        if isinstance(error, SealError):
+            raise
+        raise SealError('Baseline referenciado incompleto ou inválido.') from None
+
+
+def _validate_external(name, store, reference, *, files=None):
+    entry = store.read(reference)
+    payload = entry['payload']
+    if payload.get('result') != 'PASS':
+        raise SealError('Relatório externo incompatível com resumo PASS.')
+    if name == 'i1_i7_t1_t8':
+        _checked_infrastructure(store, entry, files)
+        return
+    count = payload.get('tests_run')
+    if (type(count) is not int or payload.get('errors') != [] or payload.get('skipped') != []
+            or payload.get('failures') != []):
+        raise SealError('Regressão externa contém testes incompletos.')
+    if name == 'complementary':
+        if count < 39:
+            raise SealError('Regressão complementar não conserva os39 testes anteriores.')
+        return
+    hashes = dict(UNBLOCK_BASELINE_FILES)
+    if name in ('v1', 'v2'):
+        hashes['_udh_cli.py'] = CLI_LAUNCHER_SHA256
+    if (payload.get('candidate_hashes') != hashes
+            or payload.get('at_version') != {'v1': 'sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704', 'v2': PREVIOUS, 'v5': V5_PIN}[name]
+            or payload.get('temporary_removed') is not True
+            or count != {'v1': 10, 'v2': 11, 'v5': 13}[name]
+            or payload.get('candidate_ref') != UNBLOCK_BASELINE_COMMIT
+            or type(payload.get('outcomes')) is not dict or set(payload['outcomes']) != set(EXTERNAL_METHODS[name])
+            or any(outcome != 'PASS' for outcome in payload['outcomes'].values())):
+        raise SealError('Regressão funcional divergente do candidato ou resultados.')
+    audit = store.read(entry['links']['audit'])['payload']
+    if not audit:
+        raise SealError('Regressão externa sem auditoria.')
+    for row in audit:
+        _checked_audit(row)
+
+
+def _checked_audit(row):
+    classification, outcome = row.get('classification'), row.get('outcome')
+    if (row.get('removed') is not True
+            or classification not in ('FUNCTIONAL_EXIT', 'OBSERVATION', 'ADVERSARY_CHECK')
+            or outcome not in ('EXIT', 'OBSERVED_INTERRUPT')
+            or classification != 'OBSERVATION' and outcome != 'EXIT'
+            or outcome == 'EXIT' and (type(row.get('returncode')) is not int or row['returncode'] in (124, 125))):
+        raise SealError('Auditoria contém infraestrutura ou execução não comprovada.')
+    if outcome == 'OBSERVED_INTERRUPT':
+        raw, evidence = row.get('raw_observation', {}), row.get('evidence', {})
+        proof = raw.get('observation_proof', {})
+        marker = proof.get('marker', {})
+        if (not all(raw.get(key) is True for key in ('marker_received', 'process_killed', 'removed', 'integrity_verified'))
+                or not all(evidence.get(key) is True for key in ('marker_received', 'process_killed', 'runtime_removed'))
+                or evidence.get('proof') != proof or proof.get('kill', {}).get('returncode') != 0
+                or not proof.get('inspected_container_id')
+                or marker.get('container_name') != row.get('container_name')
+                or not marker.get('nonce') or marker.get('checkpoint') != raw.get('checkpoint')
+                or evidence.get('checkpoint') != raw.get('checkpoint')):
+            raise SealError('Interrupção observada sem prova correspondente.')
+
+
+def _checked_infrastructure(store, entry, files):
+    payload, links = entry['payload'], entry['links']
+    criteria, baseline = payload.get('criteria', {}), payload.get('baseline', {})
+    review = payload.get('infrastructure_review', {})
+    components = ('trust_snapshot', 'isolated_process', 'check_boundary', 'integrate_acceptance',
+                  'evidence_store', 'cli_bridge', 'seal_version')
+    expected_sources = {EVIDENCE_SOURCE_FILES['controller/' + name + '.py']: files['controller/' + name + '.py']
+                        for name in components} if files else {}
+    for target, source in EVIDENCE_SOURCE_FILES.items():
+        if target.startswith('controller/fixtures/') and files:
+            expected_sources[source] = files[target]
+    if (not expected_sources or review.get('files') != expected_sources or review.get('status') != 'PASS'
+            or review.get('unresolved_findings') != [] or not review.get('reviewer_context')
+            or review.get('host_does_not_import_candidate') is not True
+            or payload.get('collection_layout') != 'integration' or payload.get('temporary_removed') is not True
+            or payload.get('at_version') != 'sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704'
+            or set(criteria) != {f'I{index}' for index in range(1, 8)}
+            or any(value.get('status') != 'PASS' for value in criteria.values())
+            or type(baseline.get('tests_run')) is not int or baseline['tests_run'] != 10
+            or baseline.get('candidate_reference') != 'dc848ba' or baseline.get('candidate_hashes') != STUB_FILES
+            or baseline.get('errors') != []
+            or len(baseline.get('failures', [])) != 18
+            or any(baseline.get(name) != 0 for name in ('skipped', 'expected_failures', 'unexpected_successes'))):
+        raise SealError('Integração I/T sem identidade, baseline ou revisão completa.')
+    failed = {item['test'].split(' (')[0].split('.')[-1] for item in baseline['failures']}
+    if failed != {name.split('.')[-1] for name in EXTERNAL_METHODS['v1']}:
+        raise SealError('Baseline I/T não discrimina todos os métodos do stub.')
+    audit = store.read(links['audit'])['payload']
+    if not audit:
+        raise SealError('Integração I/T sem auditoria.')
+    for row in audit:
+        _checked_audit(row)
+        if row.get('classification') != 'FUNCTIONAL_EXIT':
+            raise SealError('Baseline I/T não é funcional.')
+    del audit
+    regression = store.read(links['regression'])
+    if regression['payload'].get('result') != 'PASS' or set(regression['links']) != {'boundary'}:
+        raise SealError('Fronteira não vinculada à integração.')
+    boundary = store.read(regression['links']['boundary'])
+    metadata = boundary['payload']
+    criteria = metadata.get('criteria', {})
+    if (metadata.get('result') != 'PASS' or metadata.get('collection_layout') != 'boundary'
+            or metadata.get('temporary_store_removed') is not True or metadata.get('source_reference') != 'dc848ba'
+            or set(criteria) != {f'T{index}' for index in range(1, 9)}
+            or any(value.get('status') != 'PASS' for value in criteria.values())
+            or criteria['T3'].get('review') != review):
+        raise SealError('Critérios T1–T8 ou revisão de fronteira incompletos.')
+    runs = store.read(boundary['links']['audit'])['payload']
+    expected = dict(adversary='EXIT', **{'explicit-entrypoint': 'EXIT', 'timeout': 'TIMEOUT',
+        'output-limit': 'OUTPUT_LIMIT', 'contained-signal': 'TERMINATION_UNKNOWN',
+        'explicit-high-exit': 'TERMINATION_UNKNOWN', 'namespaces': 'EXIT', 'positive': 'EXIT'})
+    if len(runs) != len(expected) or {row.get('label') for row in runs} != set(expected):
+        raise SealError('Auditoria de fronteira incompleta.')
+    for item in runs:
+        row = item.get('run', {})
+        if (row.get('outcome') != expected[item['label']] or row.get('removed') is not True
+                or not row.get('command') or not row.get('container_name')
+                or not row.get('inspection', {}).get('Id')
+                or row.get('cleanup', {}).get('exists', {}).get('returncode') != 1):
+            raise SealError('Execução de fronteira sem prova de runtime e limpeza.')

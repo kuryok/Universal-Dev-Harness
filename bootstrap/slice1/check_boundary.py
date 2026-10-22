@@ -1,4 +1,5 @@
 """Prova transitória da fronteira; não executa aceite oficial de produto."""
+import argparse
 import ast
 from datetime import datetime, timezone
 import hashlib
@@ -11,6 +12,8 @@ import sys
 import tempfile
 import uuid
 
+sys.dont_write_bytecode = True
+
 from isolated_process import IsolatedProcess, OUTPUT_LIMIT
 from trust_snapshot import (
     ALLOWED, REFERENCE, SnapshotError, create_snapshot, digest,
@@ -19,7 +22,7 @@ from trust_snapshot import (
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / 'bootstrap/slice1'
-REVIEW = ROOT / 'openspec/changes/slice1-core-state/bootstrap-review.json'
+REVIEW = ROOT / 'openspec/changes/slice1-evidence-storage/infrastructure-review.json'
 
 
 def require(condition, message):
@@ -41,19 +44,13 @@ def compact(result):
                 'CpuPeriod', 'CpuQuota',
             )},
         }
-    for stream in ('stdout', 'stderr'):
-        output = value.get(stream, '')
-        if len(output) > 1024:
-            value[stream] = output[:1024]
-            value[stream + '_captured_characters'] = len(output)
-            value[stream + '_sha256'] = digest(output.encode())
-            value[stream + '_excerpt_only'] = True
     return value
 
 
 def reviewed_components():
     paths = [BASE / name for name in (
         'trust_snapshot.py', 'isolated_process.py', 'check_boundary.py',
+        'integrate_acceptance.py', 'evidence_store.py', 'cli_bridge.py', 'seal_version.py',
     )] + sorted((BASE / 'fixtures').glob('*.py'))
     return {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in paths}
 
@@ -70,7 +67,8 @@ def independent_review():
     return valid, review
 
 
-def main():
+def build_report():
+    """Coleta a execução atual sem ler nem substituir evidências anteriores."""
     run_id = uuid.uuid4().hex
     report = {
         'classification': 'bootstrap-boundary-not-official-acceptance',
@@ -92,16 +90,6 @@ def main():
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
             report['criteria'][name] = {'status': 'INFRA_ERROR', 'reason': str(error)}
 
-    destination = BASE / 'evidence/boundary.json'
-    if destination.is_file():
-        previous = json.loads(destination.read_text())
-        report['previous_attempts'] = previous.get('previous_attempts', []) + [{
-            'run_id': previous['run_id'], 'created_at': previous['created_at'],
-            'criteria': previous['criteria'],
-            'failed_runs': {name: value for name, value in previous.get('runs', {}).items()
-                            if value.get('outcome') != 'EXIT' or not value.get('removed')},
-            'controller_hashes': previous.get('snapshot_manifest', {}).get('controller', {}),
-        }]
     with tempfile.TemporaryDirectory(prefix='boundary-', dir=BASE) as temporary:
         temporary = Path(temporary)
         store, candidate, work = (temporary / name for name in ('store', 'candidate', 'work'))
@@ -291,6 +279,8 @@ def main():
             return {'returncode': 0, 'payload': json.loads(result['stdout'])}
 
         def t8():
+            reviewed, review = independent_review()
+            require(reviewed, 'Fontes atuais exigem revisão independente exata')
             for name, expected in expected_prior.items():
                 require(not (ROOT / name).is_symlink() and digest((ROOT / name).read_bytes()) == expected,
                         'Arquivo anterior alterado: ' + name)
@@ -301,7 +291,8 @@ def main():
                                   capture_output=True, timeout=10)
             require(diff.returncode == 0, 'git diff --check falhou')
             verify_snapshot(store, pin)
-            return {'preserved_files': expected_prior, 'syntax': 'PASS', 'diff_check': 'PASS'}
+            return {'preserved_files': expected_prior, 'reviewed_current_sources': review['files'],
+                    'syntax': 'PASS', 'diff_check': 'PASS'}
 
         for index, action in enumerate((t1, t2, t3, t4, t5, t6, t7, t8), 1):
             check(f'T{index}', action)
@@ -314,12 +305,25 @@ def main():
     report['temporary_store_removed'] = not temporary.exists()
     passed = all(value['status'] == 'PASS' for value in report['criteria'].values())
     report['result'] = 'PASS' if passed else 'INCOMPLETE_OR_FAILED'
-    destination = BASE / 'evidence/boundary.json'
-    destination.write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n')
+    return report
+
+
+def main(argv=None):
+    from evidence_store import save_run, validate_output
+    parser = argparse.ArgumentParser(description='Verifica a fronteira em uma nova execução.')
+    parser.add_argument('--output', help='Resumo novo sob evidence/runs/UUID/.')
+    args = parser.parse_args(argv)
+    try:
+        destination = validate_output(args.output)
+        report = build_report()
+        destination, summary = save_run(report, output=destination)
+    except (ValueError, OSError, MemoryError, RecursionError):
+        print('Infraestrutura de evidências: destino ou coleta inválidos.', file=sys.stderr)
+        return 125
     for name, value in report['criteria'].items():
         print(name, value['status'], value.get('reason', ''))
     print('Evidência:', destination)
-    return 0 if passed else 1
+    return 0 if report['result'] == 'PASS' else 1
 
 
 if __name__ == '__main__':
