@@ -380,7 +380,9 @@ def store_report(store, report, *, regression=None):
     return store.put('report', payload, links)
 
 
-def _summary(payload, reference, run_id):
+def _summary(payload, reference, run_id, *, schema=2):
+    if type(schema) is not int or schema not in (1, 2):
+        raise EvidenceError('Versão de resumo desconhecida.')
     baseline = payload.get('baseline')
     baseline = baseline if type(baseline) is dict else {}
     manifest = payload.get('manifest')
@@ -391,12 +393,33 @@ def _summary(payload, reference, run_id):
     for key in ('failures', 'errors', 'skipped'):
         value = payload.get(key, baseline.get(key))
         counts[key] = len(value) if type(value) is list else value if type(value) is int else None
-    return dict(schema=1, run_id=run_id, report=reference, result=payload.get('result'),
+    result = dict(schema=schema, run_id=run_id, report=reference, result=payload.get('result'),
                 mode=payload.get('mode'), candidate_ref=payload.get('candidate_ref', baseline.get('candidate_reference')),
                 candidate_hashes=payload.get('candidate_hashes', baseline.get('candidate_hashes')),
                 at_version=payload.get('at_version'), specs=payload.get('specs', body.get('specs')),
                 tests_run=payload.get('tests_run', baseline.get('tests_run')), counts=counts,
                 limits=payload.get('limits', payload.get('limitations', [])))
+    if schema == 1:
+        # Receita histórica preservada: failures conta entradas, não métodos.
+        return result
+    names = payload.get('failed_methods', baseline.get('failed_methods'))
+    if names is not None:
+        if (type(names) is not list or any(type(name) is not str or not name.strip() for name in names)
+                or len(set(names)) != len(names)):
+            raise EvidenceError('Métodos com falha devem ser identificadores explícitos e únicos.')
+        names = list(names)
+    total = result['tests_run']
+    if total is not None and (type(total) is not int or total < 0):
+        raise EvidenceError('Contagem de métodos inválida.')
+    for count in counts.values():
+        if count is not None and (type(count) is not int or count < 0):
+            raise EvidenceError('Contagem de entradas inválida.')
+    if names is not None and ((total is not None and len(names) > total)
+            or (counts['failures'] is not None and len(names) > counts['failures'])):
+        raise EvidenceError('Métodos com falha excedem as contagens coletadas.')
+    result['failed_methods'] = names
+    result['counts'] = dict(failure_entries=counts['failures'], errors=counts['errors'], skipped=counts['skipped'])
+    return result
 
 
 def save_run(report, output=None, *, regression=None):
@@ -440,8 +463,10 @@ def read_run(path):
             finally:
                 os.close(descriptor)
         summary = json.loads(raw.decode('utf-8'), object_pairs_hook=_pairs, parse_constant=_constant)
-        if (type(summary) is not dict or set(summary) != set(_summary({}, {}, ''))
-                or type(summary['schema']) is not int or summary['schema'] != 1):
+        if type(summary) is not dict or type(summary.get('schema')) is not int or summary['schema'] not in (1, 2):
+            raise EvidenceError('Versão de resumo inválida.')
+        schema = summary['schema']
+        if set(summary) != set(_summary({}, {}, '', schema=schema)):
             raise EvidenceError('Campos de resumo inválidos.')
         reference = _reference(summary['report'])
         if reference['kind'] != 'report':
@@ -449,7 +474,8 @@ def read_run(path):
         store = EvidenceStore(EVIDENCE_ROOT / 'objects/sha256')
         store.validate(reference)
         payload = store.read(reference)['payload']
-        if summary != _summary(payload, reference, path.parent.name) or raw != _canonical(summary) + b'\n':
+        expected = _summary(payload, reference, path.parent.name, schema=schema)
+        if raw != _canonical(expected) + b'\n':
             raise EvidenceError('Resumo diverge da coleta íntegra.')
         return store, reference, payload
     except (OSError, ValueError, TypeError, KeyError, UnicodeError, MemoryError, RecursionError):

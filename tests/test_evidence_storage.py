@@ -886,3 +886,94 @@ class ReferencedEvidenceGateTests(unittest.TestCase):
                 report = evidence.store_report(self.store, self.baseline, regression=regression)
                 with self.assertRaises(self.seals.SealError):
                     self.gate(report)
+
+
+class SummaryMetricVersionTests(unittest.TestCase):
+    """Métricas com unidades explícitas, sem regravar os resumos preservados."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix='summary-metrics-', dir=BASE)
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name) / 'evidence'
+        setting = patch.object(evidence, 'EVIDENCE_ROOT', self.root)
+        setting.start()
+        self.addCleanup(setting.stop)
+
+    def report(self):
+        methods = [f'Cases.test_{index}' for index in range(13)]
+        return dict(result='INCOMPLETE', tests_run=16, failed_methods=methods,
+                    outcomes={**{name: 'FAIL' for name in methods},
+                              **{f'Cases.test_pass_{index}': 'PASS' for index in range(3)}},
+                    failures=['falha de asserção/subteste'] * 28, errors=[], skipped=[],
+                    audit=[{'classification': 'synthetic', 'literal': ' não alterar '}],
+                    transcript='coleta sintética de métricas, não aceite')
+
+    def test_new_summary_distinguishes_failed_methods_and_failure_entries(self):
+        report = self.report()
+        path, summary = evidence.save_run(report)
+        self.assertEqual(summary['schema'], 2)
+        self.assertEqual(summary['tests_run'], 16)
+        self.assertEqual(summary['failed_methods'], report['failed_methods'])
+        self.assertEqual(len(summary['failed_methods']), 13)
+        self.assertEqual(summary['counts'], dict(failure_entries=28, errors=0, skipped=0))
+        self.assertNotIn('failures', summary['counts'])
+        store, ref, payload = evidence.read_run(path)
+        self.assertEqual(payload['outcomes'], report['outcomes'])
+        self.assertEqual(payload['result'], 'INCOMPLETE')
+        self.assertEqual(len(payload['failures']), 28)
+        self.assertEqual(store.read(ref)['links']['audit']['kind'], 'audit')
+
+    def test_unknown_method_names_are_null_without_log_inference(self):
+        report = self.report()
+        del report['failed_methods']
+        path, summary = evidence.save_run(report)
+        self.assertIsNone(summary['failed_methods'])
+        self.assertEqual(summary['counts']['failure_entries'], 28)
+        self.assertEqual(evidence.read_run(path)[2]['failures'], report['failures'])
+
+    def test_historical_schema_one_recomposes_exact_bytes_without_rewriting(self):
+        path = BASE / 'evidence/runs/78a7d7e9-0fb5-4170-b8e4-827f6e497fbd/summary.json'
+        original = path.read_bytes()
+        with patch.object(evidence, 'EVIDENCE_ROOT', BASE / 'evidence'):
+            store, ref, payload = evidence.read_run(path)
+            old = evidence._summary(payload, ref, path.parent.name, schema=1)
+            self.assertEqual(canonical(old) + b'\n', original)
+            self.assertEqual(old['counts']['failures'], 28)
+            self.assertNotIn('failed_methods', old)
+            self.assertEqual(len(payload['failed_methods']), 13)
+            self.assertEqual(store.read(ref)['payload']['outcomes'], payload['outcomes'])
+        self.assertEqual(path.read_bytes(), original)
+
+    def test_two_summary_versions_can_reference_identical_unchanged_objects(self):
+        path, summary = evidence.save_run(self.report())
+        store, ref, payload = evidence.read_run(path)
+        object_bytes = {p.name: p.read_bytes() for p in store.root.glob('*.json.gz')}
+        old = evidence._summary(payload, ref, path.parent.name, schema=1)
+        path.write_bytes(canonical(old) + b'\n')
+        self.assertEqual(evidence.read_run(path)[1], ref)
+        path.write_bytes(canonical(summary) + b'\n')
+        self.assertEqual(evidence.read_run(path)[1], ref)
+        self.assertEqual(object_bytes, {p.name: p.read_bytes() for p in store.root.glob('*.json.gz')})
+
+    def test_unknown_versions_and_forged_metric_types_are_refused(self):
+        path, summary = evidence.save_run(dict(result='FAIL', tests_run=1,
+            failed_methods=['Cases.test_one'], failures=['entrada'], errors=[], skipped=[]))
+        original = path.read_bytes()
+        variants = [dict(summary, schema=value) for value in (0, 3, True, 1.0, '2')]
+        variants += [dict(summary, tests_run=value) for value in (True, 1.0)]
+        variants += [dict(summary, counts=dict(summary['counts'], failure_entries=value))
+                     for value in (True, 1.0, 0, 2)]
+        variants += [dict(summary, failed_methods=[])]
+        for forged in variants:
+            with self.subTest(summary=forged):
+                path.write_bytes(canonical(forged) + b'\n')
+                with self.assertRaises(evidence.EvidenceError):
+                    evidence.read_run(path)
+        path.write_bytes(original)
+        self.assertEqual(evidence.read_run(path)[2]['tests_run'], 1)
+
+    def test_new_metric_names_must_be_explicit_unique_and_consistent(self):
+        for names in ('Cases.test_one', [True], [''], ['Cases.test_one'] * 2,
+                      [f'Cases.test_{index}' for index in range(17)]):
+            with self.subTest(names=names), self.assertRaises(evidence.EvidenceError):
+                evidence.save_run(dict(self.report(), failed_methods=names))

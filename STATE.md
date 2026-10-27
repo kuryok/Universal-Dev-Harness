@@ -1,34 +1,29 @@
 # Estado do projeto
 
-Atualizado: 22/10/2026. Fase: fundação da Slice 1.
+Atualizado: 27/10/2026. Fase: fundação da Slice 1. Mudanças de alinhamento ainda não commitadas.
 
-Este arquivo orienta a retomada; não aprova requisitos nem substitui OpenSpec, SQLite, Git ou evidências. Consulte [AGENTS.md](AGENTS.md) para regras e [MEMORY.md](MEMORY.md) para contexto curto.
+Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). O [baseline rastreado](Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) foi restaurado exatamente; v2.5.1 é nota editorial derivada, sem precedência normativa. Estados históricos do baseline não substituem as evidências atuais.
 
 ## Funciona
 
-- Core modular: SQLite guarda estado; Git guarda código; specs ficam em OpenSpec.
-- Migração explícita v1→v2, leitura v2 e formatos v1 preservados.
-- PENDING→BLOCKED implementado/verificado no candidato `ad2bd47`: entrada administrativa protegida, evento/pedido/autorização/estado atômicos, revisão otimista, replay e conflitos concorrentes.
-- Consulta comum de policy continua somente leitura; não concede execução, transição, aceite ou entrega.
-- 36 complementares, todos os 13 AT de migração/bloqueio, dez AT v1, onze AT policy e I1–I7/T1–T8 PASS. Revisão independente PASS.
-- 171 chamadas auditadas, 15 checkpoints de interrupção: onze na migração e quatro no bloqueio. Zero failures/errors/skips nos AT v5.
-- Nove módulos pequenos, 704 linhas totais; selos v1–v5 preservados/verificados. AT protegidos intactos.
+- Core modular SQLite v1/v2: init/create/show/policy, migração explícita e bloqueio administrativo atômico/idempotente. Policy não autoriza execução, aceite ou entrega.
+- Codec e coleta append-only implementados; resumos novos schema2 distinguem métodos com falha de entradas/subtestes. Leitura schema1 e bytes históricos preservados, sem alterar resultados.
+- 91 complementares PASS na reanálise de 27/10, incluindo compatibilidade das métricas; testes anteriores preservados. AT e coletas I/T continuam históricos, não reexecutados neste alinhamento.
+- Selos v1–v6 publicados; v7 não publicado. [Alinhamento e resolução A1–A10](openspec/changes/slice1-evidence-storage/alignment.md).
 
 ## Pendente
 
-- [Desbloqueio BLOCKED/1→PENDING/2](openspec/changes/slice1-unblock-run/proposal.md) e preparo nomeado aprovados. DDL v3 refinado; novos AT independentes e perfil administrativo preparados. Core ainda sem migração/leitura v3 e sem unblock.
-- Codec, gate referenciado e novas saídas implementados:85 complementares PASS e revisão independente PASS. I1–I7/T1–T8 PASS; baseline16 com13 falhas esperadas/3 PASS,150 chamadas sem infraestrutura. Geral INCOMPLETE: regressões completas, exportação/AT de transporte e selo7 pendentes; selos1–6/histórico intactos.
-- Executor de agentes, coordenação automática até entrega e interface guiada ainda não implementados. OpenSpec é usado documentalmente; sua CLI e o harness fast/full não estão disponíveis.
-- Instalação operacional protegida e aceite oficial do produto não demonstrados. Bootstrap usa dados sintéticos e não protege contra quem escreve no host. Slice 1 incompleta.
+- Core ainda sem migração/leitura v3 e unblock, ambos já especificados/aprovados. Executor de agentes e entrega ponta a ponta indisponíveis; Slice 1 incompleta.
+- Bootstrap geral INCOMPLETE: exportação offline, AT de transporte e regressões completas pendentes. A checagem complementar do protótipo usa mínimo histórico e não comprova toda a suíte corrente; corrigir esse vínculo antes de publicar. Sem liberação de publicação ou relaxamento dos critérios.
+- POCs de produto seguem NOT_RUN. Store de bootstrap não é store oficial protegida contra proprietário do host; nenhum waiver ou certificação de segurança foi criado.
+- OpenSpec é usado como fluxo documental adaptado, descrito em [project.md](openspec/project.md), sem CLI/canonicalização automatizada. Backup remoto não configurado; nenhuma inexistência de outras cópias foi presumida.
 
 ## Próxima tarefa
 
-Implementar/testar fechamento e exportação offline conforme o [contrato](openspec/changes/slice1-evidence-storage/proposal.md); preparar AT independentes de transporte e regressões completas antes de publicar7. [Resultado dos gates/saídas](openspec/changes/slice1-evidence-storage/integration-verification.md). Depois retomar v3/unblock. Não integrar agentes.
+Retomar migração SQLite v2→v3 e leitura v3 do change de [desbloqueio](openspec/changes/slice1-unblock-run/proposal.md), verificando compatibilidade antes de implementar a transição. A [reanálise do próximo incremento](openspec/changes/slice1-unblock-run/next-step-review.md) confirma esse recorte. Consolidar checkpoint quando houver autorização de commit; os AT precisam usar SHA do novo candidato, não o baseline negativo fixo. Bootstrap continua limitado a correções até verificar v3/unblock.
 
 ## Verificação
 
-- Complementares: `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests -v`.
-- Isolamento: `PYTHONDONTWRITEBYTECODE=1 python3 bootstrap/slice1/integrate_acceptance.py`.
-- [Contrato](openspec/changes/slice1-block-run/proposal.md), [resultado e reprodução](openspec/changes/slice1-block-run/block-verification.md), [resumo verificável](openspec/changes/slice1-block-run/block-verification.json).
-- [AT v5](bootstrap/slice1/evidence/block-candidate.json) e [revisão](openspec/changes/slice1-block-run/block-review.json).
-- Preparo atual: 39 complementares PASS; baseline novo 16 métodos (13 falhas funcionais esperadas, três PASS), 150 chamadas sem infraestrutura/errors/skips. Selo v6 `7196e5f4` publicado/verificado, revisão PASS. [Verificação](openspec/changes/slice1-unblock-run/verification.md). Não demonstra desbloqueio funcionando.
+- `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests`.
+- [README](README.md) para entrada e [diagnóstico reproduzido](openspec/changes/slice1-evidence-storage/report-audit.md) para histórico da auditoria; a resolução posterior está no alinhamento.
+- Não abrir credenciais, limpar o workspace do spike, publicar selo ou declarar segurança/entrega sem escopo e prova próprios.

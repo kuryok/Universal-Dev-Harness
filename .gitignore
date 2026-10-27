@@ -1,0 +1,4 @@
+# Bytecode Python gerado localmente; não ocultar documentos ou evidências.
+__pycache__/
+*.pyc
+*.pyo

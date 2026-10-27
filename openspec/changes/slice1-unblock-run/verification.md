@@ -1,5 +1,7 @@
 # Verificação do preparo de desbloqueio
 
+> **Histórico — preparo do selo v6, em 22/10/2026.** Contagens e comandos deste recorte não descrevem automaticamente o checkout atual. Para o transporte implementado depois, consulte [integration-verification.md](../slice1-evidence-storage/integration-verification.md); para a conferência de 27/10, consulte a [auditoria](../slice1-evidence-storage/report-audit.md). Os resultados originais abaixo não foram reexecutados nesta auditoria.
+
 Contrato e preparo nomeado aprovados pelo usuário em 22/10/2026. Este incremento prepara o contrato executável; não implementa migração v3 nem desbloqueio no Core. O candidato permanece `ad2bd478fa8a07a06b6e1a1b832b1795fafe1c4d`.
 
 ## Executado nesta sessão
@@ -24,7 +26,7 @@ Publicado e verificado duas vezes pelo publicador exclusivo: selo v6 `sha256:719
 
 Complementares: `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests -v`.
 
-Baseline: `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 bootstrap/slice1/integrate_block.py --baseline`. O comando prepara rascunho protegido e snapshot Git fixo; não importa o Core no host. Reexecutá-lo substitui o artefato corrente de baseline, cujas auditorias incluem nomes efêmeros de contêineres.
+O comando histórico `integrate_block.py --baseline`, usado neste preparo, está inativo no checkout atual: retorna exit2 sem gravar evidências. A coleta atual usa `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 bootstrap/slice1/integrate_block.py --baseline --generation 7`; grava uma execução nova em objects/runs e não sobrescreve o baseline histórico. Sem regressões completas vinculadas, o resultado geral esperado é INCOMPLETE/exit1. Consulte o [procedimento atual e seus limites](../slice1-evidence-storage/integration-verification.md#reprodução-e-pendências) antes de executar. A auditoria de 27/10 verificou somente a recusa do comando antigo, sem coletar baseline novo.
 
 Harness fast/full e CLI OpenSpec: não executados, pois ausentes. Sem dependências, imagens, rede ou credenciais novas. Observação de interrupção permanece instrumentada; este preparo não demonstra durabilidade de hardware, instalação operacional, checkpoint Git/spec/artefatos, ACCEPTED/DELIVERED ou execução de agentes. Slice 1 permanece incompleta.
 

@@ -1,5 +1,7 @@
 # Verificação documental e medição local
 
+> **Histórico — especificação e experimentos anteriores ao codec, em 22/10/2026.** Declarações de implementação e contagens abaixo valem para aquele incremento. A referência posterior de implementação do transporte é [integration-verification.md](integration-verification.md); a [auditoria de 27/10](report-audit.md) registra o que foi conferido novamente. Os resultados históricos foram preservados.
+
 Data: 22/10/2026. Base: `e6015a6`. Este recorte autorizado produz especificação; armazenamento novo, compressão em disco, gates novos e selo v7 não foram implementados.
 
 ## Medição somente leitura

@@ -1,5 +1,7 @@
 # Primeiro incremento — codec e objetos atômicos
 
+> **Histórico — primeiro incremento do codec, anterior à integração dos gates, em 22/10/2026.** Declarações de implementação e contagens abaixo valem para aquele incremento. A referência posterior de implementação do transporte é [integration-verification.md](integration-verification.md); a [auditoria de 27/10](report-audit.md) registra o que foi conferido novamente. Os resultados históricos foram preservados.
+
 Autorização humana: implementar o codec e validar integridade, limites e publicação atômica antes de integrar aos gates, em22/10/2026. Este resultado cobre somente esse incremento do contrato aprovado. Não publica selo7, não altera Core e não integra nenhuma decisão de aceite ao armazenamento novo.
 
 ## Implementado

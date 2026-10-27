@@ -1,5 +1,7 @@
 # Resultado — gates referenciados e novas saídas
 
+> **Referência da implementação de transporte em e6f2355.** Este documento tem precedência temporal sobre verification.md e codec-verification.md para descrever esse incremento; não substitui requisitos ou decisões humanas. As coletas abaixo são históricas, de 22/10/2026. Para os checks executados em 27/10 e propostas ainda pendentes, consulte a [auditoria](report-audit.md); para retomada, consulte [STATE.md](../../../STATE.md).
+
 Continuação autorizada pelo usuário após codec9747b6f. Contrato/refinamento em [integration.md](integration.md). Produto/Core sem alteração; geração7 ainda não publicável.
 
 ## Alterações
@@ -26,7 +28,7 @@ Fixtures de gate são explicitamente sintéticas: usam auditorias históricas li
 - [Limpeza confiável](../../../bootstrap/slice1/evidence/runs/69769f0d-d842-4f30-bca3-0394d71da8dc/summary.json): somente contêiner udh-operator-afbe78c3e63540ffa226ab4914ed8257, exists0→rm0→exists1. Sem alterar timeouts ou AT.
 - [Repetição serial intermediária](../../../bootstrap/slice1/evidence/runs/bca301e7-3ab8-42e1-9394-c801f28325b2/summary.json): discriminação PASS16, geral INCOMPLETE por regressões/AT de transporte pendentes. Foi coletada antes das últimas correções do gate; não substitui resultado dos fontes finais.
 
-[Coleta final serial](../../../bootstrap/slice1/evidence/runs/78a7d7e9-0fb5-4170-b8e4-827f6e497fbd/summary.json):16 métodos,13 falhas funcionais esperadas e3 PASS,150 chamadas auditadas, zero infraestrutura/errors/skips. baseline_discrimination=PASS; resultado geral INCOMPLETE/exit1 permanece por R1 corrente/AT/exportação pendentes. Seus26 hashes de fontes e4 specs foram comparados com os arquivos finais, sem divergência. Fechamento final3 objetos/23.227 bytes gzip e resumo1.989 bytes. Nenhum relatório global histórico foi reescrito, nem falha apagada para reduzir volume.
+[Coleta final serial](../../../bootstrap/slice1/evidence/runs/78a7d7e9-0fb5-4170-b8e4-827f6e497fbd/summary.json):16 métodos:13 métodos com falha funcional esperada e3 métodos PASS;28 entradas na lista de falhas, incluindo subtestes;150 chamadas auditadas, zero infraestrutura/errors/skips. baseline_discrimination=PASS; resultado geral INCOMPLETE/exit1 permanece por R1 corrente/AT/exportação pendentes. Seus26 hashes de fontes e4 specs foram comparados com os arquivos finais, sem divergência. Fechamento final3 objetos/23.227 bytes gzip e resumo1.989 bytes. Nenhum relatório global histórico foi reescrito, nem falha apagada para reduzir volume.
 
 ## Reprodução e pendências
 

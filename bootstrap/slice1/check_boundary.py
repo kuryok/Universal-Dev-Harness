@@ -22,7 +22,7 @@ from trust_snapshot import (
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / 'bootstrap/slice1'
-REVIEW = ROOT / 'openspec/changes/slice1-evidence-storage/infrastructure-review.json'
+REVIEW = ROOT / 'openspec/changes/slice1-evidence-storage/infrastructure-review-2026-10-27.json'
 
 
 def require(condition, message):
