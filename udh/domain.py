@@ -75,6 +75,32 @@ class BlockedEvent:
 
 
 @dataclass(frozen=True)
+class UnblockedEvent:
+    sequence: int
+    created_at: str
+    reason: str
+    request_id: str
+    authorization_id: str
+    blocked_event_sequence: int
+    kind: str = 'RUN_UNBLOCKED'
+
+    def __post_init__(self):
+        if type(self.sequence) is not int or self.sequence <= 0 or type(self.blocked_event_sequence) is not int or self.blocked_event_sequence <= 0 or self.kind != 'RUN_UNBLOCKED':
+            raise CoreError('Evento de desbloqueio inválido.')
+        require_timestamp(self.created_at)
+        require_text(self.reason, 'Motivo do desbloqueio')
+        require_text(self.request_id, 'Identificador do desbloqueio')
+        if require_run_id(self.authorization_id) != self.authorization_id:
+            raise CoreError('Identificador de autorização inválido.')
+
+    def to_dict(self):
+        return dict(sequence=self.sequence, kind=self.kind, created_at=self.created_at,
+                    from_state='BLOCKED', to_state='PENDING', revision=2, reason=self.reason,
+                    request_id=self.request_id, authorization_id=self.authorization_id,
+                    blocked_event_sequence=self.blocked_event_sequence)
+
+
+@dataclass(frozen=True)
 class Run:
     run_id: str
     request_id: str
@@ -82,7 +108,7 @@ class Run:
     spec_version: str
     state: str
     created_at: str
-    events: tuple[Event | BlockedEvent, ...]
+    events: tuple[Event | BlockedEvent | UnblockedEvent, ...]
     schema_version: int = 1
     revision: int | None = None
 
@@ -92,7 +118,7 @@ class Run:
         require_text(self.spec_id, 'Identificador da especificação')
         require_text(self.spec_version, 'Versão da especificação')
         require_timestamp(self.created_at)
-        if type(self.schema_version) is not int or self.schema_version not in (1, 2):
+        if type(self.schema_version) is not int or self.schema_version not in (1, 2, 3):
             raise CoreError('Versão do domínio inválida.')
         if not self.events or not isinstance(self.events[0], Event):
             raise CoreError('Evento inicial ausente.')
@@ -107,6 +133,12 @@ class Run:
                 and isinstance(self.events[1], BlockedEvent)
                 and self.events[1].sequence > self.events[0].sequence):
             pass
+        elif (self.schema_version == 3 and self.state == 'PENDING' and self.revision == 2
+                and len(self.events) == 3 and isinstance(self.events[1], BlockedEvent)
+                and isinstance(self.events[2], UnblockedEvent)
+                and self.events[0].sequence < self.events[1].sequence < self.events[2].sequence
+                and self.events[2].blocked_event_sequence == self.events[1].sequence):
+            pass
         else:
             raise CoreError('Estado, revisão e journal inconsistentes.')
 
@@ -116,6 +148,6 @@ class Run:
                 'state': self.state, 'created_at': self.created_at,
                 'events': [event.to_dict() for event in self.events]}
 
-        if self.schema_version == 2:
-            result.update(schema_version=2, revision=self.revision)
+        if self.schema_version in (2, 3):
+            result.update(schema_version=self.schema_version, revision=self.revision)
         return result

@@ -6,7 +6,7 @@ from .__main__ import Parser
 from .domain import CoreError
 from .service import CoreService
 from .store import SQLiteStore
-from .transitions import ConflictError, operator_context_valid
+from .transitions import AuthorizationError, ConflictError, operator_context_valid
 
 
 def main(argv=None, *, context=None):
@@ -21,7 +21,7 @@ def main(argv=None, *, context=None):
     parser.add_argument('-h', '--help', action='help', help='mostrar esta ajuda e sair')
     commands = parser.add_subparsers(dest='command', required=True, title='comandos')
     migrate = commands.add_parser('migrate', add_help=False, help='migrar banco explicitamente para v2')
-    migrate.add_argument('--to', choices=('2',), required=True, help='versão de destino')
+    migrate.add_argument('--to', choices=('2', '3'), required=True, help='versão de destino')
     block = commands.add_parser('block', add_help=False, help='registrar pausa de uma execução pendente')
     block.add_argument('--run-id', required=True, help='UUID da execução')
     block.add_argument('--expected-revision', required=True, type=int, help='revisão observada')
@@ -29,13 +29,20 @@ def main(argv=None, *, context=None):
     block.add_argument('--reason', required=True, help='motivo da pausa')
     args = parser.parse_args(argv)
     try:
+        if args.command == 'migrate' and f'MIGRATE_V{args.to}' not in context['allowed_operations']:
+            raise AuthorizationError('Operação exige a entrada administrativa protegida.')
         core = CoreService(SQLiteStore(context['db_path']))
         if args.command == 'migrate':
-            result = core.migrate()
+            result = core.migrate(int(args.to), context=context)
         else:
             result = core.block(args.run_id, args.expected_revision, args.request_id, args.reason, context=context)
         print(json.dumps(result, ensure_ascii=False))
         return 0
+    except AuthorizationError:
+        print(json.dumps(dict(decision='DENY', reason_code='AUTHORIZATION_REQUIRED',
+            message='Operação exige a entrada administrativa protegida.',
+            next_action='Use o controlador local autorizado.'), ensure_ascii=False))
+        return 3
     except ConflictError as error:
         print('Bloqueio em conflito: ' + str(error), file=sys.stderr)
         return 4

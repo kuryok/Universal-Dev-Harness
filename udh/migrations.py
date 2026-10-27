@@ -34,10 +34,32 @@ BLOCK_REQUESTS_SQL = f'''CREATE TABLE block_requests (
 )'''
 
 
-def validate_schema(connection):
+RUNS_V3_SQL = RUNS_SQL.replace("state = 'PENDING' AND revision = 0", "state = 'PENDING' AND revision IN (0, 2)")
+EVENTS_V3_SQL = EVENTS_SQL.replace("'RUN_CREATED', 'RUN_BLOCKED'", "'RUN_CREATED', 'RUN_BLOCKED', 'RUN_UNBLOCKED'")
+BLOCK_V3_SQL = (BLOCK_REQUESTS_SQL.replace('CREATE TABLE block_requests', 'CREATE TABLE "block_requests"')
+    .replace('REFERENCES runs(', 'REFERENCES "runs"(').replace('REFERENCES events(', 'REFERENCES "events"(')
+    .replace('authorization_rule_version = 1)\n)', "authorization_rule_version = 1),\n    result_schema_version INTEGER NOT NULL CHECK (typeof(result_schema_version) = 'integer' AND result_schema_version IN (2, 3))\n)"))
+UNBLOCK_V3_SQL = f'''CREATE TABLE "unblock_requests" (
+    request_id TEXT PRIMARY KEY NOT NULL CHECK ({_NONEMPTY.format(field='request_id')}),
+    run_id TEXT NOT NULL UNIQUE REFERENCES "runs"(id),
+    expected_revision INTEGER NOT NULL CHECK (typeof(expected_revision) = 'integer' AND expected_revision = 1),
+    reason TEXT NOT NULL CHECK ({_NONEMPTY.format(field='reason')}),
+    event_sequence INTEGER NOT NULL UNIQUE REFERENCES "events"(sequence),
+    blocked_event_sequence INTEGER NOT NULL UNIQUE REFERENCES "events"(sequence),
+    authorization_id TEXT NOT NULL UNIQUE,
+    controller_route TEXT NOT NULL CHECK (controller_route = 'OPERATOR_LOCAL'),
+    core_manifest_sha256 TEXT NOT NULL CHECK (length(core_manifest_sha256) = 64 AND core_manifest_sha256 NOT GLOB '*[^0-9a-f]*'),
+    control_sha256 TEXT NOT NULL CHECK (length(control_sha256) = 64 AND control_sha256 NOT GLOB '*[^0-9a-f]*'),
+    authorization_rule_version INTEGER NOT NULL CHECK (typeof(authorization_rule_version) = 'integer' AND authorization_rule_version = 1)
+)'''
+
+
+def validate_schema(connection, version=2):
     """Compara SQL final exato; não normaliza conteúdo de literais."""
     objects = connection.execute("SELECT type, name, sql FROM sqlite_master WHERE name NOT GLOB 'sqlite_*'").fetchall()
     expected = {'runs': RUNS_SQL, 'events': EVENTS_SQL, 'block_requests': BLOCK_REQUESTS_SQL}
+    if version == 3:
+        expected = {'runs': RUNS_V3_SQL, 'events': EVENTS_V3_SQL, 'block_requests': BLOCK_V3_SQL, 'unblock_requests': UNBLOCK_V3_SQL}
     if (len(objects) != len(expected) or any(row['type'] != 'table' for row in objects)
             or {row['name']: (row['sql'] or '').strip() for row in objects} != expected):
         raise CoreError('Esquema SQLite v2 incompatível.')
@@ -58,6 +80,8 @@ def migrate(store):
         connection.execute('BEGIN IMMEDIATE')
         try:
             version = store._validate_schema(connection)
+            if version == 3:
+                raise CoreError('Migração v2 não permite downgrade de v3.')
             if version == 2:
                 connection.commit()
                 return {'schema_version': 2, 'migrated': False}
@@ -84,6 +108,49 @@ def migrate(store):
             connection.execute('PRAGMA user_version = 2')
             connection.commit()
             return {'schema_version': 2, 'migrated': True}
+        except BaseException:
+            connection.rollback()
+            raise
+
+
+def migrate_v3(store):
+    """Reconstrói v2 integralmente sob uma única transação."""
+    with store._connection('rw') as connection:
+        connection.execute('PRAGMA legacy_alter_table = OFF')
+        connection.execute('BEGIN IMMEDIATE')
+        try:
+            version = store._validate_schema(connection)
+            if version == 3:
+                connection.commit()
+                return {'schema_version': 3, 'migrated': False}
+            if version != 2:
+                raise CoreError('Migração v3 exige banco v2 íntegro.')
+            snapshots = {name: [tuple(row) for row in connection.execute(f'SELECT * FROM "{name}" ORDER BY {order}')]
+                         for name, order in (('runs', 'id'), ('events', 'sequence'), ('block_requests', 'request_id'))}
+            connection.execute(RUNS_V3_SQL.replace('"runs"', '"runs_v3"'))
+            connection.execute('INSERT INTO "runs_v3" SELECT * FROM "runs"')
+            connection.execute(EVENTS_V3_SQL.replace('"events"', '"events_v3"').replace('"runs"', '"runs_v3"'))
+            connection.execute('INSERT INTO "events_v3" SELECT * FROM "events"')
+            connection.execute(BLOCK_V3_SQL.replace('"block_requests"', '"block_requests_v3"').replace('"runs"', '"runs_v3"').replace('"events"', '"events_v3"'))
+            connection.execute('INSERT INTO "block_requests_v3" SELECT *, 2 FROM "block_requests"')
+            for name in ('block_requests', 'events', 'runs'):
+                connection.execute(f'DROP TABLE "{name}"')
+            for name in ('runs', 'events', 'block_requests'):
+                connection.execute(f'ALTER TABLE "{name}_v3" RENAME TO "{name}"')
+            connection.execute(UNBLOCK_V3_SQL)
+            validate_schema(connection, 3)
+            check_integrity(connection, store, 3)
+            for name, order in (('runs', 'id'), ('events', 'sequence'), ('block_requests', 'request_id')):
+                rows = [tuple(row) for row in connection.execute(f'SELECT * FROM "{name}" ORDER BY {order}')]
+                if name == 'block_requests':
+                    if any(row[-1] != 2 for row in rows):
+                        raise CoreError('Versão histórica de bloqueio inválida.')
+                    rows = [row[:-1] for row in rows]
+                if rows != snapshots[name]:
+                    raise CoreError('Migração não preservou os dados originais.')
+            connection.execute('PRAGMA user_version = 3')
+            connection.commit()
+            return {'schema_version': 3, 'migrated': True}
         except BaseException:
             connection.rollback()
             raise

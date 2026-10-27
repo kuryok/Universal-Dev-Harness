@@ -18,12 +18,12 @@ def operator_context_valid(context):
     # A autoridade real é o domínio do SO que entrega o banco ao controlador.
     # Validar estes metadados evita configuração ambígua; não autentica um JSON.
     return (isinstance(context, Mapping)
-            and type(context.get('schema')) is int and context['schema'] == 1
+            and type(context.get('schema')) is int and context['schema'] in (1, 2)
             and context.get('db_path') == '/state/udh.sqlite'
             and context.get('controller_route') == 'OPERATOR_LOCAL'
             and type(context.get('authorization_rule_version')) is int
             and context['authorization_rule_version'] == 1
-            and context.get('allowed_operations') == ('MIGRATE_V2', 'BLOCK_PENDING')
+            and context.get('allowed_operations') == (('MIGRATE_V2', 'BLOCK_PENDING') if context['schema'] == 1 else ('MIGRATE_V2', 'BLOCK_PENDING', 'MIGRATE_V3', 'UNBLOCK_RUN'))
             and all(isinstance(context.get(key), str) and re.fullmatch('[0-9a-f]{64}', context[key])
                     for key in ('core_manifest_sha256', 'control_sha256')))
 

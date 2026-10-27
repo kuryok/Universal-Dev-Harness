@@ -63,3 +63,78 @@ class UnblockPreparationTests(unittest.TestCase):
             (path / 'manifest.json').write_bytes(canonical(manifest))
             with self.assertRaises(block_seal.SealError):
                 block_seal.verify_seal(path, manifest['at_version'])
+
+
+class MigrationV3Tests(unittest.TestCase):
+    @staticmethod
+    def context():
+        return dict(schema=2, db_path='/state/udh.sqlite', controller_route='OPERATOR_LOCAL',
+                    authorization_rule_version=1, allowed_operations=('MIGRATE_V2', 'BLOCK_PENDING', 'MIGRATE_V3', 'UNBLOCK_RUN'),
+                    core_manifest_sha256='a' * 64, control_sha256='b' * 64)
+
+    def test_migration_preserves_block_and_replays_original_version(self):
+        from udh.service import CoreService
+        from udh.store import SQLiteStore
+        with tempfile.TemporaryDirectory(dir=BASE) as directory:
+            core = CoreService(SQLiteStore(Path(directory) / 'state.sqlite'))
+            context = self.context()
+            core.initialize()
+            core.migrate()
+            run = core.create(' spec ', '1', 'create')
+            before = core.block(run.run_id, 0, 'block', ' motivo ', context=context)
+            self.assertEqual(core.migrate(3, context=context), {'schema_version': 3, 'migrated': True})
+            self.assertEqual(core.migrate(3, context=context), {'schema_version': 3, 'migrated': False})
+            self.assertEqual(core.show(run.run_id).to_dict()['schema_version'], 3)
+            self.assertEqual(core.block(run.run_id, 0, 'block', ' motivo ', context=context), before)
+            new_run = core.create('s', '1', 'new')
+            self.assertEqual(core.block(new_run.run_id, 0, 'new-block', 'reason', context=context)['schema_version'], 3)
+
+    def test_v3_reads_complete_journal_and_rejects_wrong_block_reference(self):
+        from contextlib import closing
+        from udh.domain import CoreError
+        from udh.service import CoreService
+        from udh.store import SQLiteStore
+        import sqlite3
+        with tempfile.TemporaryDirectory(dir=BASE) as directory:
+            path = Path(directory) / 'state.sqlite'
+            core = CoreService(SQLiteStore(path))
+            core.initialize()
+            core.migrate()
+            run = core.create('s', '1', 'create')
+            blocked = core.block(run.run_id, 0, 'block', 'motivo', context=self.context())
+            core.migrate(3, context=self.context())
+            with closing(sqlite3.connect(path)) as db, db:
+                event = db.execute("INSERT INTO events (run_id, kind, created_at) VALUES (?, 'RUN_UNBLOCKED', ?)",
+                                   (run.run_id, blocked['created_at'])).lastrowid
+                db.execute('INSERT INTO unblock_requests VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, 1)',
+                           ('unblock', run.run_id, 'liberado', event, blocked['event_sequence'],
+                            '0b30261e-3d31-412f-8a9d-4a9d308f4981', 'OPERATOR_LOCAL', 'a' * 64, 'b' * 64))
+                db.execute("UPDATE runs SET state = 'PENDING', revision = 2 WHERE id = ?", (run.run_id,))
+            shown = core.show(run.run_id).to_dict()
+            self.assertEqual((shown['schema_version'], shown['revision'], shown['events'][2]['kind']), (3, 2, 'RUN_UNBLOCKED'))
+            self.assertEqual(core.block(run.run_id, 0, 'block', 'motivo', context=self.context()), blocked)
+            with closing(sqlite3.connect(path)) as db, db:
+                created = db.execute("SELECT sequence FROM events WHERE kind = 'RUN_CREATED'").fetchone()[0]
+                db.execute('UPDATE unblock_requests SET blocked_event_sequence = ?', (created,))
+            with self.assertRaises(CoreError):
+                core.show(run.run_id)
+
+    def test_migration_requires_authorization_and_rejects_v1_and_downgrade(self):
+        from udh.domain import CoreError
+        from udh.service import CoreService
+        from udh.store import SQLiteStore
+        from udh.transitions import AuthorizationError
+        with tempfile.TemporaryDirectory(dir=BASE) as directory:
+            core = CoreService(SQLiteStore(Path(directory) / 'state.sqlite'))
+            with self.assertRaises(AuthorizationError):
+                core.migrate(3, context=None)
+            self.assertFalse(core.store.path.exists())
+            core.initialize()
+            with self.assertRaises(CoreError):
+                core.migrate(3, context=self.context())
+            core.migrate()
+            core.migrate(3, context=self.context())
+            with self.assertRaises(CoreError):
+                core.migrate()
+            with self.assertRaises(CoreError):
+                core.initialize()

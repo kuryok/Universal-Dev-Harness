@@ -32,7 +32,13 @@ class CoreService:
         require_text(action, 'Ação da política')
         return evaluate(self.show(run_id), action)
 
-    def migrate(self) -> dict:
+    def migrate(self, target=2, *, context=None) -> dict:
+        if target == 3:
+            if not operator_context_valid(context) or 'MIGRATE_V3' not in context['allowed_operations']:
+                raise AuthorizationError('Operação exige a entrada administrativa protegida.')
+            return self.store.migrate_v3()
+        if target != 2:
+            raise ValueError('Versão de migração inválida.')
         return self.store.migrate()
 
     def block(self, run_id, expected_revision, request_id, reason, *, context):
