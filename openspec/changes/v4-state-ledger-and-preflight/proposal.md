@@ -1,6 +1,6 @@
 # Change 1 — Ledger SQLite v4, Ciclo de Vida Completo, Leitura O(1), Política v2 e Preflight `doctor`
 
-**Estado:** APROVADO PELO USUÁRIO EM 23/11/2026 — EM IMPLEMENTAÇÃO.  
+**Estado:** APROVADO, IMPLEMENTADO E VERIFICADO EM 23/11/2026 (`9f84150`; resumo em [verification-summary.json](verification-summary.json)).
 **Data:** 23/11/2026.  
 **Base verificada:** `f138cff` (`0bd458d` no Core v1–v3; 98/98 testes complementares PASS; 50/50 AT selados `v1–v6` PASS; revisão independente R2/F-02 PASS).  
 **Referências normativas:** [baseline normativo rastreado](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (`ADR-002`, `ADR-005`, `ADR-011`, `ADR-013`, `ADR-016`, `ADR-023`, `ADR-025`, `ADR-028`, `B1.1`, `B1.3`, `UX-01`, `F-03`) e ratificação registrada em [openspec/project.md](../../project.md).

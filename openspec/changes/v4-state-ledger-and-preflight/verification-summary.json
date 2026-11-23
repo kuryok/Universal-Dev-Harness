@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "change": "v4-state-ledger-and-preflight",
+  "classification": "core-v4-foundation-verified-not-product-delivery",
+  "candidate_ref": "9f84150a6f575d523c976099ac2928373786de32",
+  "candidate_hashes": {
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "c024dc937b9b3c28e7ce5de529593957b46e54257f52d389d49396077c34c767",
+    "udh/doctor.py": "076fe6a2589af9cfd32ee069405ae23d296ea0d2c0a8e0be775d0bd13ad13cdc",
+    "udh/domain.py": "eb2d1d3dcdcf87d33d7c06c2b9180e5ea3450a2b5f6d028294aa07b84c7497cc",
+    "udh/lifecycle.py": "e2e4fc4d6aa3716a7e640cf56e93768475f703b79665b39767c5d84e31c0c87c",
+    "udh/migrations.py": "589c29464090c2ea92af5922e1d9d83a36bd25c035cf529f92a8c605745a476f",
+    "udh/operator.py": "a1e2440a385de249a681ac7105d45c8d51e60ddebb23b57314a4bfc696c34d01",
+    "udh/policy.py": "e684831c0731fbeaffddfd6af9e14c9486ebf3db073f96ffcfa6c349368d6ad9",
+    "udh/service.py": "e2e7f9981086a07588f90f406045e4aedba3f8ca4eaa3ae89c5a8ae8d20b4ee2",
+    "udh/store.py": "74abdd7ae53f41f3688ff218b8793b861d67c9ce1218d07bfcf102402a571a23",
+    "udh/transitions.py": "f669f059eb0b3fc4d215c9dec77b3464e4eb472766a695021a8c4ce19f80260c"
+  },
+  "complementary_tests": {
+    "status": "PASS",
+    "tests_run": 110,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "duration_seconds": 11.61
+  },
+  "doctor_live": {
+    "overall_status": "READY_WITH_LIMITS",
+    "platform": "Linux x86_64 6.12.113+deb13-amd64 (native, is_wsl2=false)",
+    "cgroups": "READY (cgroup v2)",
+    "userns": "READY (unprivileged_userns_clone=1, subuid/subgid ok)",
+    "podman": "READY (5.4.2 rootless)",
+    "runtime_components": "LIMITED (GATEWAY_AND_ADAPTER_NOT_CONFIGURED — Change 2)"
+  },
+  "independent_review_r2": {
+    "status": "PASS",
+    "context": "separate-readonly-subagent",
+    "conversation_id": "e8a55469-4425-4392-9734-162bdb715059",
+    "unresolved_findings": [],
+    "prior_findings_resolved": [
+      "strict_json_loads com rejeicao de NaN/Infinity em CLI, _load_v4 e deep_check/doctor; validacao de tipos/itens em checkpoints",
+      "udh/doctor.py:_default_podman_probe normaliza campos JSON null sem AttributeError",
+      "SQLiteStore.create ramo v4 levanta ConflictError em replay conflitante",
+      "Run.__post_init__ v4 valida igualdade de transitions[0].request_id e created_at contra runs"
+    ]
+  },
+  "sealed_acceptance_suites": {
+    "v6_unblock": {
+      "at_version": "sha256:7196e5f4eea1fc78806efcdbd2b1e231446b2632937d5aff69c4f2f8bf0d9b37",
+      "tests_run": 16,
+      "passed": 16,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 439,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "82db19391363683b0230a77e0123e44cdeb0852c98df501915b5125c04dffcfa"
+    },
+    "v5_block": {
+      "at_version": "sha256:182d2ba72a7b5dfb5648e650577dcc3bbbbd67048c72a3bf959406ce7dd89ac6",
+      "tests_run": 13,
+      "passed": 13,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 171,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "a9d3de89526001eeb5d4dec21f6f37804265afb13123f7f436a3fbafcabb37d0"
+    },
+    "v2_policy": {
+      "at_version": "sha256:438ce43f70e0137115f2c30920623eabf5bfd042035958951fdaafa151e41f3f",
+      "tests_run": 11,
+      "passed": 11,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 55,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "bc2f53890cbdd4d72839c3ac5fd7a87a22c2c500ba11a061c37b1bb01cedfdfe"
+    },
+    "v1_core": {
+      "at_version": "sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704",
+      "tests_run": 10,
+      "passed": 10,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 49,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "70fec207943020e1186d61fb800d867b78a2e9adf94f7d5fbaeb1729d7e94147"
+    }
+  },
+  "not_run": [
+    "POC-01 a POC-04 (escopo do Change 2)",
+    "DOC-01/02, SKILL-01/02, DISC-01, TICKET-01/02",
+    "I1-I7/T1-T8 (bootstrap/slice1 congelado e intocado)",
+    "CLI OpenSpec (ausente)",
+    "tools/harness.py fast/full (ausente)"
+  ],
+  "limits": [
+    "Core v4 e preflight doctor não executam agentes nem certificam segurança ou entrega de produto.",
+    "Runtime Manager rootless, imagem OCI dedicada, Gateway stdlib, adaptador Pi 1.2.0 e Executor F-04 entram no Change 2."
+  ]
+}
