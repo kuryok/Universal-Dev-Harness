@@ -104,9 +104,10 @@ class RuntimeAndGatewayTests(unittest.TestCase):
         with self.assertRaises(RuntimeIsolationError):
             _validate_mounts((BindMount(store, '/workspace', readonly=False),), profile='developer', forbidden_rw_roots=(store,))
 
-        # Rejeita /ipc no perfil artifact
-        with self.assertRaises(RuntimeIsolationError):
-            _validate_mounts((BindMount(ipc, '/ipc', readonly=True),), profile='artifact')
+        # Rejeita /ipc (inclusive variantes não normalizadas //ipc e /./ipc) no perfil artifact
+        for forbidden_ipc in ('/ipc', '//ipc', '/./ipc', '/ipc/sub'):
+            with self.assertRaises(RuntimeIsolationError):
+                _validate_mounts((BindMount(ipc, forbidden_ipc, readonly=True),), profile='artifact')
 
         # Permite padrão E4 (/udh/agent-config rw + arquivos :ro) no perfil developer
         cfg_file = self.root / 'models.json'
@@ -179,6 +180,7 @@ class RuntimeAndGatewayTests(unittest.TestCase):
             ).encode('utf-8')
             s_te, _ = _raw_uds(gw.socket_path, te_req)
             self.assertEqual(s_te, 400)
+            time.sleep(0.05)
 
             # Requisição válida após liberação do slot funciona (prova release em finally)
             body = json.dumps({'model': DEFAULT_STUB_MODEL, 'stream': True, 'messages': []}).encode('utf-8')
@@ -308,6 +310,97 @@ class RuntimeAndGatewayTests(unittest.TestCase):
         )
         parsed_len = parse_pi_jsonl(len_stream)
         self.assertEqual(parsed_len['last_stop_reason'], 'length')
+
+    def test_gateway_peer_denied_body_timeout_bare_lf_and_nonzero_cost_variants(self):
+        from unittest.mock import patch
+
+        audit = self.root / 'extra-audit.jsonl'
+        cfg = GatewayConfig(
+            run_id='test-extra-gw',
+            policy_sha256=policy_v2_sha256(),
+            audit_path=audit,
+            backend='stub',
+            allowed_models=(DEFAULT_STUB_MODEL,),
+            header_timeout_seconds=1.0,
+            body_timeout_seconds=0.6,
+        )
+        with InferenceGateway(cfg) as gw:
+            assert gw.socket_path is not None
+            body = json.dumps({'model': DEFAULT_STUB_MODEL, 'stream': True, 'messages': []}).encode('utf-8')
+
+            # 1. SO_PEERCRED com UID diferente -> 403 peer_denied
+            with patch('udh.gateway.os.getuid', return_value=os.getuid() + 1):
+                req = (
+                    f'POST /v1/chat/completions HTTP/1.1\r\n'
+                    f'Authorization: Bearer {gw.capability_token}\r\n'
+                    f'X-UDH-Purpose: inference\r\n'
+                    f'Content-Length: {len(body)}\r\n\r\n'
+                ).encode('utf-8') + body
+                s_peer, text_peer = _raw_uds(gw.socket_path, req)
+                self.assertEqual(s_peer, 403)
+                self.assertIn('peer_denied', text_peer)
+
+            # 2. LF nu dentro dos cabeçalhos -> 400 malformed_header
+            bare_lf = (
+                f'POST /v1/chat/completions HTTP/1.1\r\n'
+                f'Authorization: Bearer {gw.capability_token}\nX-Injected: 1\r\n'
+                f'X-UDH-Purpose: inference\r\n'
+                f'Content-Length: 2\r\n\r\n{{}}'
+            ).encode('utf-8')
+            s_lf, text_lf = _raw_uds(gw.socket_path, bare_lf)
+            self.assertEqual(s_lf, 400)
+            self.assertIn('malformed_header', text_lf)
+
+            # 3. request_body_timeout (cabeçalhos completos, corpo lento excede body_deadline -> 408)
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as cli:
+                cli.settimeout(4.0)
+                cli.connect(str(gw.socket_path))
+                head = (
+                    f'POST /v1/chat/completions HTTP/1.1\r\n'
+                    f'Authorization: Bearer {gw.capability_token}\r\n'
+                    f'X-UDH-Purpose: inference\r\n'
+                    f'Content-Length: 100\r\n\r\n'
+                ).encode('utf-8')
+                cli.sendall(head + b'{')
+                time.sleep(1.8)
+                resp = cli.recv(4096).decode('utf-8', errors='replace')
+                self.assertIn('408', resp)
+                self.assertIn('request_body_timeout', resp)
+
+        # 4. nonzero_cost_blocked em openrouter_free tanto para float quanto para string!
+        free_catalog = json.dumps({
+            'data': [{'id': 'acme/free-ok:free', 'pricing': {'prompt': '0', 'completion': '0'}}]
+        }).encode('utf-8')
+        for bad_cost_json in ('0.05', '"0.05"'):
+            or_audit = self.root / f'cost-{bad_cost_json.strip(chr(34))}.jsonl'
+            sse = (
+                f'data: {{"choices":[{{"delta":{{"content":"ok"}}}}],"usage":{{"cost":{bad_cost_json}}}}}\n'
+                f'data: [DONE]\n'
+            ).encode('utf-8')
+            resps = [
+                _FakeHTTPResponse(200, free_catalog),
+                _FakeHTTPResponse(200, sse, {'Content-Type': 'text/event-stream'}),
+            ]
+            or_cfg = GatewayConfig(
+                run_id='test-cost',
+                policy_sha256=policy_v2_sha256(),
+                audit_path=or_audit,
+                backend='openrouter_free',
+                allowed_models=('acme/free-ok:free',),
+                secret_resolver=lambda: 'SK_SYNTHETIC_COST_TEST_12345',
+                openrouter_connection_factory=lambda: _FakeHTTPSConnection([resps.pop(0)]),
+            )
+            with InferenceGateway(or_cfg) as gw:
+                assert gw.socket_path is not None
+                req_body = json.dumps({'model': 'acme/free-ok:free', 'stream': True, 'messages': [{'role': 'user', 'content': 'hi'}]}).encode('utf-8')
+                req = (
+                    f'POST /v1/chat/completions HTTP/1.1\r\n'
+                    f'Authorization: Bearer {gw.capability_token}\r\n'
+                    f'X-UDH-Purpose: inference\r\n'
+                    f'Content-Length: {len(req_body)}\r\n\r\n'
+                ).encode('utf-8') + req_body
+                _raw_uds(gw.socket_path, req)
+            self.assertIn('nonzero_cost_blocked', or_audit.read_text(encoding='utf-8'))
 
 
 if __name__ == '__main__':

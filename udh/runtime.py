@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import posixpath
 import re
 import selectors
 import signal
@@ -169,7 +170,10 @@ def _validate_destination(dest: str) -> str:
     parts = Path(dest).parts
     if '..' in parts:
         raise RuntimeIsolationError('Destino do mount não pode conter traversal (..).')
-    return dest
+    normalized = posixpath.normpath(dest)
+    if normalized.startswith('//'):
+        normalized = '/' + normalized.lstrip('/')
+    return normalized
 
 
 def _validate_mounts(

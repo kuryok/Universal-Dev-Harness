@@ -1,10 +1,13 @@
 """Executor Confiável F-04: orquestra runner isolado no perfil artifact sem importar código do projeto."""
+import ast
 from datetime import datetime, timezone
 import hashlib
 import hmac
 import json
+import os
 from pathlib import Path
 import secrets
+import stat
 import tempfile
 
 from .domain import COMPLETION_EVIDENCE_KINDS, CoreError, strict_json_loads
@@ -17,6 +20,33 @@ from .trust_store import TamperingError, TrustStore, TrustStoreError
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec='microseconds').replace('+00:00', 'Z')
+
+
+def _is_testcase_base(node: ast.expr) -> bool:
+    if isinstance(node, ast.Name):
+        return node.id == 'TestCase' or node.id.endswith('TestCase')
+    if isinstance(node, ast.Attribute):
+        return node.attr == 'TestCase' or node.attr.endswith('TestCase')
+    return False
+
+
+def _discover_at_tests_core(at_dir: Path) -> list[str]:
+    """Inventário AST independente no Core dos testes selados em TrustStore."""
+    root = at_dir.resolve()
+    expected: list[str] = []
+    for path in sorted(root.rglob('test_*.py')):
+        st = os.lstat(path)
+        if not stat.S_ISREG(st.st_mode) or stat.S_ISLNK(st.st_mode):
+            continue
+        rel = path.relative_to(root)
+        module = '.'.join(rel.with_suffix('').parts)
+        tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(rel))
+        for item in tree.body:
+            if isinstance(item, ast.ClassDef) and any(_is_testcase_base(base) for base in item.bases):
+                for member in item.body:
+                    if isinstance(member, ast.FunctionDef) and member.name.startswith('test'):
+                        expected.append(f'{module}.{item.name}.{member.name}')
+    return sorted(set(expected))
 
 
 class TrustedExecutor:
@@ -55,10 +85,13 @@ class TrustedExecutor:
         manifest = self.runtime_manager.load_manifest()
         pol_sha = policy_v2_sha256()
 
-        # 1. Validação fail-closed do selo de AT na TrustStore
+        # 1. Validação fail-closed do selo de AT na TrustStore + inventário AST independente no Core
         try:
             at_dir, _at_manifest = self.trust_store.verify_sealed_at(at_version)
-        except TrustStoreError as error:
+            core_expected_tests = _discover_at_tests_core(at_dir)
+            if not core_expected_tests:
+                raise TrustStoreError('AT_INTEGRITY_VIOLATION: nenhum caso TestCase.test_* encontrado no selo.')
+        except (TrustStoreError, SyntaxError, UnicodeDecodeError, OSError) as error:
             return self._record_failure(
                 run_id=run_id, request_id=request_id, kind=kind, verdict='ERROR',
                 reason_code='AT_INTEGRITY_VIOLATION', detail=str(error),
@@ -155,14 +188,25 @@ class TrustedExecutor:
             failures = parsed.get('failures') if type(parsed.get('failures')) is int else 1
             errors = parsed.get('errors') if type(parsed.get('errors')) is int else 1
             skipped = parsed.get('skipped') if type(parsed.get('skipped')) is int else 0
-            expected_tests = parsed.get('expected_tests') if isinstance(parsed.get('expected_tests'), list) else []
-            passed_tests = parsed.get('passed_tests') if isinstance(parsed.get('passed_tests'), list) else []
+            raw_expected = parsed.get('expected_tests')
+            raw_passed = parsed.get('passed_tests')
+            expected_tests = (
+                raw_expected
+                if isinstance(raw_expected, list) and all(isinstance(x, str) for x in raw_expected)
+                else []
+            )
+            passed_tests = (
+                raw_passed
+                if isinstance(raw_passed, list) and all(isinstance(x, str) for x in raw_passed)
+                else []
+            )
 
             coverage_ok = (
-                bool(expected_tests)
-                and set(expected_tests) == set(passed_tests)
-                and len(passed_tests) == len(expected_tests)
-                and tests_run == len(expected_tests)
+                bool(core_expected_tests)
+                and set(expected_tests) == set(core_expected_tests)
+                and set(passed_tests) == set(core_expected_tests)
+                and len(passed_tests) == len(core_expected_tests)
+                and tests_run == len(core_expected_tests)
             )
             if not tampering_ok:
                 verdict = 'FAIL'
@@ -293,9 +337,11 @@ class TrustedExecutor:
         if not matching:
             raise ConflictError('Nenhuma evidência verificadora registrada para este artefato e versão de AT.')
         latest = matching[-1]
-        if latest.evidence_id != evidence_id or latest.verdict != 'PASS':
+        if (latest.evidence_id != evidence_id
+                or latest.verdict != 'PASS'
+                or latest.collector_route != 'TRUSTED_EXECUTOR'):
             raise ConflictError(
-                'Conclusão exige a evidência oficial mais recente com veredito PASS para (artifact_digest, at_version).'
+                'Conclusão exige a evidência oficial mais recente de TRUSTED_EXECUTOR com veredito PASS para (artifact_digest, at_version).'
             )
         return self.core_service.complete(
             run_id, expected_revision, request_id, evidence_id, actor_route='TRUSTED_EXECUTOR',

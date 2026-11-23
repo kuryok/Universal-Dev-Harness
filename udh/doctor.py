@@ -13,7 +13,7 @@ from .domain import CoreError, strict_json_loads
 from .policy import policy_v2_sha256
 from .runtime import DEFAULT_MANIFEST_PATH, RuntimeIsolationError, RuntimeManager
 from .store import SQLiteStore
-from .trust_store import TrustStore, default_store_dir
+from .trust_store import TrustStore, _read_regular_nofollow, default_store_dir
 
 
 def _read_text(path: Path) -> str | None:
@@ -107,11 +107,12 @@ def _collect_probes(env_probes: Mapping | None) -> dict:
 
 def _read_conformance_readonly(store_path: Path, *, policy_sha256: str, image_digest: str) -> dict | None:
     target = store_path / 'conformance.json'
-    if not target.is_file() or target.is_symlink():
+    if not target.exists() and not target.is_symlink():
         return None
     try:
-        parsed = strict_json_loads(target.read_text(encoding='utf-8'), 'Cache de conformance')
-    except (CoreError, OSError):
+        raw = _read_regular_nofollow(target)
+        parsed = strict_json_loads(raw.decode('utf-8'), 'Cache de conformance')
+    except (CoreError, OSError, UnicodeDecodeError):
         return {'status': 'STALE', 'reason': 'corrupt_conformance_cache'}
     if not isinstance(parsed, dict):
         return {'status': 'STALE', 'reason': 'invalid_conformance_cache'}
@@ -201,7 +202,7 @@ def _evaluate_runtime_live(
     try:
         manifest = manager.load_manifest()
         manager.verify_image_present(manifest.image_ref)
-    except RuntimeIsolationError as error:
+    except (RuntimeIsolationError, CoreError, OSError) as error:
         return {
             'id': 'runtime_components',
             'status': 'NOT_READY' if run_conformance else 'LIMITED',

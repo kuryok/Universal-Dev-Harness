@@ -127,6 +127,8 @@ def run_poc_01(*, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> dict:
             if res.returncode == 0:
                 live_inspect['snapshot'] = res.stdout.strip()
 
+        host_net_ns = os.readlink('/proc/self/ns/net')
+        host_pid_ns = os.readlink('/proc/self/ns/pid')
         iso_script = f'''
 set -eu
 echo ok > /workspace/write-proof
@@ -138,6 +140,9 @@ test "${{UDH_SYNTHETIC_SECRET-unset}}" = unset
 if (echo bad > /outside-root-write) 2>/dev/null; then exit 11; fi
 if (echo bad > /etc/outside-etc-write) 2>/dev/null; then exit 12; fi
 grep -E '^(CapEff|NoNewPrivs|Seccomp):' /proc/self/status
+echo "UID_MAP=$(tr -s ' ' < /proc/self/uid_map | tr '\\n' ';')"
+echo "NET_NS=$(readlink /proc/self/ns/net)"
+echo "PID_NS=$(readlink /proc/self/ns/pid)"
 sleep 0.4
 echo ISO_OK
 '''
@@ -160,11 +165,27 @@ echo ISO_OK
         cap_ok = 'CapEff:\t0000000000000000' in iso.stdout
         nnp_ok = 'NoNewPrivs:\t1' in iso.stdout
         seccomp_ok = 'Seccomp:\t2' in iso.stdout
+        uid_map_ok = 'UID_MAP=' in iso.stdout and str(os.getuid()) in iso.stdout
+        ns_isolated = (
+            f'NET_NS={host_net_ns}' not in iso.stdout
+            and f'PID_NS={host_pid_ns}' not in iso.stdout
+            and 'NET_NS=net:[' in iso.stdout
+            and 'PID_NS=pid:[' in iso.stdout
+        )
+        live_ok = live_inspect.get('snapshot') == 'true:none:true'
         checks['rootless_isolation'] = {
-            'ok': iso.returncode == 0 and 'ISO_OK' in iso.stdout and cap_ok and nnp_ok and seccomp_ok and iso.cleanup_verified,
+            'ok': (
+                iso.returncode == 0
+                and 'ISO_OK' in iso.stdout
+                and cap_ok and nnp_ok and seccomp_ok
+                and uid_map_ok and ns_isolated and live_ok
+                and iso.cleanup_verified
+            ),
             'cap_eff_zero': cap_ok,
             'no_new_privs': nnp_ok,
             'seccomp_enforced': seccomp_ok,
+            'uid_map_verified': uid_map_ok,
+            'namespaces_distinct_from_host': ns_isolated,
             'live_inspect': live_inspect.get('snapshot'),
             'cleanup_verified': iso.cleanup_verified,
         }
@@ -199,12 +220,20 @@ echo ISO_OK
             mounts=(BindMount(oom_ws, '/workspace', readonly=False),),
             limits=ResourceLimits(memory_mb=64, pids_limit=32, cpus=0.25, timeout_seconds=15.0),
         )
-        cpu_throttled = 'MAX=25000 100000' in cpu_res.stdout and 'nr_throttled ' in cpu_res.stdout
+        throttled_count = 0
+        for line in cpu_res.stdout.splitlines():
+            if line.startswith('nr_throttled '):
+                try:
+                    throttled_count = int(line.split()[1])
+                except (IndexError, ValueError):
+                    throttled_count = 0
+        cpu_throttled = 'MAX=25000 100000' in cpu_res.stdout and throttled_count > 0
         checks['cgroup_v2_limits'] = {
             'ok': oom_killed and pids_limited and cpu_throttled,
             'memory_oom_enforced': oom_killed,
             'pids_limit_enforced': pids_limited,
             'cpu_quota_enforced': cpu_throttled,
+            'nr_throttled': throttled_count,
         }
 
         # 4. Rede isolada (network=none: externo bloqueado, loopback OK)
@@ -291,7 +320,7 @@ assert loopback_ok and ext_blocked
                 except OSError:
                     slow_resp = ''
             slow_elapsed = time.monotonic() - t_slow
-            slowloris_blocked = ('408' in slow_resp) or (slow_elapsed < 3.5)
+            slowloris_blocked = ('408' in slow_resp) and (slow_elapsed < 3.5)
             # Budget 429 (2ª chamada válida OK, 3ª retorna 429)
             s_ok2, _ = _uds_raw_request(gw.socket_path, _build_post_request(token=gw.capability_token, body=valid_body))
             s_429, _ = _uds_raw_request(gw.socket_path, _build_post_request(token=gw.capability_token, body=valid_body))
@@ -568,34 +597,45 @@ def run_poc_04(*, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> dict:
             'complete_blocked': complete_blocked_on_fake,
         }
 
-        # Cenário negativo B: ataque F-04 (código importado tenta ler /proc/<ppid> e chamar os._exit(0))
-        at_import_src = root / 'at-import-attack'
-        at_import_src.mkdir()
-        (at_import_src / 'test_import_attack.py').write_text(
-            'import unittest\n'
-            'import evil_mod\n'
-            'class AttackAT(unittest.TestCase):\n'
-            '    def test_one(self):\n'
-            '        self.assertEqual(evil_mod.run(), 42)\n'
-            '    def test_two(self):\n'
-            '        self.assertEqual(evil_mod.run(), 42)\n',
-            encoding='utf-8',
-        )
-        sealed_attack = store.seal_at_suite(at_import_src, scenarios=('Teste de resistência F-04',))
+        # Cenário negativo B: ataque F-04 em caixa-preta (tenta ler /proc/<worker>/mem,
+        # /proc/<worker>/fd/* e /proc/<parent>/mem com PR_SET_DUMPABLE=0 ativo em ambos)
         evil_ws = root / 'ws-evil'
         evil_ws.mkdir()
-        (evil_ws / 'evil_mod.py').write_text(
-            'import os, pathlib\n'
-            'def run():\n'
-            '    ppid = os.getppid()\n'
-            '    for item in ("cmdline", "environ", "mem"):\n'
+        (evil_ws / 'calc.py').write_text(
+            'import os, pathlib, sys\n'
+            'leaked = []\n'
+            'ppid = os.getppid()\n'
+            'gppid = None\n'
+            'try:\n'
+            '    for line in pathlib.Path(f"/proc/{ppid}/status").read_text().splitlines():\n'
+            '        if line.startswith("PPid:"):\n'
+            '            gppid = int(line.split()[1])\n'
+            'except OSError:\n'
+            '    pass\n'
+            'for pid in [p for p in (ppid, gppid) if p]:\n'
+            '    for target in ("mem", "environ"):\n'
             '        try:\n'
-            '            data = pathlib.Path(f"/proc/{ppid}/{item}").read_bytes()\n'
-            '            if b"nonce" in data:\n'
-            '                return 999\n'
+            '            with open(f"/proc/{pid}/{target}", "rb") as fh:\n'
+            '                fh.read(16)\n'
+            '            leaked.append(f"{pid}:{target}")\n'
             '        except OSError:\n'
             '            pass\n'
-            '    os._exit(0)\n',
+            '    try:\n'
+            '        for fd_entry in os.listdir(f"/proc/{pid}/fd"):\n'
+            '            try:\n'
+            '                with open(f"/proc/{pid}/fd/{fd_entry}", "wb") as fh:\n'
+            '                    fh.write(b"forged")\n'
+            '                leaked.append(f"{pid}:fd:{fd_entry}")\n'
+            '            except OSError:\n'
+            '                pass\n'
+            '    except OSError:\n'
+            '        pass\n'
+            '# Se PR_SET_DUMPABLE=0 falhasse, leaked teria entradas!\n'
+            'if leaked:\n'
+            '    print("12" if sys.argv[1] == "add" else "-12")\n'
+            '    os._exit(0)\n'
+            'print("BLOCKED_BY_DUMPABLE")\n'
+            'os._exit(1)\n',
             encoding='utf-8',
         )
         evil_art = store.promote_artifact(evil_ws)
@@ -603,10 +643,10 @@ def run_poc_04(*, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> dict:
             run_bad.run_id,
             request_id='req-poc04-evil-verify',
             artifact_digest=evil_art['artifact_digest'],
-            at_version=sealed_attack['at_version'],
+            at_version=at_version,
         )
-        checks['f04_os_exit_and_proc_attack_rejected'] = {
-            'ok': evil_ev['report']['verdict'] == 'FAIL' and evil_ev['report']['reason_code'] == 'worker_aborted_without_report',
+        checks['f04_proc_mem_fd_attack_rejected'] = {
+            'ok': evil_ev['report']['verdict'] == 'FAIL' and evil_ev['report']['failures'] > 0,
             'verdict': evil_ev['report']['verdict'],
             'reason_code': evil_ev['report']['reason_code'],
         }

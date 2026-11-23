@@ -118,7 +118,10 @@ def _evaluate_v2(
                 'O preflight do ambiente retornou NOT_READY.',
                 'Execute python3 -m udh doctor e resolva os pré-requisitos ausentes.',
             )
-        elif preflight_status in ('READY', 'READY_WITH_LIMITS') and adapter in conformant_adapters:
+        elif (preflight_status in ('READY', 'READY_WITH_LIMITS')
+              and isinstance(conformant_adapters, (tuple, list, set, frozenset))
+              and isinstance(adapter, str) and bool(adapter)
+              and adapter in conformant_adapters):
             decision, code, message, next_action = (
                 'ALLOW', 'AGENT_EXECUTION_AUTHORIZED',
                 f'Execução do adaptador {adapter} autorizada em runtime rootless conforme.',

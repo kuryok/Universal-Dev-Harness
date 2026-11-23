@@ -168,7 +168,18 @@ def _send_json_response(conn: socket.socket, status: int, reason: str, payload: 
         f'Connection: close\r\n\r\n'
     ).encode('ascii')
     try:
+        conn.setblocking(False)
+        try:
+            conn.recv(4096)
+        except OSError:
+            pass
+        conn.setblocking(True)
+        conn.settimeout(0.5)
         conn.sendall(header + body)
+        try:
+            conn.shutdown(socket.SHUT_WR)
+        except OSError:
+            pass
     except OSError:
         pass
 
@@ -213,8 +224,8 @@ def _read_http_request(
         return None, 400, 'invalid_headers', len(raw_head)
 
     lines = head_text.split('\r\n')
-    if not lines:
-        return None, 400, 'invalid_request_line', len(raw_head)
+    if not lines or any('\n' in line or '\r' in line for line in lines):
+        return None, 400, 'malformed_header', len(raw_head)
     parts = lines[0].split(' ')
     if len(parts) != 3 or parts[2] not in ('HTTP/1.1', 'HTTP/1.0'):
         return None, 400, 'invalid_request_line', len(raw_head)
@@ -290,11 +301,13 @@ class _UDSGatewayServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServ
     def process_request(self, request, client_address):
         if not self.gateway._slots.acquire(blocking=False):
             try:
-                request.settimeout(0.05)
+                request.setblocking(False)
                 try:
                     request.recv(4096)
                 except OSError:
                     pass
+                request.setblocking(True)
+                request.settimeout(0.2)
                 _send_json_response(request, 503, 'Service Unavailable', {'error': 'concurrency_limit_exceeded'})
                 try:
                     request.shutdown(socket.SHUT_WR)
@@ -474,11 +487,11 @@ class InferenceGateway:
         if err_status is not None or body is None:
             status = err_status or 400
             verdict = err_code or 'invalid_body'
-            _send_json_response(conn, status, 'Error', {'error': verdict})
             self._audit(
                 status=status, verdict=verdict, peer_uid=peer_uid,
                 request_bytes=req_bytes, elapsed_seconds=time.monotonic() - started,
             )
+            _send_json_response(conn, status, 'Error', {'error': verdict})
             return
 
         model = body.get('model')
@@ -635,12 +648,16 @@ class InferenceGateway:
         status_out = 502
 
         def _abort_upstream():
-            if upstream.sock:
+            sock = upstream.sock
+            if sock is not None:
                 try:
-                    upstream.sock.shutdown(socket.SHUT_RDWR)
+                    sock.shutdown(socket.SHUT_RDWR)
                 except OSError:
                     pass
-            upstream.close()
+            try:
+                upstream.close()
+            except OSError:
+                pass
 
         timer = threading.Timer(self.config.call_timeout_seconds, _abort_upstream)
         timer.daemon = True
@@ -715,14 +732,15 @@ class InferenceGateway:
                         break
                     cand_usage = parsed.get('usage')
                     if isinstance(cand_usage, dict):
+                        if 'cost' in cand_usage and cand_usage['cost'] is not None:
+                            if not _is_zero_decimal(cand_usage['cost']):
+                                verdict = 'nonzero_cost_blocked'
+                                break
                         usage = {
                             k: cand_usage[k]
                             for k in ('prompt_tokens', 'completion_tokens', 'total_tokens', 'cost')
                             if isinstance(cand_usage.get(k), (int, float)) and not isinstance(cand_usage.get(k), bool)
                         }
-                        if 'cost' in usage and not _is_zero_decimal(usage['cost']):
-                            verdict = 'nonzero_cost_blocked'
-                            break
                     events += 1
                 self._write_chunk(conn, line)
 

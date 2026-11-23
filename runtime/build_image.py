@@ -253,9 +253,6 @@ def _extract_digest(tag_ref: str, repo: str) -> str:
             _, dig = candidate.split('@', 1)
             if re.fullmatch(r'sha256:[0-9a-f]{64}', dig):
                 return dig
-    img_id = entry.get('Id', '')
-    if isinstance(img_id, str) and re.fullmatch(r'[0-9a-f]{64}', img_id):
-        return 'sha256:' + img_id
     raise RuntimeError(f'Não foi possível extrair digest sha256 da imagem {tag_ref}.')
 
 

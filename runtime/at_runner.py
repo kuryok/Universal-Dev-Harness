@@ -1,13 +1,15 @@
 """Runner oficial F-04 executado em modo isolado (python3 -I -B) no perfil artifact.
 
 Separação de processos contra forja:
-- Processo pai: aplica PR_SET_DUMPABLE=0, lê nonce exclusivamente via stdin (fechado
-  antes de tocar /artifact), valida stdlib e ausência de sombreamento em /artifact,
+- Processo pai: aplica PR_SET_DUMPABLE=0 (fail-closed), lê nonce exclusivamente via stdin
+  (fechado antes de tocar /artifact), valida stdlib e ausência de sombreamento em /artifact,
   faz inventário AST estático dos testes em /sealed-at, dispara worker filho isolado
-  (stdin=DEVNULL, sem nonce, stdout redirecionado para stderr) e só emite o envelope
-  JSON único em stdout após verificar cobertura integral do inventário AST.
-- Processo worker (--worker): não conhece o nonce, executa unittest sobre /sealed-at
-  com /artifact ao final de sys.path e grava o relatório estruturado no pipe dedicado.
+  (também com PR_SET_DUMPABLE=0, stdin=DEVNULL, sem nonce, sem /artifact em sys.path,
+  stdout redirecionado para stderr) e só emite o envelope JSON único em stdout após verificar
+  cobertura integral do inventário AST.
+- Processo worker (--worker): aplica PR_SET_DUMPABLE=0 (fail-closed) antes de rodar testes,
+  não conhece o nonce, não adiciona /artifact ao sys.path (ATs caixa-preta B4.3 via
+  UDH_ARTIFACT_DIR), executa unittest sobre /sealed-at e grava relatório no pipe dedicado.
 """
 import argparse
 import ast
@@ -20,6 +22,7 @@ import subprocess
 import sys
 import unittest
 
+PR_GET_DUMPABLE = 3
 PR_SET_DUMPABLE = 4
 FORBIDDEN_NAMES = frozenset({
     'sitecustomize.py',
@@ -34,11 +37,14 @@ FORBIDDEN_NAMES = frozenset({
 
 
 def _disable_dumpable() -> None:
-    try:
-        libc = ctypes.CDLL(None)
-        libc.prctl(PR_SET_DUMPABLE, 0, 0, 0, 0)
-    except (OSError, AttributeError):
-        pass
+    """Desabilita dumpable (fail-closed) para bloquear /proc/<pid>/mem e /proc/<pid>/fd."""
+    libc = ctypes.CDLL(None)
+    libc.prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
+    libc.prctl.restype = ctypes.c_int
+    if libc.prctl(PR_SET_DUMPABLE, 0, 0, 0, 0) != 0:
+        raise RuntimeError('Falha ao aplicar PR_SET_DUMPABLE=0.')
+    if libc.prctl(PR_GET_DUMPABLE, 0, 0, 0, 0) != 0:
+        raise RuntimeError('PR_GET_DUMPABLE não confirmou valor 0.')
 
 
 def _scan_artifact_tampering(artifact_dir: Path) -> str | None:
@@ -120,11 +126,13 @@ class _StructuredResult(unittest.TestResult):
 
 
 def _run_worker(artifact_dir: Path, at_dir: Path, report_fd: int) -> int:
-    # Adiciona /artifact ao FINAL de sys.path (após stdlib) para impedir sombreamento.
+    # Fail-closed: bloqueia ptrace e acesso a /proc/<worker_pid>/mem e /fd por filhos.
+    _disable_dumpable()
+
     artifact_str = str(artifact_dir.resolve())
     at_str = str(at_dir.resolve())
-    if artifact_str not in sys.path:
-        sys.path.append(artifact_str)
+    # B4.3 / F-04: nunca adiciona /artifact ao sys.path do worker; ATs exercitam o artefato
+    # pela interface pública (subprocesso/CLI/HTTP) via UDH_ARTIFACT_DIR.
     if at_str not in sys.path:
         sys.path.append(at_str)
 

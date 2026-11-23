@@ -243,6 +243,7 @@ class PiAdapter:
                 and container_res.returncode == 0
                 and config_integrity_ok
                 and not bridge_error
+                and parsed['malformed_lines'] == 0
                 and parsed['assistant_finals_count'] > 0
                 and parsed['last_stop_reason'] == 'stop'
                 and not parsed['has_error_event']
@@ -254,6 +255,8 @@ class PiAdapter:
                 reason_code = 'BRIDGE_START_FAILED'
             elif container_res.outcome is not None:
                 reason_code = f'CONTAINER_{container_res.outcome}'
+            elif parsed['malformed_lines'] > 0:
+                reason_code = 'AGENT_MALFORMED_STREAM'
             elif parsed['has_error_event'] or parsed['last_stop_reason'] in ('error', 'aborted'):
                 reason_code = 'AGENT_STREAM_INTERRUPTED'
             elif container_res.returncode != 0:
