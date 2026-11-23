@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "stack_profile": "python3-stdlib-v1",
+  "image_repository": "localhost/udh-runtime",
+  "image_tag": "change2",
+  "image_digest": "sha256:ebe42ea9fc944d145e5d44c150de7e88407aa970ac6ddddc9e2bebf35b678111",
+  "image_ref": "localhost/udh-runtime@sha256:ebe42ea9fc944d145e5d44c150de7e88407aa970ac6ddddc9e2bebf35b678111",
+  "pi_version": "1.2.0",
+  "pi_entrypoint": "/opt/pi/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+  "node_bin": "/opt/udh/bin/node",
+  "bridge_path": "/opt/udh/bridge.mjs",
+  "at_runner_path": "/opt/udh/at_runner.py",
+  "bridge_sha256": "af541261db23e22ad0ad49ca52335b2b12d2770672ea99f480c38d407f37cd74",
+  "at_runner_sha256": "023c6485f2b3ebddc713e61e175d6825ea2ccb2c029092ec7c5f841a5f048e36",
+  "smoke_verified": {
+    "python_stdlib": "PY_STDLIB_OK",
+    "pi_version": "1.2.0"
+  }
+}

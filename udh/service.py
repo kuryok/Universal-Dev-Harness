@@ -50,9 +50,47 @@ class CoreService:
     def show(self, run_id: str) -> Run:
         return self.store.get(require_run_id(run_id))
 
-    def policy(self, run_id: str, action: str, *, preflight_status: str | None = None) -> dict:
+    def policy(
+        self,
+        run_id: str,
+        action: str,
+        *,
+        preflight_status: str | None = None,
+        conformant_adapters: tuple[str, ...] | list[str] = (),
+        adapter: str = 'pi',
+    ) -> dict:
         require_text(action, 'Ação da política')
-        return evaluate(self.show(run_id), action, preflight_status=preflight_status)
+        return evaluate(
+            self.show(run_id),
+            action,
+            preflight_status=preflight_status,
+            conformant_adapters=conformant_adapters,
+            adapter=adapter,
+        )
+
+    def authorize_agent_execution(
+        self,
+        run_id: str,
+        *,
+        store_dir=None,
+        adapter: str = 'pi',
+        env_probes=None,
+        manifest_path=None,
+    ) -> dict:
+        report = self.doctor(
+            store_dir=store_dir,
+            env_probes=env_probes,
+            manifest_path=manifest_path,
+        )
+        rt_check = next((c for c in report['checks'] if c['id'] == 'runtime_components'), {})
+        adapters = tuple(rt_check.get('details', {}).get('conformant_adapters', ()))
+        return self.policy(
+            run_id,
+            'EXECUTE_AGENT',
+            preflight_status=report['overall_status'],
+            conformant_adapters=adapters,
+            adapter=adapter,
+        )
 
     def migrate(self, target=2, *, context=None) -> dict:
         if type(target) is int and target == 4:
@@ -159,5 +197,11 @@ class CoreService:
         return self.store.record_checkpoint_v4(request, checkpoint_id=str(uuid4()), created_at=_utc_now())
 
     @staticmethod
-    def doctor(*, db_path=None, env_probes=None) -> dict:
-        return run_doctor(db_path=db_path, env_probes=env_probes)
+    def doctor(*, db_path=None, env_probes=None, store_dir=None, run_conformance: bool = False, manifest_path=None) -> dict:
+        return run_doctor(
+            db_path=db_path,
+            env_probes=env_probes,
+            store_dir=store_dir,
+            run_conformance=run_conformance,
+            manifest_path=manifest_path,
+        )

@@ -39,6 +39,7 @@ _V2_POLICY_SPEC = {
             'not_in_progress': {'decision': 'DENY', 'reason_code': 'RUN_NOT_IN_PROGRESS'},
             'unknown_pendency': {'decision': 'DENY', 'reason_code': 'UNKNOWN_PENDENCY_ACTIVE'},
             'preflight_not_ready': {'decision': 'DENY', 'reason_code': 'PREFLIGHT_NOT_READY'},
+            'authorized': {'decision': 'ALLOW', 'reason_code': 'AGENT_EXECUTION_AUTHORIZED'},
             'default': {'decision': 'DENY', 'reason_code': 'GATEWAY_AND_ADAPTER_NOT_READY'},
         },
         'ACCEPT_ARTIFACT': {
@@ -59,7 +60,19 @@ def _v2_digest() -> str:
         allow_nan=False).encode('utf-8')).hexdigest()
 
 
-def _evaluate_v2(run: Run, action: str, *, preflight_status: str | None = None) -> dict:
+def policy_v2_sha256() -> str:
+    """Retorna o digest SHA-256 canônico da Política determinística v2."""
+    return _v2_digest()
+
+
+def _evaluate_v2(
+    run: Run,
+    action: str,
+    *,
+    preflight_status: str | None = None,
+    conformant_adapters: tuple[str, ...] | list[str] = (),
+    adapter: str = 'pi',
+) -> dict:
     has_unknown = run.has_unknown_pendencies
     if action == 'READ_RUN':
         decision, code, message, next_action = (
@@ -105,11 +118,17 @@ def _evaluate_v2(run: Run, action: str, *, preflight_status: str | None = None) 
                 'O preflight do ambiente retornou NOT_READY.',
                 'Execute python3 -m udh doctor e resolva os pré-requisitos ausentes.',
             )
+        elif preflight_status in ('READY', 'READY_WITH_LIMITS') and adapter in conformant_adapters:
+            decision, code, message, next_action = (
+                'ALLOW', 'AGENT_EXECUTION_AUTHORIZED',
+                f'Execução do adaptador {adapter} autorizada em runtime rootless conforme.',
+                'Inicie a execução isolada do agente pelo Runtime Manager com gateway mediado.',
+            )
         else:
             decision, code, message, next_action = (
                 'DENY', 'GATEWAY_AND_ADAPTER_NOT_READY',
-                'Runtime Manager, Gateway de inferência e adaptador Pi 1.2.0 ainda não estão integrados.',
-                'Conclua e aprove o Change 2 (runtime rootless, gateway e adaptador Pi 1.2.0).',
+                'Nenhum adaptador conforme verificado está pronto para esta execução.',
+                'Execute python3 -m udh doctor --conformance para validar imagem OCI, gateway e adaptador.',
             )
     elif action == 'ACCEPT_ARTIFACT':
         if run.state != 'IN_PROGRESS':
@@ -155,11 +174,23 @@ def _evaluate_v2(run: Run, action: str, *, preflight_status: str | None = None) 
     )
 
 
-def evaluate(run: Run, action: str, *, preflight_status: str | None = None) -> dict:
+def evaluate(
+    run: Run,
+    action: str,
+    *,
+    preflight_status: str | None = None,
+    conformant_adapters: tuple[str, ...] | list[str] = (),
+    adapter: str = 'pi',
+) -> dict:
     """Avalia fatos do domínio; v1 congelada em bancos v1–v3, v2 em bancos v4."""
     require_text(action, 'Ação da política')
     if run.schema_version == 4:
-        return _evaluate_v2(run, action, preflight_status=preflight_status)
+        return _evaluate_v2(
+            run, action,
+            preflight_status=preflight_status,
+            conformant_adapters=conformant_adapters,
+            adapter=adapter,
+        )
     body = {'version': POLICY_VERSION,
             'rules': {name: {'decision': rule[0], 'reason_code': rule[1]}
                       for name, rule in _RULES.items()},

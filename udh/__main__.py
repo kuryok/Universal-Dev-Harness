@@ -39,6 +39,8 @@ def parser() -> Parser:
         group.add_argument('-h', '--help', action='help', help='mostrar esta ajuda e sair')
         if command == 'doctor':
             group.add_argument('--db', required=False, default=None, help='caminho opcional do banco SQLite para auditoria profunda')
+            group.add_argument('--store', required=False, default=None, help='caminho opcional da TrustStore para cache/conformance')
+            group.add_argument('--conformance', action='store_true', help='executar prova real de conformance do adaptador Pi 1.2.0')
         else:
             group.add_argument('--db', required=True, help='caminho do banco SQLite')
         if command == 'init':
@@ -65,7 +67,11 @@ def main(argv=None) -> int:
         arguments.error('Ação da política vazia')
     try:
         if args.command == 'doctor':
-            payload = CoreService.doctor(db_path=args.db)
+            payload = CoreService.doctor(
+                db_path=args.db,
+                store_dir=args.store,
+                run_conformance=args.conformance,
+            )
             print(json.dumps(payload, ensure_ascii=False))
             return 3 if payload['overall_status'] == 'NOT_READY' else 0
         core = CoreService(SQLiteStore(args.db))
