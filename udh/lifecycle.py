@@ -10,6 +10,7 @@ from .domain import (
     VALID_COLLECTOR_ROUTES,
     VALID_EVIDENCE_KINDS,
     VALID_EVIDENCE_VERDICTS,
+    strict_json_loads,
 )
 from .service import CoreService
 from .store import SQLiteStore
@@ -17,10 +18,7 @@ from .transitions import ConflictError
 
 
 def _parse_json_list_arg(raw: str, field: str) -> tuple:
-    try:
-        parsed = json.loads(raw)
-    except ValueError as error:
-        raise CoreError(f'{field} deve conter uma lista JSON válida.') from error
+    parsed = strict_json_loads(raw, field)
     if not isinstance(parsed, list):
         raise CoreError(f'{field} deve ser uma lista JSON.')
     return tuple(parsed)

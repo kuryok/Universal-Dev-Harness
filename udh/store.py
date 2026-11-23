@@ -15,6 +15,7 @@ from .domain import (
     Transition,
     UnblockedEvent,
     require_run_id,
+    strict_json_loads,
 )
 from . import migrations
 from .transitions import ConflictError
@@ -147,12 +148,7 @@ class SQLiteStore:
 
     @staticmethod
     def _parse_json_list(raw: str, field: str) -> tuple:
-        if not isinstance(raw, str):
-            raise CoreError(f'{field} inválido.')
-        try:
-            parsed = json.loads(raw)
-        except ValueError as error:
-            raise CoreError(f'{field} contém JSON inválido.') from error
+        parsed = strict_json_loads(raw, field)
         if not isinstance(parsed, list):
             raise CoreError(f'{field} deve ser uma lista JSON.')
         return tuple(parsed)
@@ -161,12 +157,7 @@ class SQLiteStore:
     def _parse_legacy_meta(raw: str | None) -> dict | None:
         if raw is None:
             return None
-        if not isinstance(raw, str):
-            raise CoreError('Metadados legados inválidos.')
-        try:
-            parsed = json.loads(raw)
-        except ValueError as error:
-            raise CoreError('Metadados legados contêm JSON inválido.') from error
+        parsed = strict_json_loads(raw, 'Metadados legados')
         if not isinstance(parsed, dict):
             raise CoreError('Metadados legados devem ser objeto JSON.')
         return parsed
@@ -373,7 +364,7 @@ class SQLiteStore:
                         if (existing['spec_id'], existing['spec_version'], existing['ticket_id'], existing['mode']) != (
                             spec_id, spec_version, ticket_id, effective_mode,
                         ):
-                            raise CoreError('Requisição já utilizada com outra referência de especificação ou metadados.')
+                            raise ConflictError('Requisição já utilizada com outra referência de especificação ou metadados.')
                         result = self._load_v4(connection, existing['id'])
                     else:
                         connection.execute(
@@ -739,12 +730,15 @@ class SQLiteStore:
                 raise
 
     def record_checkpoint_v4(self, request, *, checkpoint_id: str, created_at: str) -> dict:
-        ev_json = json.dumps(list(request.evidence_hashes), sort_keys=True, separators=(',', ':'),
-                             ensure_ascii=False, allow_nan=False)
-        ext_json = json.dumps(list(request.external_idempotency_keys), sort_keys=True, separators=(',', ':'),
-                              ensure_ascii=False, allow_nan=False)
-        unk_json = json.dumps(list(request.unknown_pendencies), sort_keys=True, separators=(',', ':'),
-                              ensure_ascii=False, allow_nan=False)
+        try:
+            ev_json = json.dumps(list(request.evidence_hashes), sort_keys=True, separators=(',', ':'),
+                                 ensure_ascii=False, allow_nan=False)
+            ext_json = json.dumps(list(request.external_idempotency_keys), sort_keys=True, separators=(',', ':'),
+                                  ensure_ascii=False, allow_nan=False)
+            unk_json = json.dumps(list(request.unknown_pendencies), sort_keys=True, separators=(',', ':'),
+                                  ensure_ascii=False, allow_nan=False)
+        except (TypeError, ValueError) as error:
+            raise CoreError('Dados do checkpoint não podem ser serializados em JSON estrito.') from error
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:

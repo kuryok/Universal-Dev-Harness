@@ -13,6 +13,7 @@ from .domain import (
     VALID_EVIDENCE_KINDS,
     VALID_EVIDENCE_VERDICTS,
     require_canonical_uuid,
+    require_checkpoint_lists,
     require_run_id,
     require_sha1,
     require_sha256,
@@ -281,12 +282,11 @@ class CheckpointRequest:
             require_sha1(self.head_commit_sha, 'Commit HEAD')
         if self.worktree_snapshot_sha256 is not None:
             require_sha256(self.worktree_snapshot_sha256, 'Hash do snapshot do worktree')
-        if not isinstance(self.evidence_hashes, tuple):
-            raise CoreError('Lista de hashes de evidência inválida.')
-        if not isinstance(self.external_idempotency_keys, tuple):
-            raise CoreError('Lista de chaves idempotentes externas inválida.')
-        if not isinstance(self.unknown_pendencies, tuple):
-            raise CoreError('Lista de pendências UNKNOWN inválida.')
+        require_checkpoint_lists(
+            self.evidence_hashes,
+            self.external_idempotency_keys,
+            self.unknown_pendencies,
+        )
 
     def check_replay(self, row, *, evidence_hashes_json: str, external_keys_json: str, unknown_json: str):
         expected = (

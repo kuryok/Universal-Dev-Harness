@@ -67,10 +67,10 @@ class V4LedgerTests(unittest.TestCase):
         self.assertEqual(run.ticket_id, 'T-01')
         self.assertEqual(run.mode, 'DEEP')
 
-        # Replay idempotente de create
+        # Replay idempotente de create e conflito explícito em v4
         same = self.service.create('spec-v4', '1.0', 'req-create', ticket_id='T-01', mode='DEEP')
         self.assertEqual(same.to_dict(), run.to_dict())
-        with self.assertRaises(CoreError):
+        with self.assertRaises(ConflictError):
             self.service.create('spec-v4', '1.0', 'req-create', ticket_id='T-02', mode='DEEP')
 
         # Ciclo 1: PENDING/0 -> IN_PROGRESS/1 -> BLOCKED/2 -> PENDING/3
@@ -437,6 +437,72 @@ class V4LedgerTests(unittest.TestCase):
         ])
         self.assertEqual((code, err), (0, ''))
         self.assertEqual(json.loads(out)['to_state'], 'DONE')
+
+    def test_r2_hardening_checkpoint_json_types_nan_and_initial_transition_match(self):
+        self.service.initialize(schema_version=4)
+        run = self.service.create('spec-r2', '1.0', 'req-r2')
+
+        # CLI rejeita NaN / Infinity sem traceback (exit 1)
+        for bad_arg in ('[NaN]', '[Infinity]', '[-Infinity]'):
+            code, out, err = _invoke(lifecycle_cli.main, [
+                'checkpoint', '--db', str(self.db), '--run-id', run.run_id,
+                '--expected-revision', '0', '--request-id', 'cp-nan',
+                '--last-step', 'STEP', '--unknown-pendencies-json', bad_arg,
+            ])
+            self.assertEqual(code, 1)
+            self.assertEqual(out, '')
+            self.assertNotIn('Traceback', err)
+
+        # Service rejeita str, dict, int e itens inválidos em listas de checkpoint
+        for bad_kw in (
+            {'unknown_pendencies': 'pending'},
+            {'unknown_pendencies': {'a': 1}},
+            {'unknown_pendencies': 123},
+            {'unknown_pendencies': ('',)},
+            {'unknown_pendencies': ({},)},
+            {'unknown_pendencies': ({'x': float('nan')},)},
+            {'evidence_hashes': ('not-a-sha256',)},
+            {'external_idempotency_keys': ('   ',)},
+        ):
+            with self.subTest(bad_kw=bad_kw), self.assertRaises(CoreError):
+                self.service.record_checkpoint(run.run_id, 0, 'cp-bad', 'STEP', **bad_kw)
+
+        # Checkpoint válido com objeto JSON em unknown_pendencies funciona
+        cp_ok = self.service.record_checkpoint(
+            run.run_id, 0, 'cp-obj', 'STEP',
+            evidence_hashes=(HASH64_A,),
+            external_idempotency_keys=('ext-1',),
+            unknown_pendencies=({'target': 'github', 'key': 'k1'},),
+        )
+        self.assertEqual(cp_ok['unknown_pendencies'], [{'target': 'github', 'key': 'k1'}])
+
+        # Adulteração de NaN no SQLite é detectada por show e deep_check/doctor
+        con = sqlite3.connect(self.db)
+        try:
+            con.execute('UPDATE "checkpoints" SET unknown_pendencies_json = ? WHERE checkpoint_id = ?',
+                        ('[NaN]', cp_ok['checkpoint_id']))
+            con.commit()
+        finally:
+            con.close()
+        with self.assertRaises(CoreError):
+            self.service.show(run.run_id)
+        with self.assertRaises(CoreError):
+            SQLiteStore(self.db).deep_check()
+
+        # Restaura JSON válido e adultera transitions[0].request_id -> rejeitado pelo leitor e deep_check
+        con = sqlite3.connect(self.db)
+        try:
+            con.execute('UPDATE "checkpoints" SET unknown_pendencies_json = ? WHERE checkpoint_id = ?',
+                        ('[]', cp_ok['checkpoint_id']))
+            con.execute('UPDATE "transitions" SET request_id = ? WHERE run_id = ? AND revision = 0',
+                        ('tampered-req', run.run_id))
+            con.commit()
+        finally:
+            con.close()
+        with self.assertRaises(CoreError):
+            self.service.show(run.run_id)
+        with self.assertRaises(CoreError):
+            SQLiteStore(self.db).deep_check()
 
 
 if __name__ == '__main__':

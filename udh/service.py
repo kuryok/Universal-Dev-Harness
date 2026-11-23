@@ -136,9 +136,16 @@ class CoreService:
                           last_confirmed_step: str, *, base_commit_sha: str | None = None,
                           head_commit_sha: str | None = None,
                           worktree_snapshot_sha256: str | None = None,
-                          evidence_hashes: tuple = (),
-                          external_idempotency_keys: tuple = (),
-                          unknown_pendencies: tuple = ()) -> dict:
+                          evidence_hashes: tuple | list = (),
+                          external_idempotency_keys: tuple | list = (),
+                          unknown_pendencies: tuple | list = ()) -> dict:
+        for value, label in (
+            (evidence_hashes, 'evidence_hashes'),
+            (external_idempotency_keys, 'external_idempotency_keys'),
+            (unknown_pendencies, 'unknown_pendencies'),
+        ):
+            if not isinstance(value, (list, tuple)):
+                raise CoreError(f'{label} deve ser uma lista ou tupla.')
         request = CheckpointRequest(
             run_id=require_canonical_uuid(run_id, 'Identificador da execução'),
             expected_revision=expected_revision, request_id=request_id,

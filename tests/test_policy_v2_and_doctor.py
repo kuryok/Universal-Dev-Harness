@@ -161,6 +161,30 @@ class PolicyV2AndDoctorTests(unittest.TestCase):
         self.assertEqual(report_missing['overall_status'], 'NOT_READY')
         self.assertFalse(missing.exists())
 
+    def test_doctor_podman_probe_handles_null_json_fields_without_traceback(self):
+        from unittest.mock import patch
+        from udh.doctor import _default_podman_probe
+
+        class DummyCompleted:
+            returncode = 0
+            stderr = ''
+
+            def __init__(self, stdout):
+                self.stdout = stdout
+
+        for raw in ('{"host": null, "version": null}', '{"host": {"security": null}, "version": null}', 'null'):
+            with patch('udh.doctor.shutil.which', return_value='/usr/bin/podman'), \
+                    patch('udh.doctor.subprocess.run', return_value=DummyCompleted(raw)):
+                probe = _default_podman_probe()
+            self.assertEqual(probe['available'], True)
+            self.assertEqual(probe['rootless'], False)
+            probes = _healthy_probes()
+            probes['podman'] = probe
+            report = run_doctor(env_probes=probes)
+            self.assertEqual(report['overall_status'], 'NOT_READY')
+            by_id = {c['id']: c for c in report['checks']}
+            self.assertEqual(by_id['podman']['reason_code'], 'PODMAN_ROOTLESS_UNAVAILABLE')
+
     def test_doctor_cli_returns_valid_json_without_traceback(self):
         out, err = io.StringIO(), io.StringIO()
         with redirect_stdout(out), redirect_stderr(err):

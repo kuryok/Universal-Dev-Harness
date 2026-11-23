@@ -1,6 +1,7 @@
 """Dados e invariantes do Core (v1–v4); sem acesso a persistência."""
 from dataclasses import dataclass
 from datetime import datetime
+import json
 import re
 from uuid import UUID
 
@@ -56,6 +57,48 @@ def require_sha1(value: str, field: str) -> str:
     if not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{40}', value):
         raise CoreError(f'{field} deve ser um hash SHA-1 hexadecimal minúsculo.')
     return value
+
+
+def _reject_non_finite(token: str):
+    raise CoreError(f'Constante JSON não finita não é permitida: {token}.')
+
+
+def strict_json_loads(raw: str, field: str):
+    if not isinstance(raw, str):
+        raise CoreError(f'{field} inválido.')
+    try:
+        return json.loads(raw, parse_constant=_reject_non_finite)
+    except CoreError:
+        raise
+    except ValueError as error:
+        raise CoreError(f'{field} contém JSON inválido.') from error
+
+
+def require_checkpoint_lists(evidence_hashes, external_idempotency_keys, unknown_pendencies) -> tuple[tuple, tuple, tuple]:
+    for value, label in (
+        (evidence_hashes, 'Lista de hashes de evidência'),
+        (external_idempotency_keys, 'Lista de chaves idempotentes externas'),
+        (unknown_pendencies, 'Lista de pendências UNKNOWN'),
+    ):
+        if not isinstance(value, tuple):
+            raise CoreError(f'{label} deve ser imutável.')
+    for item in evidence_hashes:
+        require_sha256(item, 'Hash de evidência no checkpoint')
+    for item in external_idempotency_keys:
+        require_text(item, 'Chave idempotente externa no checkpoint')
+    for item in unknown_pendencies:
+        if isinstance(item, str):
+            require_text(item, 'Pendência UNKNOWN no checkpoint')
+        elif isinstance(item, dict):
+            if not item:
+                raise CoreError('Objeto de pendência UNKNOWN no checkpoint não pode ser vazio.')
+            try:
+                json.dumps(item, sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
+            except (TypeError, ValueError) as error:
+                raise CoreError('Objeto de pendência UNKNOWN no checkpoint contém valor inválido para JSON.') from error
+        else:
+            raise CoreError('Pendência UNKNOWN no checkpoint deve ser texto não vazio ou objeto JSON.')
+    return evidence_hashes, external_idempotency_keys, unknown_pendencies
 
 
 def require_timestamp(value: str) -> str:
@@ -214,12 +257,11 @@ class Checkpoint:
             require_sha1(self.head_commit_sha, 'Commit HEAD')
         if self.worktree_snapshot_sha256 is not None:
             require_sha256(self.worktree_snapshot_sha256, 'Hash do snapshot do worktree')
-        if not isinstance(self.evidence_hashes, tuple):
-            raise CoreError('Lista de hashes de evidência deve ser imutável.')
-        if not isinstance(self.external_idempotency_keys, tuple):
-            raise CoreError('Lista de chaves idempotentes externas deve ser imutável.')
-        if not isinstance(self.unknown_pendencies, tuple):
-            raise CoreError('Lista de pendências UNKNOWN deve ser imutável.')
+        require_checkpoint_lists(
+            self.evidence_hashes,
+            self.external_idempotency_keys,
+            self.unknown_pendencies,
+        )
         require_timestamp(self.created_at)
 
     @property
@@ -430,8 +472,9 @@ class Run:
             if transition.revision != idx:
                 raise CoreError('Revisões do ledger v4 devem ser contíguas a partir de 0.')
             if idx == 0:
-                if transition.operation != 'CREATE_RUN' or transition.to_state != 'PENDING':
-                    raise CoreError('Transição inicial v4 deve ser CREATE_RUN.')
+                if (transition.operation != 'CREATE_RUN' or transition.to_state != 'PENDING'
+                        or transition.request_id != self.request_id or transition.created_at != self.created_at):
+                    raise CoreError('Transição inicial v4 deve corresponder exatamente à criação da execução.')
             else:
                 previous = self.events[idx - 1]
                 if transition.sequence <= previous.sequence:

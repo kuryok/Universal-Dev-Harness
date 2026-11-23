@@ -40,9 +40,12 @@ def _default_podman_probe() -> dict:
         info = json.loads(completed.stdout)
     except ValueError:
         return {'available': False, 'binary': binary, 'reason': 'invalid_json'}
-    host = info.get('host', {}) if isinstance(info, dict) else {}
-    security = host.get('security', {}) if isinstance(host, dict) else {}
-    version = info.get('version', {}) if isinstance(info, dict) else {}
+    host = info.get('host') if isinstance(info, dict) else None
+    host = host if isinstance(host, dict) else {}
+    security = host.get('security')
+    security = security if isinstance(security, dict) else {}
+    version = info.get('version') if isinstance(info, dict) else None
+    version = version if isinstance(version, dict) else {}
     return {
         'available': True,
         'binary': binary,
