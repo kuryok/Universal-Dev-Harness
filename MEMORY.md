@@ -13,4 +13,4 @@ Atualizado: 23/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e confe
 ## Cuidados
 - `POC-01`–`POC-04`, `DOC`/`SKILL`/`DISC`/`TICKET` seguem `NOT_RUN`; Core v4 não certifica segurança nem entrega de produto.
 - Não alterar selos `v1`–`v6`, AT protegidos nem `udh/operator.py`; não commitar JSONs crus grandes.
-- Não abrir credenciais nem limpar `spike/slice0/workspace/` sem autorização. Regra em [AGENTS.md](AGENTS.md): atualizar docs ativos de raiz/governança a cada commit. `origin/main` em `5889bce` (docs locais à frente); sem skills globais; commits em português.
+- Não abrir credenciais nem limpar `spike/slice0/workspace/` sem autorização. Regras em [AGENTS.md](AGENTS.md): 1 branch por change (a partir do Change 2, `main` sempre verde) e atualizar docs ativos a cada commit. Sem skills globais; commits em português.

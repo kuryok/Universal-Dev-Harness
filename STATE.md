@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Atualizado: 23/11/2026. Fase: **Change 1 (`v4-state-ledger-and-preflight`) concluído e verificado (`9f84150`; publicado em `origin/main` em `5889bce`, com docs locais atualizados)**; pronto para especificar e executar o **Change 2** (Runtime Manager, Gateway, Pi 1.2.0, Executor F-04 e `POC-01`/`02`/`04`).
+Atualizado: 23/11/2026. Fase: **Change 1 (`v4-state-ledger-and-preflight`) concluído, verificado (`9f84150`) e publicado em `origin/main`**; governança atualizada com política de 1 branch por change + sincronização documental a cada commit. Pronto para abrir a branch do **Change 2** (`feat/change2-vertical-runtime-pi-gateway-poc`).
 
 Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte normativa: [baseline rastreado](Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) + ratificação em [openspec/project.md](openspec/project.md); [v2.5.1](UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md) é nota derivada.
 
