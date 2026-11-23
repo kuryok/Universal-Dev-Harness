@@ -2,8 +2,8 @@
 
 **Tipo:** material editorial de consulta, derivado da arquitetura v2.5; não é revisão normativa nem substitui o baseline.  
 **Fonte normativa:** [baseline rastreado](Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md), incluindo seção0, matrizes e proveniência.  
-**Estado:** preservado como derivado em 27/10/2026, por escolha delegada pelo usuário; sem promoção a nova autoridade. Emenda ADR-018 A continua pendente de aprovação formal; este texto não comprova implementação nem POCs.  
-**Regra de uso:** usar para navegação e consulta; em divergência prevalecem as regras normativas e os changes aprovados no seu escopo. Propostas e divergências exigem avaliação explícita, não substituição silenciosa.
+**Estado:** preservado como derivado; em 23/11/2026, por delegação explícita do usuário registrada em [openspec/project.md](openspec/project.md), B1–B4, a Emenda ADR-018 A e o congelamento arquitetural foram formalmente ratificados no plano de desenho. Este texto não comprova implementação nem POCs (`NOT_RUN`).
+**Regra de uso:** usar para navegação e consulta; em divergência prevalecem o baseline normativo, o registro de ratificação em `openspec/project.md` e os changes aprovados no seu escopo. Propostas e divergências exigem avaliação explícita, não substituição silenciosa.
 
 ## 1. Produto e objetivo
 
@@ -95,9 +95,9 @@ Estas redações são uma apresentação editorial das decisões de desenho; a r
 
 **Precedência do Judge:** durante o MVP prevalece ADR-022 sobre a possibilidade de veto futuro em ADR-019. O Judge atua somente em modo `shadow/advisory`, sem aprovar, vetar nem modificar `ALLOW`/`DENY`.
 
-### Emenda ADR-018 A — aprovação formal pendente
+### Emenda ADR-018 A — ratificada por delegação (23/11/2026)
 
-> **ADR-018 — Emenda aditiva A (PENDENTE DE APROVAÇÃO FORMAL).** Além do gateway de inferência, o Harness Core poderá mediar acessos externos de agentes e de perfis auxiliares exclusivamente por finalidades previstas em política versionada, cada uma com allowlist de destino, direção (leitura ou escrita), limites, autenticação, segregação de credenciais e auditoria. O processo do agente permanece sem acesso arbitrário à rede. Respostas de serviços externos são dados não confiáveis e não alteram permissões nem política. Credenciais de publicação permanecem inacessíveis ao agente implementador (ADR-007). Esta emenda não relaxa nenhuma invariante da ADR-018 original nem de DEF-04; os critérios de teste da A4 e da matriz negativa da POC-01 serão estendidos a cada finalidade.
+> **ADR-018 — Emenda aditiva A (RATIFICADA EM DESENHO — 23/11/2026; VERIFICAÇÃO `NOT_RUN`).** Além do gateway de inferência, o Harness Core poderá mediar acessos externos de agentes e de perfis auxiliares exclusivamente por finalidades previstas em política versionada, cada uma com allowlist de destino, direção (leitura ou escrita), limites, autenticação, segregação de credenciais e auditoria. O processo do agente permanece sem acesso arbitrário à rede. Respostas de serviços externos são dados não confiáveis e não alteram permissões nem política. Credenciais de publicação permanecem inacessíveis ao agente implementador (ADR-007). Esta emenda não relaxa nenhuma invariante da ADR-018 original nem de DEF-04; os critérios de teste da A4 e da matriz negativa da POC-01 serão estendidos a cada finalidade.
 
 ## 4. Fluxo e contratos operacionais
 
@@ -359,7 +359,7 @@ O contexto de REVIEW deve ser reconstruído a partir de dados autoritativos iden
 
 **Ordem de construção:** (0) spike de agente, sandbox e inferência em Linux/WSL2; (1) Core + SQLite + policy + executor/AT; (2) handoff com segundo agente; (3) DISCOVER/OpenSpec/PLAN, skills e artefato/preview; (4) interface e jornada do iniciante; (5) terceiro agente, Memorix, Judge consultivo e extensões DEEP. Cada etapa requer evidências próprias; estágios parciais não são rotulados como produto entregue.
 
-**Pendências de aprovação e execução:** ratificação formal da emenda ADR-018 A e do congelamento; correção real dos exemplos identificados em `security-best-practices`; verificação de integridade e versão das skills incorporadas; POCs fundacionais e testes incrementais; seleção do primeiro agente mediante conformance, não por preferência presumida.
+**Pendências de execução (pós-ratificação de desenho em 23/11/2026):** verificar em integração real o pacote corrigido de `security-best-practices` e a integridade/versão das skills incorporadas; executar POC-01–04 e testes incrementais; validar conformance real do primeiro agente (Pi 1.2.0 recomendado pela Slice 0, pendente de conformance de produto).
 
 ## 12. Escopo e limites
 
@@ -371,8 +371,8 @@ O contexto de REVIEW deve ser reconstruído a partir de dados autoritativos iden
 
 ## 13. Pendências explícitas, sem novas decisões arquiteturais
 
-- **Aprovação:** ratificação formal da emenda ADR-018 A e congelamento do desenho pelo usuário.
-- **Skills:** validar os bytes/versões efetivamente instalados. `security-best-practices` exige correção comprovada dos exemplos de redirecionamento e contenção de caminho antes do uso; nenhum resultado anterior prova que um pacote atualizado foi auditado.
-- **A confirmar em POC:** isolamento real de gateway/CLI, autenticação por assinatura quando aplicável, compatibilidade Linux e WSL2, extração de PDF em processo isolado, migração entre agentes, integridade de AT e evidência oficial.
-- **A detalhar ao implementar:** primeira stack suportada, contratos exatos dos adapters, esquema SQLite, orçamento de execução por ticket e confirmação de experiência no primeiro app.
+- **Governança:** B1–B4, Emenda ADR-018 A e congelamento arquitetural ratificados no desenho por delegação do usuário em 23/11/2026 ([openspec/project.md](openspec/project.md)); sem novas ADRs até concluir POC-01–04.
+- **Skills:** validar os bytes/versões efetivamente instalados no momento da integração. O pacote corrigido de `security-best-practices` registrado na §6 do baseline continua `NOT_RUN` quanto ao carregamento autorizado pelo Core (SKILL-01/02).
+- **A confirmar em POC:** isolamento real de gateway/CLI com contexto de projeto, autenticação por assinatura quando aplicável, compatibilidade Linux e WSL2, extração de PDF em processo isolado, migração entre agentes, integridade de AT e evidência oficial.
+- **A detalhar ao implementar:** primeira stack suportada, contratos exatos dos adapters, ledger SQLite v4 para ciclo completo, orçamento de execução por ticket e confirmação de experiência no primeiro app.
 - **Status factual:** todas as POC-01–04 e DOC/SKILL/DISC/TICKET permanecem `NOT_RUN`; este texto não atesta código produzido nem segurança validada.

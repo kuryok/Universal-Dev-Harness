@@ -2,22 +2,33 @@
 
 ## Autoridade e escopo
 
-O [baseline normativo rastreado](../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) preserva o propósito, invariantes e proveniência. A nota v2.5.1 é derivada para consulta, sem substituí-lo. Aprovações pendentes no baseline continuam pendentes; pareceres de LLM não as ratificam.
+O [baseline normativo rastreado](../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) preserva o propósito (Seção 0), as 28 ADRs, as matrizes e a proveniência. A [nota v2.5.1](../UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md) é derivada para consulta, sem substituí-lo.
 
-O uso de OpenSpec neste repositório é **documental adaptado**: requirements e planos dos incrementos estão em changes aprovados. Não há CLI instalada nem alegação de conformidade com estrutura/validação automática canônica. Este project.md registra o contexto; não declara specs/tasks canônicos criados ou migração para uma ferramenta. Formalização futura não deve reescrever requisitos ou histórico silenciosamente.
+**Ratificação formal por delegação humana (23/11/2026):** com autorização explícita do usuário para alinhar as decisões pendentes ao propósito do produto, ficam formalmente ratificadas no desenho:
+- **Cláusulas B1–B4** (plataforma Linux-first/WSL2 validada e preflight `doctor`, rede/pacotes/MCPs mediados, perfil `artifact`/preview web isolado e testes de aceite protegidos).
+- **Emenda ADR-018 A** (mediação de egress externo pelo Core exclusivamente por finalidades em política versionada, mantendo `network=none` no agente e credenciais de publicação segregadas conforme ADR-007).
+- **Congelamento arquitetural:** nenhuma nova ADR será aberta antes da comprovação prática das POCs fundacionais sobre o fluxo real.
+
+Esta ratificação encerra pendências de **desenho**; não altera o status factual `NOT_RUN` de POC-01–04, DOC-01/02, SKILL-01/02, DISC-01 ou TICKET-01/02, nem constitui certificação de implementação ou segurança.
+
+O uso de OpenSpec neste repositório é **documental adaptado**: requisitos e planos dos incrementos estão em changes aprovados sob `openspec/changes/`. Não há CLI `openspec` instalada nem alegação de validação automática canônica. Formalização futura não deve reescrever requisitos ou histórico silenciosamente.
 
 Antes de implementar: confirmar escopo/arquivos/critério de pronto no change, registrar aprovação humana e verificar o incremento. Mudança de requisito exige delta explícito. Não duplicar requisitos em README, STATE, MEMORY ou diagnósticos externos.
 
-## Engenharia e prioridade atual
+## Engenharia, bootstrap e política de evidências
 
 Um Core determinístico decide o estado; SQLite guarda operação; Git guarda código; evidências e testes oficiais têm requisitos próprios de proteção. Componentes permanecem separados por responsabilidade.
 
-Após as correções da auditoria, o próximo marco é migração/leitura v3 e depois desbloqueio administrativo. O bootstrap não recebe novas funcionalidades até a verificação desse marco; correções de inconsistência/compatibilidade devem ter justificativa e testes. Exportação, AT de transporte e selo7 permanecem pendentes; nenhuma condição de publicação é dispensada. Baixo overhead é parte do propósito, não justificativa para enfraquecer aceite.
+**Diretrizes operacionais alinhadas (23/11/2026):**
+- **Bootstrap congelado:** `bootstrap/slice1/` não recebe novos gates, selos (`v7+`) ou expansões. Os selos `v1–v6` permanecem congelados para regressão do recorte SQLite v1–v3; a verificação oficial do próximo marco migrará para o executor confiável do produto.
+- **Política de evidências no Git:** não commitar relatórios JSON crus de múltiplos megabytes em `openspec/` ou `bootstrap/`. Commitar apenas resumos compactos (`<= 32 KiB`) com hashes/contagens verificáveis e preservar o histórico existente sem reescrevê-lo.
+- **Dívida técnica registrada para v4:** em SQLite v2/v3, `_validate_schema()` executa verificação global do banco para cumprir os AT congelados v5/v6 (`O(N)`). No próximo marco (ledger v4), desacoplar a checagem global (`migrate`/`doctor`) do caminho quente de leitura (`show`/`policy`, `O(1)`), e unificar transições em tabela tipada para evitar reconstrução de tabelas a cada novo estado.
+- **Prioridade — marco vertical de produto:** (1) ledger de transições v4 + otimização de leitura; (2) Runtime Manager rootless + primeiro adaptador real (Pi 1.2.0) + gateway de inferência com contexto real; (3) executar POC-01/02/04 no fluxo real; (4) perfil `artifact`, preview local ("Ver o app") e interface guiada mínima; (5) segundo agente (OpenCode) + POC-03.
 
 ## Estado, segurança e retomada
 
 Consultar [STATE.md](../STATE.md) e [MEMORY.md](../MEMORY.md) para o estado corrente. O baseline é um snapshot de desenho; seus estados históricos não são evidência de execução atual.
 
-POC-01–04 seguem NOT_RUN. Bootstrap e spike não certificam isolamento/segurança do produto, store oficial protegida ou entrega. Não abrir credenciais reais nem alterar o workspace sensível para “limpar” o diagnóstico. Não presumir backup remoto: nenhuma origem foi configurada; isso não prova inexistência de outras cópias.
+POC-01–04 seguem `NOT_RUN`. Bootstrap e spike não certificam isolamento/segurança do produto, store oficial protegida ou entrega. Não abrir credenciais reais nem alterar o workspace sensível do spike sem autorização própria. O repositório remoto `origin` está configurado em `https://github.com/kuryok/Universal-Dev-Harness.git`.
 
-[Alinhamento autorizado](changes/slice1-evidence-storage/alignment.md) e [auditoria reproduzida](changes/slice1-evidence-storage/report-audit.md) registram decisões e limites, sem substituir os contratos funcionais aprovados.
+[Alinhamento de 27/10](changes/slice1-evidence-storage/alignment.md) e [auditoria reproduzida](changes/slice1-evidence-storage/report-audit.md) preservam o registro histórico das correções anteriores.

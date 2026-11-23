@@ -42,11 +42,13 @@ Um sistema local-first que leva uma pessoa que não sabe programar de uma ideia 
 - Se não conseguiu executar algo, escreva "não executado" e explique o motivo.
 - Resultado parcial é resultado válido. Resultado inventado não é.
 
-## Fase atual: fundação da Slice 1
+## Fase atual: fechamento da fundação de estado e marco vertical de produto
 
-A Slice 0 foi encerrada no perfil experimental Linux/API testado. O Core mínimo + SQLite foi implementado e verificado; a Slice 1 permanece em construção. Consulte MEMORY.md para estado, limites e próximo passo. Novos recortes seguem OpenSpec e aprovação antes de implementar. A prioridade é retomar migração/leitura v3 e unblock; bootstrap permanece limitado a correções, sem novos gates ou funcionalidades antes desse marco. Exportação/selo7 continuam pendentes, sem dispensa dos critérios de publicação. POCs de produto NOT_RUN não são substituídas pelos testes sintéticos do bootstrap.
+A Slice 0 foi encerrada no perfil experimental Linux/API testado. O Core SQLite v1–v3 (init/create/show/policy, migração explícita, bloqueio e desbloqueio administrativos) foi implementado; consulte [STATE.md](STATE.md), [MEMORY.md](MEMORY.md) e [openspec/project.md](openspec/project.md) para o estado verificado, decisões ratificadas e próximo passo.
 
-O código da Slice 0 permanece **descartável**, com os limites registrados no relatório. Na Slice 1, siga o recorte aprovado no OpenSpec. Um Core só significa autoridade única, com módulos separados por responsabilidade; não concentrar todo o sistema em um arquivo.
+Novos recortes seguem OpenSpec documental e aprovação antes de implementar. O `bootstrap/slice1/` está congelado (sem novos gates ou selo v7); evidências pesadas não entram em JSON cru no Git. A prioridade passa a ser o **marco vertical de produto**: ledger de transições v4 sem full-scan na leitura, Runtime Manager rootless + primeiro adaptador de agente (Pi 1.2.0) + gateway real e execução das POCs de produto (`POC-01`/`02`/`04`, ainda `NOT_RUN`).
+
+O código da Slice 0 permanece **descartável**, com os limites registrados no relatório. Um Core só significa autoridade única, com módulos separados por responsabilidade; não concentrar todo o sistema em um arquivo.
 
 ## Quando parar e perguntar
 

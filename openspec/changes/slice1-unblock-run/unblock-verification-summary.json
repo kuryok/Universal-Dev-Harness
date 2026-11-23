@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "change": "slice1-unblock-run",
+  "classification": "bootstrap-sealed-at-verification-not-product-delivery",
+  "candidate_ref": "0bd458db0e86dec0fa1dfffed84f3d1a9f877cac",
+  "candidate_hashes": {
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "35c2199d6c990d9e0f02f6250929ae6c1088cd9fb340f04cc930f22fa11c9f8e",
+    "udh/domain.py": "22b34e2142152265ab5d1141560bdcf82968d5c233a2839d6feb8176ce4f4cbf",
+    "udh/migrations.py": "a221d498985f7fdb7b3c226f45dcf4cc1f4188427fa30ddbcbd9c73e923d230c",
+    "udh/operator.py": "a1e2440a385de249a681ac7105d45c8d51e60ddebb23b57314a4bfc696c34d01",
+    "udh/policy.py": "a9e67014098b84f0fe8ad4269190c77c7d94ff7d84ceac8fbded321342906d1b",
+    "udh/service.py": "24bb29c8021724da38cd9c3e57f0255d003f6e176b782d579529842c068433f4",
+    "udh/store.py": "5bf95bfb0b923ebc3fe3ea4a4e4b93ac9a32cb08423bf4ad593baeac36ddad80",
+    "udh/transitions.py": "bc2defbe018aec5072412f264beeab99e7374b19e323a77a66f9ad06720bbaec"
+  },
+  "complementary_tests": {
+    "status": "PASS",
+    "tests_run": 98,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "duration_seconds": 8.971
+  },
+  "independent_review_r2": {
+    "status": "PASS",
+    "context": "separate-readonly-subagent",
+    "conversation_id": "c0184ae1-37ca-48f4-b190-b9ccf062e7ec",
+    "unresolved_findings": [],
+    "prior_findings_resolved": [
+      "udh/store.py:_load rejeita 3o evento em schema v2 independente de PRAGMA quick_check e valida tipo int em expected_revision/authorization_rule_version",
+      "udh/service.py:migrate valida type(target) is int",
+      "commit candidato 0bd458d isolado aos 6 arquivos permitidos pelo contrato"
+    ]
+  },
+  "sealed_acceptance_suites": {
+    "v6_unblock": {
+      "at_version": "sha256:7196e5f4eea1fc78806efcdbd2b1e231446b2632937d5aff69c4f2f8bf0d9b37",
+      "tests_run": 16,
+      "passed": 16,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 439,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "d4bb62a81c39f99b1d6bfba463fc35f2513231e4ca5b98f75c639ec005fd8032",
+      "outcomes": {
+        "UnblockAcceptance.test_r1_legacy_v2_seed_and_replay_preserved": "PASS",
+        "UnblockAcceptance.test_u1_persisted_unblock": "PASS",
+        "UnblockAcceptance.test_u2_adversary_claims_and_substitution": "PASS",
+        "UnblockAcceptance.test_u2_legacy_denial_without_database_access": "PASS",
+        "UnblockAcceptance.test_u3_concurrent_equal_and_distinct": "PASS",
+        "UnblockAcceptance.test_u3_create_key_namespace_and_current_state_replay": "PASS",
+        "UnblockAcceptance.test_u3_replay_conflicts_and_namespaces": "PASS",
+        "UnblockAcceptance.test_u4_historical_replay_and_terminal_cycle": "PASS",
+        "UnblockAcceptance.test_u5_invalid_sources_unchanged": "PASS",
+        "UnblockAcceptance.test_u5_migration_preserves_all_legacy_values": "PASS",
+        "UnblockAcceptance.test_u6_migration_concurrent": "PASS",
+        "UnblockAcceptance.test_u6_migration_each_write_and_commit": "PASS",
+        "UnblockAcceptance.test_u6_unblock_each_write_and_commit": "PASS",
+        "UnblockAcceptance.test_u7_semantically_invalid_journals_refused": "PASS",
+        "UnblockAcceptance.test_u8_common_cli_and_policy_limits": "PASS",
+        "UnblockAcceptance.test_u8_unblock_flags_cannot_grant_targets": "PASS"
+      }
+    },
+    "v5_block": {
+      "at_version": "sha256:182d2ba72a7b5dfb5648e650577dcc3bbbbd67048c72a3bf959406ce7dd89ac6",
+      "tests_run": 13,
+      "passed": 13,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 171,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "f980aab8bf467097821535ddec1ef3d96cba443e7ae5be5abb229f4eecc5880d"
+    },
+    "v2_policy": {
+      "at_version": "sha256:438ce43f70e0137115f2c30920623eabf5bfd042035958951fdaafa151e41f3f",
+      "tests_run": 11,
+      "passed": 11,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 55,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "fa6c2cc629c34191a2a7d6f2634f029f4e1ff91ae630f8751223d28c3a8216df"
+    },
+    "v1_core": {
+      "at_version": "sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704",
+      "tests_run": 10,
+      "passed": 10,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 49,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "826e7f2688b48b0c2ab5dca6ddb158c4063337a141e5ecaaba77c76d91cc617e"
+    }
+  },
+  "not_run": [
+    "I1-I7/T1-T8 (bootstrap congelado; fontes de bootstrap não alteradas neste incremento)",
+    "POC-01 a POC-04",
+    "DOC-01/02, SKILL-01/02, DISC-01, TICKET-01/02",
+    "CLI OpenSpec (ausente)",
+    "tools/harness.py fast/full (ausente)"
+  ],
+  "limits": [
+    "Evidência de bootstrap no host local; não certifica store oficial protegida contra proprietário do host.",
+    "Unblock retira pausa administrativa (BLOCKED/1 -> PENDING/2); não executa agentes nem certifica entrega."
+  ]
+}
