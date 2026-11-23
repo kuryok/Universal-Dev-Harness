@@ -42,11 +42,11 @@ Um sistema local-first que leva uma pessoa que não sabe programar de uma ideia 
 - Se não conseguiu executar algo, escreva "não executado" e explique o motivo.
 - Resultado parcial é resultado válido. Resultado inventado não é.
 
-## Fase atual: fechamento da fundação de estado e marco vertical de produto
+## Fase atual: fundação SQLite v4 concluída e Change 2 do marco vertical de produto
 
-A Slice 0 foi encerrada no perfil experimental Linux/API testado. O Core SQLite v1–v3 (init/create/show/policy, migração explícita, bloqueio e desbloqueio administrativos) foi implementado; consulte [STATE.md](STATE.md), [MEMORY.md](MEMORY.md) e [openspec/project.md](openspec/project.md) para o estado verificado, decisões ratificadas e próximo passo.
+A Slice 0 foi encerrada no perfil experimental Linux/API testado. O Core SQLite v1–v4 (ledger unificado de transições, leitura `O(1)` em v4, checkpoints F-03, política v2 e preflight `doctor`, preservando regressão dos 50 AT selados `v1–v6`) foi concluído e verificado; consulte [STATE.md](STATE.md), [MEMORY.md](MEMORY.md) e [openspec/project.md](openspec/project.md) para o estado verificado, decisões ratificadas e próximo passo.
 
-Novos recortes seguem OpenSpec documental e aprovação antes de implementar. O `bootstrap/slice1/` está congelado (sem novos gates ou selo v7); evidências pesadas não entram em JSON cru no Git. A prioridade passa a ser o **marco vertical de produto**: ledger de transições v4 sem full-scan na leitura, Runtime Manager rootless + primeiro adaptador de agente (Pi 1.2.0) + gateway real e execução das POCs de produto (`POC-01`/`02`/`04`, ainda `NOT_RUN`).
+Novos recortes seguem OpenSpec documental e aprovação antes de implementar. O `bootstrap/slice1/` está congelado (sem novos gates ou selo v7); evidências pesadas não entram em JSON cru no Git. A prioridade imediata é o **Change 2 do marco vertical de produto**: Runtime Manager rootless com imagem OCI dedicada por digest + Gateway de inferência stdlib endurecido + primeiro adaptador de agente (Pi 1.2.0) + Executor Confiável F-04 e execução das POCs de produto (`POC-01`/`02`/`04`, ainda `NOT_RUN`).
 
 O código da Slice 0 permanece **descartável**, com os limites registrados no relatório. Um Core só significa autoridade única, com módulos separados por responsabilidade; não concentrar todo o sistema em um arquivo.
 

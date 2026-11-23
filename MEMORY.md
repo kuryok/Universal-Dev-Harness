@@ -13,4 +13,4 @@ Atualizado: 23/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e confe
 ## Cuidados
 - `POC-01`–`POC-04`, `DOC`/`SKILL`/`DISC`/`TICKET` seguem `NOT_RUN`; Core v4 não certifica segurança nem entrega de produto.
 - Não alterar selos `v1`–`v6`, AT protegidos nem `udh/operator.py`; não commitar JSONs crus grandes.
-- Não abrir credenciais nem limpar `spike/slice0/workspace/` sem autorização. Commits locais prontos para `git push` quando o usuário autorizar.
+- Não abrir credenciais nem limpar `spike/slice0/workspace/` sem autorização. Sincronizado com `origin/main` (`5889bce`); sem skills globais; commits em português.
