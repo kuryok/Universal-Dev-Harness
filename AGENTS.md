@@ -28,6 +28,7 @@ Um sistema local-first que leva uma pessoa que não sabe programar de uma ideia 
 - Faça a menor mudança que cumpre a tarefa. Sem abstrações para o futuro, sem dependências novas sem aprovação.
 - Prefira a biblioteca padrão. Qualquer dependência nova precisa de justificativa, versão fixa e aprovação.
 - Ao terminar, faça commit pequeno e descreva o que mudou e o que **não** foi feito.
+- **Sincronização obrigatória de documentação a cada commit:** antes de commitar mudanças de código, fase ou governança, atualize os arquivos ativos de raiz e governança (`STATE.md`, `MEMORY.md`, `README.md`, `AGENTS.md`, `openspec/project.md` e, quando afetada, `UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md`) para refletir o estado real — mantendo intocados o baseline normativo e registros históricos (`relatorio.md`, `SPIKE-SLICE0-*.md`). Quando um change OpenSpec exigir commit candidato isolado apenas aos arquivos permitidos de código/teste, sincronize esses documentos imediatamente no commit de fechamento da mesma entrega.
 
 ## Formato do relatório de cada tarefa
 
