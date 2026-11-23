@@ -8,7 +8,8 @@ Atualizado: 23/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e confe
 - Governança ratificada em [openspec/project.md](openspec/project.md) (B1–B4, Emenda ADR-018 A, congelamento arquitetural, `bootstrap/slice1/` congelado, resumos `<= 32 KiB`).
 
 ## Próximo passo
-- Especificar o OpenSpec do **Change 2 (`vertical-runtime-pi-gateway-poc`)** já alinhado no `/grill-me`: Runtime Manager rootless com imagem OCI dedicada por digest (Node + Pi 1.2.0 + Python 3 stdlib), Gateway stdlib endurecido (dublê + OpenRouter `:free`), adaptador Pi 1.2.0, store protegida + Executor F-04 e `POC-01`/`02`/`04`.
+- Branch ativa: `feat/change2-vertical-runtime-pi-gateway-poc` (`main` preservada em `df96201`).
+- Revisar e aprovar o contrato OpenSpec do **Change 2** ([proposal.md](openspec/changes/vertical-runtime-pi-gateway-poc/proposal.md), [design.md](openspec/changes/vertical-runtime-pi-gateway-poc/design.md), [tasks.md](openspec/changes/vertical-runtime-pi-gateway-poc/tasks.md)) antes de iniciar **T1** (imagem OCI dedicada por digest + Runtime Manager + Gateway + Pi 1.2.0 + Executor F-04 + `POC-01`/`02`/`04`).
 
 ## Cuidados
 - `POC-01`–`POC-04`, `DOC`/`SKILL`/`DISC`/`TICKET` seguem `NOT_RUN`; Core v4 não certifica segurança nem entrega de produto.

@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Atualizado: 23/11/2026. Fase: **Change 1 (`v4-state-ledger-and-preflight`) concluído, verificado (`9f84150`) e publicado em `origin/main`**; governança atualizada com política de 1 branch por change + sincronização documental a cada commit. Pronto para abrir a branch do **Change 2** (`feat/change2-vertical-runtime-pi-gateway-poc`).
+Atualizado: 23/11/2026. Fase: **Change 1 (`v4-state-ledger-and-preflight`) concluído em `main` (`9f84150`/`df96201`)**; branch dedicada **`feat/change2-vertical-runtime-pi-gateway-poc`** aberta com a especificação OpenSpec do **Change 2** pronta para aprovação humana antes de implementar.
 
 Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte normativa: [baseline rastreado](Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) + ratificação em [openspec/project.md](openspec/project.md); [v2.5.1](UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md) é nota derivada.
 
@@ -17,7 +17,7 @@ Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte no
 
 ## Próxima tarefa
 
-Especificar o OpenSpec do **Change 2 (`vertical-runtime-pi-gateway-poc`)** conforme decisões já alinhadas no `/grill-me` (imagem OCI local por digest, Gateway stdlib endurecido, stack Python 3 stdlib, store protegida + Executor F-04) para aprovação antes de implementar.
+Obter aprovação humana do contrato OpenSpec do **Change 2 (`vertical-runtime-pi-gateway-poc`)** em [proposal.md](openspec/changes/vertical-runtime-pi-gateway-poc/proposal.md), [design.md](openspec/changes/vertical-runtime-pi-gateway-poc/design.md) e [tasks.md](openspec/changes/vertical-runtime-pi-gateway-poc/tasks.md), registrar aprovação na branch `feat/change2-vertical-runtime-pi-gateway-poc` e iniciar **T1** (imagem OCI local por digest).
 
 ## Verificação
 
