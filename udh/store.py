@@ -1,10 +1,21 @@
-"""Persistência transacional do estado mínimo do Core em SQLite."""
+"""Persistência transacional do Core em SQLite (v1–v4)."""
 
 from contextlib import contextmanager
+import json
 from pathlib import Path
 import sqlite3
 
-from .domain import CoreError, Event, BlockedEvent, UnblockedEvent, Run, require_run_id
+from .domain import (
+    BlockedEvent,
+    Checkpoint,
+    CoreError,
+    Event,
+    EvidenceRef,
+    Run,
+    Transition,
+    UnblockedEvent,
+    require_run_id,
+)
 from . import migrations
 from .transitions import ConflictError
 
@@ -71,6 +82,9 @@ class SQLiteStore:
     @staticmethod
     def _validate_schema(connection: sqlite3.Connection, *, v1_only=False) -> int:
         version = connection.execute('PRAGMA user_version').fetchone()[0]
+        if version == 4 and not v1_only:
+            migrations.validate_schema_v4(connection)
+            return 4
         if version in (2, 3) and not v1_only:
             migrations.validate_schema(connection, version)
             migrations.check_integrity(connection, SQLiteStore, version)
@@ -101,28 +115,167 @@ class SQLiteStore:
     def migrate_v3(self) -> dict:
         return migrations.migrate_v3(self)
 
-    def initialize(self) -> int:
+    def migrate_v4(self) -> dict:
+        return migrations.migrate_v4(self)
+
+    def initialize(self, *, schema_version: int = 1) -> int:
+        if type(schema_version) is not int or schema_version not in (1, 4):
+            raise CoreError('Versão de inicialização inválida; use 1 ou 4.')
         with self._connection('rwc') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
                 version = connection.execute('PRAGMA user_version').fetchone()[0]
                 objects = connection.execute('SELECT name FROM sqlite_master').fetchall()
                 if version == 0 and not objects:
-                    connection.execute(_RUNS_SQL)
-                    connection.execute(_EVENTS_SQL)
-                    connection.execute('PRAGMA user_version = 1')
-                else:
+                    if schema_version == 1:
+                        connection.execute(_RUNS_SQL)
+                        connection.execute(_EVENTS_SQL)
+                        connection.execute('PRAGMA user_version = 1')
+                    else:
+                        migrations.init_v4(connection)
+                elif schema_version == 1:
                     self._validate_schema(connection, v1_only=True)
+                else:
+                    if version != 4:
+                        raise CoreError('Banco existente não está na versão v4.')
+                    migrations.validate_schema_v4(connection)
                 connection.commit()
             except BaseException:
                 connection.rollback()
                 raise
-        return 1
+        return schema_version
+
+    @staticmethod
+    def _parse_json_list(raw: str, field: str) -> tuple:
+        if not isinstance(raw, str):
+            raise CoreError(f'{field} inválido.')
+        try:
+            parsed = json.loads(raw)
+        except ValueError as error:
+            raise CoreError(f'{field} contém JSON inválido.') from error
+        if not isinstance(parsed, list):
+            raise CoreError(f'{field} deve ser uma lista JSON.')
+        return tuple(parsed)
+
+    @staticmethod
+    def _parse_legacy_meta(raw: str | None) -> dict | None:
+        if raw is None:
+            return None
+        if not isinstance(raw, str):
+            raise CoreError('Metadados legados inválidos.')
+        try:
+            parsed = json.loads(raw)
+        except ValueError as error:
+            raise CoreError('Metadados legados contêm JSON inválido.') from error
+        if not isinstance(parsed, dict):
+            raise CoreError('Metadados legados devem ser objeto JSON.')
+        return parsed
+
+    @classmethod
+    def _row_to_transition(cls, row) -> Transition:
+        return Transition(
+            sequence=row['sequence'],
+            run_id=row['run_id'],
+            revision=row['revision'],
+            operation=row['operation'],
+            kind=row['kind'],
+            from_state=row['from_state'],
+            to_state=row['to_state'],
+            request_id=row['request_id'],
+            created_at=row['created_at'],
+            actor_route=row['actor_route'],
+            reason=row['reason'],
+            reason_code=row['reason_code'],
+            block_category=row['block_category'],
+            next_action=row['next_action'],
+            authorization_id=row['authorization_id'],
+            evidence_id=row['evidence_id'],
+            legacy_meta=cls._parse_legacy_meta(row['legacy_meta_json']),
+        )
+
+    @staticmethod
+    def _row_to_evidence(row) -> EvidenceRef:
+        return EvidenceRef(
+            evidence_id=row['evidence_id'],
+            run_id=row['run_id'],
+            request_id=row['request_id'],
+            kind=row['kind'],
+            verdict=row['verdict'],
+            artifact_digest=row['artifact_digest'],
+            evidence_sha256=row['evidence_sha256'],
+            at_version=row['at_version'],
+            commit_sha=row['commit_sha'],
+            collector_route=row['collector_route'],
+            summary_ref=row['summary_ref'],
+            created_at=row['created_at'],
+        )
+
+    @classmethod
+    def _row_to_checkpoint(cls, row) -> Checkpoint:
+        return Checkpoint(
+            checkpoint_id=row['checkpoint_id'],
+            run_id=row['run_id'],
+            run_revision=row['run_revision'],
+            request_id=row['request_id'],
+            last_confirmed_step=row['last_confirmed_step'],
+            base_commit_sha=row['base_commit_sha'],
+            head_commit_sha=row['head_commit_sha'],
+            worktree_snapshot_sha256=row['worktree_snapshot_sha256'],
+            evidence_hashes=cls._parse_json_list(row['evidence_hashes_json'], 'evidence_hashes_json'),
+            external_idempotency_keys=cls._parse_json_list(row['external_idempotency_keys_json'], 'external_idempotency_keys_json'),
+            unknown_pendencies=cls._parse_json_list(row['unknown_pendencies_json'], 'unknown_pendencies_json'),
+            created_at=row['created_at'],
+        )
+
+    @classmethod
+    def _load_v4(cls, connection: sqlite3.Connection, run_id: str) -> Run:
+        row = connection.execute('SELECT * FROM "runs" WHERE id = ?', (run_id,)).fetchone()
+        if row is None:
+            raise CoreError('Execução não encontrada.')
+        transitions = tuple(
+            cls._row_to_transition(item)
+            for item in connection.execute(
+                'SELECT * FROM "transitions" WHERE run_id = ? ORDER BY revision',
+                (run_id,),
+            ).fetchall()
+        )
+        evidence_refs = tuple(
+            cls._row_to_evidence(item)
+            for item in connection.execute(
+                'SELECT * FROM "evidence_refs" WHERE run_id = ? ORDER BY created_at, evidence_id',
+                (run_id,),
+            ).fetchall()
+        )
+        checkpoints = tuple(
+            cls._row_to_checkpoint(item)
+            for item in connection.execute(
+                'SELECT * FROM "checkpoints" WHERE run_id = ? ORDER BY run_revision, created_at, checkpoint_id',
+                (run_id,),
+            ).fetchall()
+        )
+        return Run(
+            run_id=row['id'],
+            request_id=row['request_id'],
+            spec_id=row['spec_id'],
+            spec_version=row['spec_version'],
+            state=row['state'],
+            created_at=row['created_at'],
+            events=transitions,
+            schema_version=4,
+            revision=row['revision'],
+            ticket_id=row['ticket_id'],
+            mode=row['mode'],
+            updated_at=row['updated_at'],
+            evidence_refs=evidence_refs,
+            checkpoints=checkpoints,
+        )
 
     @staticmethod
     def _load(connection: sqlite3.Connection, run_id: str, *, version=None) -> Run:
         if version is None:
             version = connection.execute('PRAGMA user_version').fetchone()[0]
+        if version == 4:
+            return SQLiteStore._load_v4(connection, run_id)
         row = connection.execute('SELECT * FROM runs WHERE id = ?', (run_id,)).fetchone()
         if row is None:
             raise CoreError('Execução não encontrada.')
@@ -181,31 +334,59 @@ class SQLiteStore:
         )
 
     def create(self, *, run_id: str, request_id: str, spec_id: str,
-               spec_version: str, created_at: str) -> Run:
+               spec_version: str, created_at: str,
+               ticket_id: str | None = None, mode: str | None = None) -> Run:
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
                 version = self._validate_schema(connection)
-                existing = connection.execute(
-                    'SELECT id, spec_id, spec_version FROM runs WHERE request_id = ?',
-                    (request_id,),
-                ).fetchone()
-                if existing is not None:
-                    if (existing['spec_id'], existing['spec_version']) != (spec_id, spec_version):
-                        raise CoreError('Requisição já utilizada com outra referência de especificação.')
-                    result = self._load(connection, existing['id'])
+                if version in (1, 2, 3):
+                    if ticket_id is not None or mode is not None:
+                        raise CoreError('ticket_id e mode exigem banco SQLite v4.')
+                    existing = connection.execute(
+                        'SELECT id, spec_id, spec_version FROM runs WHERE request_id = ?',
+                        (request_id,),
+                    ).fetchone()
+                    if existing is not None:
+                        if (existing['spec_id'], existing['spec_version']) != (spec_id, spec_version):
+                            raise CoreError('Requisição já utilizada com outra referência de especificação.')
+                        result = self._load(connection, existing['id'], version=version)
+                    else:
+                        extra_column, extra_value = (', revision', ', 0') if version in (2, 3) else ('', '')
+                        connection.execute(
+                            f'INSERT INTO runs (id, request_id, spec_id, spec_version, state, created_at{extra_column}) '
+                            f"VALUES (?, ?, ?, ?, 'PENDING', ?{extra_value})",
+                            (run_id, request_id, spec_id, spec_version, created_at),
+                        )
+                        connection.execute(
+                            "INSERT INTO events (run_id, kind, created_at) VALUES (?, 'RUN_CREATED', ?)",
+                            (run_id, created_at),
+                        )
+                        result = self._load(connection, run_id, version=version)
                 else:
-                    extra_column, extra_value = (', revision', ', 0') if version in (2, 3) else ('', '')
-                    connection.execute(
-                        f'INSERT INTO runs (id, request_id, spec_id, spec_version, state, created_at{extra_column}) '
-                        f"VALUES (?, ?, ?, ?, 'PENDING', ?{extra_value})",
-                        (run_id, request_id, spec_id, spec_version, created_at),
-                    )
-                    connection.execute(
-                        "INSERT INTO events (run_id, kind, created_at) VALUES (?, 'RUN_CREATED', ?)",
-                        (run_id, created_at),
-                    )
-                    result = self._load(connection, run_id)
+                    effective_mode = mode if mode is not None else 'STANDARD'
+                    existing = connection.execute(
+                        'SELECT id, spec_id, spec_version, ticket_id, mode FROM "runs" WHERE request_id = ?',
+                        (request_id,),
+                    ).fetchone()
+                    if existing is not None:
+                        if (existing['spec_id'], existing['spec_version'], existing['ticket_id'], existing['mode']) != (
+                            spec_id, spec_version, ticket_id, effective_mode,
+                        ):
+                            raise CoreError('Requisição já utilizada com outra referência de especificação ou metadados.')
+                        result = self._load_v4(connection, existing['id'])
+                    else:
+                        connection.execute(
+                            'INSERT INTO "runs" (id, request_id, spec_id, spec_version, ticket_id, mode, state, created_at, updated_at, revision) '
+                            "VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, 0)",
+                            (run_id, request_id, spec_id, spec_version, ticket_id, effective_mode, created_at, created_at),
+                        )
+                        connection.execute(
+                            'INSERT INTO "transitions" (run_id, revision, operation, kind, from_state, to_state, request_id, created_at, actor_route) '
+                            "VALUES (?, 0, 'CREATE_RUN', 'RUN_CREATED', NULL, 'PENDING', ?, ?, 'CORE_LOCAL')",
+                            (run_id, request_id, created_at),
+                        )
+                        result = self._load_v4(connection, run_id)
                 connection.commit()
             except BaseException:
                 connection.rollback()
@@ -216,13 +397,42 @@ class SQLiteStore:
         with self._connection('ro') as connection:
             connection.execute('BEGIN')
             try:
-                self._validate_schema(connection)
-                result = self._load(connection, run_id)
+                version = self._validate_schema(connection)
+                result = self._load(connection, run_id, version=version)
                 connection.commit()
             except BaseException:
                 connection.rollback()
                 raise
         return result
+
+    def deep_check(self) -> dict:
+        with self._connection('ro') as connection:
+            connection.execute('BEGIN')
+            try:
+                version = connection.execute('PRAGMA user_version').fetchone()[0]
+                if version == 1:
+                    self._validate_schema(connection, v1_only=True)
+                    migrations.check_integrity(connection, SQLiteStore, 1)
+                    runs_checked = connection.execute('SELECT count(*) FROM runs').fetchone()[0]
+                elif version in (2, 3):
+                    migrations.validate_schema(connection, version)
+                    migrations.check_integrity(connection, SQLiteStore, version)
+                    runs_checked = connection.execute('SELECT count(*) FROM "runs"').fetchone()[0]
+                elif version == 4:
+                    migrations.validate_schema_v4(connection)
+                    runs_checked = migrations.check_integrity_v4(connection, SQLiteStore)
+                else:
+                    raise CoreError('Banco não inicializado ou versão do esquema incompatível.')
+                connection.commit()
+                return {
+                    'schema_version': version,
+                    'runs_checked': runs_checked,
+                    'quick_check': 'ok',
+                    'foreign_key_check': 'ok',
+                }
+            except BaseException:
+                connection.rollback()
+                raise
 
     def block(self, request, *, created_at, authorization_id, context):
         with self._connection('rw') as connection:
@@ -320,6 +530,255 @@ class SQLiteStore:
                     authorization_id=unblocked.authorization_id)
                 connection.commit()
                 return result
+            except BaseException:
+                connection.rollback()
+                raise
+
+    def start_v4(self, request, *, created_at: str) -> dict:
+        with self._connection('rw') as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            try:
+                if self._validate_schema(connection) != 4:
+                    raise CoreError('Operação start exige banco SQLite v4.')
+                existing = connection.execute(
+                    'SELECT * FROM "transitions" WHERE operation = ? AND request_id = ?',
+                    ('START_RUN', request.request_id),
+                ).fetchone()
+                if existing is not None:
+                    request.check_replay(run_id=existing['run_id'], revision=existing['revision'],
+                                         actor_route=existing['actor_route'])
+                    self._load_v4(connection, existing['run_id'])
+                    stored = self._row_to_transition(existing)
+                else:
+                    current = self._load_v4(connection, request.run_id)
+                    request.check_state(current)
+                    next_rev = current.revision + 1
+                    connection.execute(
+                        'INSERT INTO "transitions" (run_id, revision, operation, kind, from_state, to_state, '
+                        'request_id, created_at, actor_route) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (request.run_id, next_rev, 'START_RUN', 'RUN_STARTED', 'PENDING', 'IN_PROGRESS',
+                         request.request_id, created_at, request.actor_route),
+                    )
+                    changed = connection.execute(
+                        'UPDATE "runs" SET state = ?, revision = ?, updated_at = ? WHERE id = ? AND state = ? AND revision = ?',
+                        ('IN_PROGRESS', next_rev, created_at, request.run_id, 'PENDING', request.expected_revision),
+                    ).rowcount
+                    if changed != 1:
+                        raise ConflictError('Execução mudou antes da confirmação do início.')
+                    run = self._load_v4(connection, request.run_id)
+                    stored = run.events[-1]
+                connection.commit()
+                return {**stored.to_dict(), 'schema_version': 4}
+            except BaseException:
+                connection.rollback()
+                raise
+
+    def block_v4(self, request, *, created_at: str, authorization_id: str) -> dict:
+        with self._connection('rw') as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            try:
+                if self._validate_schema(connection) != 4:
+                    raise CoreError('Operação block v4 exige banco SQLite v4.')
+                existing = connection.execute(
+                    'SELECT * FROM "transitions" WHERE operation = ? AND request_id = ?',
+                    ('BLOCK_RUN', request.request_id),
+                ).fetchone()
+                if existing is not None:
+                    request.check_replay(
+                        run_id=existing['run_id'], revision=existing['revision'],
+                        category=existing['block_category'], reason_code=existing['reason_code'],
+                        reason=existing['reason'], next_action=existing['next_action'],
+                        actor_route=existing['actor_route'],
+                    )
+                    self._load_v4(connection, existing['run_id'])
+                    stored = self._row_to_transition(existing)
+                else:
+                    current = self._load_v4(connection, request.run_id)
+                    request.check_state(current)
+                    next_rev = current.revision + 1
+                    connection.execute(
+                        'INSERT INTO "transitions" (run_id, revision, operation, kind, from_state, to_state, '
+                        'request_id, created_at, reason, reason_code, block_category, next_action, authorization_id, actor_route) '
+                        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (request.run_id, next_rev, 'BLOCK_RUN', 'RUN_BLOCKED', current.state, 'BLOCKED',
+                         request.request_id, created_at, request.reason, request.reason_code,
+                         request.category, request.next_action, authorization_id, request.actor_route),
+                    )
+                    changed = connection.execute(
+                        'UPDATE "runs" SET state = ?, revision = ?, updated_at = ? WHERE id = ? AND state = ? AND revision = ?',
+                        ('BLOCKED', next_rev, created_at, request.run_id, current.state, request.expected_revision),
+                    ).rowcount
+                    if changed != 1:
+                        raise ConflictError('Execução mudou antes da confirmação do bloqueio.')
+                    run = self._load_v4(connection, request.run_id)
+                    stored = run.events[-1]
+                connection.commit()
+                return {**stored.to_dict(), 'schema_version': 4}
+            except BaseException:
+                connection.rollback()
+                raise
+
+    def unblock_v4(self, request, *, created_at: str, authorization_id: str) -> dict:
+        with self._connection('rw') as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            try:
+                if self._validate_schema(connection) != 4:
+                    raise CoreError('Operação unblock v4 exige banco SQLite v4.')
+                existing = connection.execute(
+                    'SELECT * FROM "transitions" WHERE operation = ? AND request_id = ?',
+                    ('UNBLOCK_RUN', request.request_id),
+                ).fetchone()
+                if existing is not None:
+                    request.check_replay(
+                        run_id=existing['run_id'], revision=existing['revision'],
+                        reason=existing['reason'], actor_route=existing['actor_route'],
+                    )
+                    self._load_v4(connection, existing['run_id'])
+                    stored = self._row_to_transition(existing)
+                else:
+                    current = self._load_v4(connection, request.run_id)
+                    request.check_state(current)
+                    next_rev = current.revision + 1
+                    connection.execute(
+                        'INSERT INTO "transitions" (run_id, revision, operation, kind, from_state, to_state, '
+                        'request_id, created_at, reason, authorization_id, actor_route) '
+                        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (request.run_id, next_rev, 'UNBLOCK_RUN', 'RUN_UNBLOCKED', 'BLOCKED', 'PENDING',
+                         request.request_id, created_at, request.reason, authorization_id, request.actor_route),
+                    )
+                    changed = connection.execute(
+                        'UPDATE "runs" SET state = ?, revision = ?, updated_at = ? WHERE id = ? AND state = ? AND revision = ?',
+                        ('PENDING', next_rev, created_at, request.run_id, 'BLOCKED', request.expected_revision),
+                    ).rowcount
+                    if changed != 1:
+                        raise ConflictError('Execução mudou antes da confirmação do desbloqueio.')
+                    run = self._load_v4(connection, request.run_id)
+                    stored = run.events[-1]
+                connection.commit()
+                return {**stored.to_dict(), 'schema_version': 4}
+            except BaseException:
+                connection.rollback()
+                raise
+
+    def record_evidence_v4(self, request, *, evidence_id: str, created_at: str) -> dict:
+        with self._connection('rw') as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            try:
+                if self._validate_schema(connection) != 4:
+                    raise CoreError('Registro de evidência exige banco SQLite v4.')
+                existing = connection.execute(
+                    'SELECT * FROM "evidence_refs" WHERE request_id = ?',
+                    (request.request_id,),
+                ).fetchone()
+                if existing is not None:
+                    request.check_replay(existing)
+                    self._load_v4(connection, existing['run_id'])
+                    stored = self._row_to_evidence(existing)
+                else:
+                    self._load_v4(connection, request.run_id)
+                    connection.execute(
+                        'INSERT INTO "evidence_refs" (evidence_id, run_id, request_id, kind, verdict, '
+                        'artifact_digest, evidence_sha256, at_version, commit_sha, collector_route, summary_ref, created_at) '
+                        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (evidence_id, request.run_id, request.request_id, request.kind, request.verdict,
+                         request.artifact_digest, request.evidence_sha256, request.at_version,
+                         request.commit_sha, request.collector_route, request.summary_ref, created_at),
+                    )
+                    self._load_v4(connection, request.run_id)
+                    row = connection.execute(
+                        'SELECT * FROM "evidence_refs" WHERE evidence_id = ?',
+                        (evidence_id,),
+                    ).fetchone()
+                    stored = self._row_to_evidence(row)
+                connection.commit()
+                return {**stored.to_dict(), 'schema_version': 4}
+            except BaseException:
+                connection.rollback()
+                raise
+
+    def complete_v4(self, request, *, created_at: str, authorization_id: str) -> dict:
+        with self._connection('rw') as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            try:
+                if self._validate_schema(connection) != 4:
+                    raise CoreError('Operação complete exige banco SQLite v4.')
+                existing = connection.execute(
+                    'SELECT * FROM "transitions" WHERE operation = ? AND request_id = ?',
+                    ('COMPLETE_RUN', request.request_id),
+                ).fetchone()
+                if existing is not None:
+                    request.check_replay(
+                        run_id=existing['run_id'], revision=existing['revision'],
+                        evidence_id=existing['evidence_id'], actor_route=existing['actor_route'],
+                    )
+                    self._load_v4(connection, existing['run_id'])
+                    stored = self._row_to_transition(existing)
+                else:
+                    current = self._load_v4(connection, request.run_id)
+                    request.check_state(current)
+                    next_rev = current.revision + 1
+                    connection.execute(
+                        'INSERT INTO "transitions" (run_id, revision, operation, kind, from_state, to_state, '
+                        'request_id, created_at, authorization_id, actor_route, evidence_id) '
+                        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (request.run_id, next_rev, 'COMPLETE_RUN', 'RUN_COMPLETED', 'IN_PROGRESS', 'DONE',
+                         request.request_id, created_at, authorization_id, request.actor_route, request.evidence_id),
+                    )
+                    changed = connection.execute(
+                        'UPDATE "runs" SET state = ?, revision = ?, updated_at = ? WHERE id = ? AND state = ? AND revision = ?',
+                        ('DONE', next_rev, created_at, request.run_id, 'IN_PROGRESS', request.expected_revision),
+                    ).rowcount
+                    if changed != 1:
+                        raise ConflictError('Execução mudou antes da confirmação da conclusão.')
+                    run = self._load_v4(connection, request.run_id)
+                    stored = run.events[-1]
+                connection.commit()
+                return {**stored.to_dict(), 'schema_version': 4}
+            except BaseException:
+                connection.rollback()
+                raise
+
+    def record_checkpoint_v4(self, request, *, checkpoint_id: str, created_at: str) -> dict:
+        ev_json = json.dumps(list(request.evidence_hashes), sort_keys=True, separators=(',', ':'),
+                             ensure_ascii=False, allow_nan=False)
+        ext_json = json.dumps(list(request.external_idempotency_keys), sort_keys=True, separators=(',', ':'),
+                              ensure_ascii=False, allow_nan=False)
+        unk_json = json.dumps(list(request.unknown_pendencies), sort_keys=True, separators=(',', ':'),
+                              ensure_ascii=False, allow_nan=False)
+        with self._connection('rw') as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            try:
+                if self._validate_schema(connection) != 4:
+                    raise CoreError('Registro de checkpoint exige banco SQLite v4.')
+                existing = connection.execute(
+                    'SELECT * FROM "checkpoints" WHERE request_id = ?',
+                    (request.request_id,),
+                ).fetchone()
+                if existing is not None:
+                    request.check_replay(existing, evidence_hashes_json=ev_json,
+                                         external_keys_json=ext_json, unknown_json=unk_json)
+                    self._load_v4(connection, existing['run_id'])
+                    stored = self._row_to_checkpoint(existing)
+                else:
+                    current = self._load_v4(connection, request.run_id)
+                    request.check_state(current)
+                    connection.execute(
+                        'INSERT INTO "checkpoints" (checkpoint_id, run_id, run_revision, request_id, '
+                        'last_confirmed_step, base_commit_sha, head_commit_sha, worktree_snapshot_sha256, '
+                        'evidence_hashes_json, external_idempotency_keys_json, unknown_pendencies_json, created_at) '
+                        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (checkpoint_id, request.run_id, request.expected_revision, request.request_id,
+                         request.last_confirmed_step, request.base_commit_sha, request.head_commit_sha,
+                         request.worktree_snapshot_sha256, ev_json, ext_json, unk_json, created_at),
+                    )
+                    self._load_v4(connection, request.run_id)
+                    row = connection.execute(
+                        'SELECT * FROM "checkpoints" WHERE checkpoint_id = ?',
+                        (checkpoint_id,),
+                    ).fetchone()
+                    stored = self._row_to_checkpoint(row)
+                connection.commit()
+                return {**stored.to_dict(), 'schema_version': 4}
             except BaseException:
                 connection.rollback()
                 raise

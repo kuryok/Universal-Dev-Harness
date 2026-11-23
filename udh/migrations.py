@@ -1,4 +1,6 @@
-"""Esquema v2 e migração explícita, sem efeitos fora da transação SQLite."""
+"""Esquemas v2–v4 e migrações explícitas, sem efeitos fora da transação SQLite."""
+import json
+
 from .domain import CoreError
 
 _NONEMPTY = "length(trim({field}, char(9)||char(10)||char(11)||char(12)||char(13)||' ')) > 0"
@@ -80,8 +82,8 @@ def migrate(store):
         connection.execute('BEGIN IMMEDIATE')
         try:
             version = store._validate_schema(connection)
-            if version == 3:
-                raise CoreError('Migração v2 não permite downgrade de v3.')
+            if version in (3, 4):
+                raise CoreError(f'Migração v2 não permite downgrade de v{version}.')
             if version == 2:
                 connection.commit()
                 return {'schema_version': 2, 'migrated': False}
@@ -151,6 +153,243 @@ def migrate_v3(store):
             connection.execute('PRAGMA user_version = 3')
             connection.commit()
             return {'schema_version': 3, 'migrated': True}
+        except BaseException:
+            connection.rollback()
+            raise
+
+
+_UTC_FIELD = "length({field}) >= 20 AND substr({field}, -1) = 'Z' AND julianday({field}) IS NOT NULL"
+_SHA256_FIELD = "length({field}) = 64 AND {field} NOT GLOB '*[^0-9a-f]*'"
+_SHA1_FIELD = "length({field}) = 40 AND {field} NOT GLOB '*[^0-9a-f]*'"
+
+RUNS_V4_SQL = f'''CREATE TABLE "runs" (
+    id TEXT PRIMARY KEY NOT NULL,
+    request_id TEXT NOT NULL UNIQUE CHECK ({_NONEMPTY.format(field='request_id')}),
+    spec_id TEXT NOT NULL CHECK ({_NONEMPTY.format(field='spec_id')}),
+    spec_version TEXT NOT NULL CHECK ({_NONEMPTY.format(field='spec_version')}),
+    ticket_id TEXT CHECK (ticket_id IS NULL OR {_NONEMPTY.format(field='ticket_id')}),
+    mode TEXT NOT NULL CHECK (mode IN ('FAST', 'STANDARD', 'DEEP')),
+    state TEXT NOT NULL CHECK (state IN ('PENDING', 'IN_PROGRESS', 'BLOCKED', 'DONE')),
+    created_at TEXT NOT NULL CHECK ({_UTC_FIELD.format(field='created_at')}),
+    updated_at TEXT NOT NULL CHECK ({_UTC_FIELD.format(field='updated_at')}),
+    revision INTEGER NOT NULL CHECK (typeof(revision) = 'integer' AND revision >= 0)
+)'''
+
+EVIDENCE_V4_SQL = f'''CREATE TABLE "evidence_refs" (
+    evidence_id TEXT PRIMARY KEY NOT NULL,
+    run_id TEXT NOT NULL REFERENCES "runs"(id),
+    request_id TEXT NOT NULL UNIQUE CHECK ({_NONEMPTY.format(field='request_id')}),
+    kind TEXT NOT NULL CHECK (kind IN ('AT_RESULT', 'SMOKE_RESULT', 'POC_RESULT', 'REVIEW_REPORT', 'ARTIFACT_PROMOTION')),
+    verdict TEXT NOT NULL CHECK (verdict IN ('PASS', 'FAIL', 'ERROR', 'STALE')),
+    artifact_digest TEXT NOT NULL CHECK ({_SHA256_FIELD.format(field='artifact_digest')}),
+    evidence_sha256 TEXT NOT NULL CHECK ({_SHA256_FIELD.format(field='evidence_sha256')}),
+    at_version TEXT CHECK (at_version IS NULL OR {_NONEMPTY.format(field='at_version')}),
+    commit_sha TEXT CHECK (commit_sha IS NULL OR ({_SHA1_FIELD.format(field='commit_sha')})),
+    collector_route TEXT NOT NULL CHECK (collector_route IN ('TRUSTED_EXECUTOR', 'OPERATOR_LOCAL')),
+    summary_ref TEXT NOT NULL CHECK ({_NONEMPTY.format(field='summary_ref')}),
+    created_at TEXT NOT NULL CHECK ({_UTC_FIELD.format(field='created_at')})
+)'''
+
+TRANSITIONS_V4_SQL = f'''CREATE TABLE "transitions" (
+    sequence INTEGER PRIMARY KEY CHECK (sequence > 0),
+    run_id TEXT NOT NULL REFERENCES "runs"(id),
+    revision INTEGER NOT NULL CHECK (typeof(revision) = 'integer' AND revision >= 0),
+    operation TEXT NOT NULL CHECK (operation IN ('CREATE_RUN', 'START_RUN', 'BLOCK_RUN', 'UNBLOCK_RUN', 'COMPLETE_RUN')),
+    kind TEXT NOT NULL CHECK (kind IN ('RUN_CREATED', 'RUN_STARTED', 'RUN_BLOCKED', 'RUN_UNBLOCKED', 'RUN_COMPLETED')),
+    from_state TEXT CHECK (from_state IS NULL OR from_state IN ('PENDING', 'IN_PROGRESS', 'BLOCKED')),
+    to_state TEXT NOT NULL CHECK (to_state IN ('PENDING', 'IN_PROGRESS', 'BLOCKED', 'DONE')),
+    request_id TEXT NOT NULL CHECK ({_NONEMPTY.format(field='request_id')}),
+    created_at TEXT NOT NULL CHECK ({_UTC_FIELD.format(field='created_at')}),
+    reason TEXT CHECK (reason IS NULL OR {_NONEMPTY.format(field='reason')}),
+    reason_code TEXT CHECK (reason_code IS NULL OR {_NONEMPTY.format(field='reason_code')}),
+    block_category TEXT CHECK (block_category IS NULL OR block_category IN ('POLICY_VIOLATION', 'FUNCTIONAL_FAILURE', 'ADMIN_PAUSE')),
+    next_action TEXT CHECK (next_action IS NULL OR {_NONEMPTY.format(field='next_action')}),
+    authorization_id TEXT UNIQUE,
+    actor_route TEXT NOT NULL CHECK (actor_route IN ('CORE_LOCAL', 'OPERATOR_LOCAL', 'TRUSTED_EXECUTOR')),
+    evidence_id TEXT REFERENCES "evidence_refs"(evidence_id),
+    legacy_meta_json TEXT,
+    CHECK ((operation = 'CREATE_RUN' AND kind = 'RUN_CREATED' AND from_state IS NULL AND to_state = 'PENDING' AND revision = 0 AND block_category IS NULL AND evidence_id IS NULL)
+        OR (operation = 'START_RUN' AND kind = 'RUN_STARTED' AND from_state = 'PENDING' AND to_state = 'IN_PROGRESS' AND revision > 0 AND block_category IS NULL AND evidence_id IS NULL)
+        OR (operation = 'BLOCK_RUN' AND kind = 'RUN_BLOCKED' AND from_state IN ('PENDING', 'IN_PROGRESS') AND to_state = 'BLOCKED' AND revision > 0 AND block_category IS NOT NULL AND reason IS NOT NULL AND reason_code IS NOT NULL AND next_action IS NOT NULL AND evidence_id IS NULL)
+        OR (operation = 'UNBLOCK_RUN' AND kind = 'RUN_UNBLOCKED' AND from_state = 'BLOCKED' AND to_state = 'PENDING' AND revision > 0 AND reason IS NOT NULL AND block_category IS NULL AND evidence_id IS NULL)
+        OR (operation = 'COMPLETE_RUN' AND kind = 'RUN_COMPLETED' AND from_state = 'IN_PROGRESS' AND to_state = 'DONE' AND revision > 0 AND block_category IS NULL AND evidence_id IS NOT NULL)),
+    UNIQUE (run_id, revision),
+    UNIQUE (operation, request_id)
+)'''
+
+CHECKPOINTS_V4_SQL = f'''CREATE TABLE "checkpoints" (
+    checkpoint_id TEXT PRIMARY KEY NOT NULL,
+    run_id TEXT NOT NULL REFERENCES "runs"(id),
+    run_revision INTEGER NOT NULL CHECK (typeof(run_revision) = 'integer' AND run_revision >= 0),
+    request_id TEXT NOT NULL UNIQUE CHECK ({_NONEMPTY.format(field='request_id')}),
+    last_confirmed_step TEXT NOT NULL CHECK ({_NONEMPTY.format(field='last_confirmed_step')}),
+    base_commit_sha TEXT CHECK (base_commit_sha IS NULL OR ({_SHA1_FIELD.format(field='base_commit_sha')})),
+    head_commit_sha TEXT CHECK (head_commit_sha IS NULL OR ({_SHA1_FIELD.format(field='head_commit_sha')})),
+    worktree_snapshot_sha256 TEXT CHECK (worktree_snapshot_sha256 IS NULL OR ({_SHA256_FIELD.format(field='worktree_snapshot_sha256')})),
+    evidence_hashes_json TEXT NOT NULL,
+    external_idempotency_keys_json TEXT NOT NULL,
+    unknown_pendencies_json TEXT NOT NULL,
+    created_at TEXT NOT NULL CHECK ({_UTC_FIELD.format(field='created_at')})
+)'''
+
+IDX_EVIDENCE_V4_SQL = 'CREATE INDEX "idx_evidence_refs_run_id" ON "evidence_refs" (run_id, created_at)'
+IDX_CHECKPOINTS_V4_SQL = 'CREATE INDEX "idx_checkpoints_run_id" ON "checkpoints" (run_id, run_revision, created_at)'
+
+_EXPECTED_V4 = {
+    ('table', 'runs'): RUNS_V4_SQL.strip(),
+    ('table', 'evidence_refs'): EVIDENCE_V4_SQL.strip(),
+    ('table', 'transitions'): TRANSITIONS_V4_SQL.strip(),
+    ('table', 'checkpoints'): CHECKPOINTS_V4_SQL.strip(),
+    ('index', 'idx_evidence_refs_run_id'): IDX_EVIDENCE_V4_SQL.strip(),
+    ('index', 'idx_checkpoints_run_id'): IDX_CHECKPOINTS_V4_SQL.strip(),
+}
+
+
+def init_v4(connection):
+    for sql in (
+        RUNS_V4_SQL,
+        EVIDENCE_V4_SQL,
+        TRANSITIONS_V4_SQL,
+        CHECKPOINTS_V4_SQL,
+        IDX_EVIDENCE_V4_SQL,
+        IDX_CHECKPOINTS_V4_SQL,
+    ):
+        connection.execute(sql)
+    connection.execute('PRAGMA user_version = 4')
+
+
+def validate_schema_v4(connection):
+    """Validação O(1) do esquema v4 em sqlite_master, sem scan de dados."""
+    objects = connection.execute(
+        "SELECT type, name, sql FROM sqlite_master WHERE name NOT GLOB 'sqlite_*'"
+    ).fetchall()
+    actual = {(row['type'], row['name']): (row['sql'] or '').strip() for row in objects}
+    if len(objects) != len(_EXPECTED_V4) or actual != _EXPECTED_V4:
+        raise CoreError('Esquema SQLite v4 incompatível.')
+
+
+def check_integrity_v4(connection, store) -> int:
+    """Verificação profunda v4 (usada por doctor e migrate_v4, nunca em show/policy)."""
+    if connection.execute('PRAGMA quick_check').fetchall()[0][0] != 'ok':
+        raise CoreError('Banco v4 com dados ou restrições inválidos.')
+    if connection.execute('PRAGMA foreign_key_check').fetchall():
+        raise CoreError('Banco v4 com referências órfãs.')
+    run_rows = connection.execute('SELECT id FROM "runs" ORDER BY id').fetchall()
+    total_transitions = 0
+    total_evidence = 0
+    total_checkpoints = 0
+    for row in run_rows:
+        loaded = store._load_v4(connection, row['id'])
+        total_transitions += len(loaded.events)
+        total_evidence += len(loaded.evidence_refs)
+        total_checkpoints += len(loaded.checkpoints)
+    if (total_transitions != connection.execute('SELECT count(*) FROM "transitions"').fetchone()[0]
+            or total_evidence != connection.execute('SELECT count(*) FROM "evidence_refs"').fetchone()[0]
+            or total_checkpoints != connection.execute('SELECT count(*) FROM "checkpoints"').fetchone()[0]):
+        raise CoreError('Banco v4 contém registros órfãos fora do conjunto de execuções.')
+    return len(run_rows)
+
+
+def migrate_v4(store):
+    """Migra banco v3 íntegro para ledger unificado v4 em uma única transação."""
+    with store._connection('rw') as connection:
+        connection.execute('PRAGMA legacy_alter_table = OFF')
+        connection.execute('BEGIN IMMEDIATE')
+        try:
+            version = connection.execute('PRAGMA user_version').fetchone()[0]
+            if version == 4:
+                validate_schema_v4(connection)
+                check_integrity_v4(connection, store)
+                connection.commit()
+                return {'schema_version': 4, 'migrated': False}
+            if version != 3:
+                raise CoreError('Migração v4 exige banco v3 íntegro.')
+            validate_schema(connection, 3)
+            check_integrity(connection, store, 3)
+
+            runs = connection.execute('SELECT * FROM "runs" ORDER BY id').fetchall()
+            events = connection.execute('SELECT * FROM "events" ORDER BY sequence').fetchall()
+            blocks = {row['run_id']: row for row in connection.execute('SELECT * FROM "block_requests"').fetchall()}
+            unblocks = {row['run_id']: row for row in connection.execute('SELECT * FROM "unblock_requests"').fetchall()}
+
+            connection.execute(RUNS_V4_SQL.replace('"runs"', '"runs_v4"', 1))
+            runs_by_id = {row['id']: row for row in runs}
+            events_by_run: dict[str, list] = {row['id']: [] for row in runs}
+            for event in events:
+                events_by_run[event['run_id']].append(event)
+
+            for run in runs:
+                updated_at = events_by_run[run['id']][-1]['created_at']
+                connection.execute(
+                    'INSERT INTO "runs_v4" (id, request_id, spec_id, spec_version, ticket_id, mode, state, created_at, updated_at, revision) '
+                    'VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)',
+                    (run['id'], run['request_id'], run['spec_id'], run['spec_version'],
+                     'STANDARD', run['state'], run['created_at'], updated_at, run['revision']),
+                )
+
+            connection.execute(EVIDENCE_V4_SQL.replace('"runs"', '"runs_v4"'))
+            connection.execute(TRANSITIONS_V4_SQL.replace('"runs"', '"runs_v4"'))
+            connection.execute(CHECKPOINTS_V4_SQL.replace('"runs"', '"runs_v4"'))
+
+            for event in events:
+                rid = event['run_id']
+                if event['kind'] == 'RUN_CREATED':
+                    connection.execute(
+                        'INSERT INTO "transitions" (sequence, run_id, revision, operation, kind, from_state, to_state, '
+                        'request_id, created_at, actor_route) VALUES (?, ?, 0, ?, ?, NULL, ?, ?, ?, ?)',
+                        (event['sequence'], rid, 'CREATE_RUN', 'RUN_CREATED', 'PENDING',
+                         runs_by_id[rid]['request_id'], event['created_at'], 'CORE_LOCAL'),
+                    )
+                elif event['kind'] == 'RUN_BLOCKED':
+                    block = blocks[rid]
+                    meta = json.dumps({
+                        'core_manifest_sha256': block['core_manifest_sha256'],
+                        'control_sha256': block['control_sha256'],
+                        'authorization_rule_version': block['authorization_rule_version'],
+                        'result_schema_version': block['result_schema_version'],
+                    }, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+                    connection.execute(
+                        'INSERT INTO "transitions" (sequence, run_id, revision, operation, kind, from_state, to_state, '
+                        'request_id, created_at, reason, reason_code, block_category, next_action, authorization_id, '
+                        'actor_route, legacy_meta_json) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (event['sequence'], rid, 'BLOCK_RUN', 'RUN_BLOCKED', 'PENDING', 'BLOCKED',
+                         block['request_id'], event['created_at'], block['reason'], 'ADMIN_PAUSE', 'ADMIN_PAUSE',
+                         'Retire a pausa administrativa quando for seguro continuar.',
+                         block['authorization_id'], block['controller_route'], meta),
+                    )
+                elif event['kind'] == 'RUN_UNBLOCKED':
+                    unblock = unblocks[rid]
+                    meta = json.dumps({
+                        'core_manifest_sha256': unblock['core_manifest_sha256'],
+                        'control_sha256': unblock['control_sha256'],
+                        'authorization_rule_version': unblock['authorization_rule_version'],
+                        'blocked_event_sequence': unblock['blocked_event_sequence'],
+                    }, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+                    connection.execute(
+                        'INSERT INTO "transitions" (sequence, run_id, revision, operation, kind, from_state, to_state, '
+                        'request_id, created_at, reason, authorization_id, actor_route, legacy_meta_json) '
+                        'VALUES (?, ?, 2, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (event['sequence'], rid, 'UNBLOCK_RUN', 'RUN_UNBLOCKED', 'BLOCKED', 'PENDING',
+                         unblock['request_id'], event['created_at'], unblock['reason'],
+                         unblock['authorization_id'], unblock['controller_route'], meta),
+                    )
+                else:
+                    raise CoreError('Tipo de evento v3 desconhecido durante migração v4.')
+
+            for old in ('unblock_requests', 'block_requests', 'events', 'runs'):
+                connection.execute(f'DROP TABLE "{old}"')
+            connection.execute('ALTER TABLE "runs_v4" RENAME TO "runs"')
+            connection.execute(IDX_EVIDENCE_V4_SQL)
+            connection.execute(IDX_CHECKPOINTS_V4_SQL)
+
+            validate_schema_v4(connection)
+            checked_runs = check_integrity_v4(connection, store)
+            if (checked_runs != len(runs)
+                    or connection.execute('SELECT count(*) FROM "transitions"').fetchone()[0] != len(events)):
+                raise CoreError('Migração v4 não preservou a contagem original de dados.')
+            connection.execute('PRAGMA user_version = 4')
+            connection.commit()
+            return {'schema_version': 4, 'migrated': True, 'migrated_runs': checked_runs, 'migrated_transitions': len(events)}
         except BaseException:
             connection.rollback()
             raise
