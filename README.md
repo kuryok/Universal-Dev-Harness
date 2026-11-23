@@ -1,6 +1,6 @@
 # Universal Dev Harness — UDH
 
-Projeto local-first para conduzir uma pessoa que não sabe programar de uma ideia a software funcional, testado e utilizável. A fundação operacional do Core está concluída e verificada (SQLite v1–v4 com ledger unificado de transições, leitura `O(1)` em v4, checkpoints F-03, política v2 e preflight `doctor`, 100% stdlib); o próximo marco (Change 2) é integrar Runtime Manager rootless, Gateway de inferência, adaptador Pi 1.2.0 e Executor Confiável F-04 para executar `POC-01`/`02`/`04`.
+Projeto local-first para conduzir uma pessoa que não sabe programar de uma ideia a software funcional, testado e utilizável. O Core (100% Python 3 stdlib) implementa o ledger SQLite v1–v4, Runtime Manager rootless com imagem OCI dedicada por digest, Gateway de inferência stdlib endurecido, primeiro adaptador de agente (Pi 1.2.0) e Executor Confiável F-04, com `POC-01`, `POC-02` e `POC-04` verificadas (`PASS`) em Linux x86_64 rootless.
 
 - [Baseline normativo](Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md): propósito (Seção 0), ADRs e invariantes. A [nota v2.5.1](UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md) é derivada para consulta.
 - [Estado atual](STATE.md), [memória curta](MEMORY.md) e [instruções de trabalho](AGENTS.md).
@@ -10,9 +10,10 @@ Projeto local-first para conduzir uma pessoa que não sabe programar de uma idei
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests
-python3 -m udh doctor
+python3 -m udh doctor --conformance
+python3 -m udh.poc
 ```
 
-Os testes usam Python 3 (stdlib-only) e, nos cenários de runtime isolado, Podman rootless com a imagem local preparada no bootstrap. Não é um instalador nem requer credenciais de LLM para executar os testes complementares ou o `doctor`.
+Os testes usam Python 3 (stdlib-only), Podman rootless e a imagem OCI dedicada local construída offline por `python3 runtime/build_image.py` (digest fixado em `runtime/image-manifest.json`). Todo o fluxo padrão roda 100% offline com o backend `stub` do Gateway, sem credenciais reais de LLM.
 
-POCs de segurança (`POC-01`–`POC-04`), execução real de agentes e entrega ponta a ponta continuam pendentes (`NOT_RUN`). Nenhum PASS do Core v4 ou do bootstrap representa produto completo ou certificação de segurança.
+`POC-03` (handoff com 2º agente), `DISCOVER`/`SPEC`/`PLAN`, preview web (`B3.6`), interface guiada (`B1.7`), WSL2 e entrega ponta a ponta continuam pendentes (`NOT_RUN`); o projeto ainda não é um MVP liberável para iniciantes (conforme B1.6).

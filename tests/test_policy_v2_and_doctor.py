@@ -187,13 +187,62 @@ class PolicyV2AndDoctorTests(unittest.TestCase):
 
     def test_doctor_cli_returns_valid_json_without_traceback(self):
         out, err = io.StringIO(), io.StringIO()
+        isolated_store = Path(self.tmp.name) / 'isolated-store'
         with redirect_stdout(out), redirect_stderr(err):
-            code = main_cli.main(['doctor'])
+            code = main_cli.main(['doctor', '--store', str(isolated_store)])
         self.assertIn(code, (0, 3))
         self.assertEqual(err.getvalue(), '')
         parsed = json.loads(out.getvalue())
-        self.assertIn(parsed['overall_status'], ('READY_WITH_LIMITS', 'NOT_READY'))
+        self.assertIn(parsed['overall_status'], ('READY', 'READY_WITH_LIMITS', 'NOT_READY'))
         self.assertTrue(any(c['id'] == 'runtime_components' for c in parsed['checks']))
+
+    def test_policy_v2_execute_agent_requires_conformant_adapter_and_doctor_conformance_fail_closed(self):
+        svc_v4 = CoreService(SQLiteStore(self.db_v4))
+        svc_v4.initialize(schema_version=4)
+        run_v4 = svc_v4.create('spec', '1', 'r-auth')
+        svc_v4.start(run_v4.run_id, 0, 'st-auth')
+
+        # READY sem adaptador conforme continua DENY
+        p_no_adapter = svc_v4.policy(run_v4.run_id, 'EXECUTE_AGENT', preflight_status='READY', conformant_adapters=())
+        self.assertEqual((p_no_adapter['decision'], p_no_adapter['reason_code']), ('DENY', 'GATEWAY_AND_ADAPTER_NOT_READY'))
+
+        # READY com pi conforme -> ALLOW
+        p_ok = svc_v4.policy(run_v4.run_id, 'EXECUTE_AGENT', preflight_status='READY', conformant_adapters=('pi',), adapter='pi')
+        self.assertEqual((p_ok['decision'], p_ok['reason_code']), ('ALLOW', 'AGENT_EXECUTION_AUTHORIZED'))
+
+        # READY com pi conforme mas solicitando opencode -> DENY
+        p_other = svc_v4.policy(run_v4.run_id, 'EXECUTE_AGENT', preflight_status='READY', conformant_adapters=('pi',), adapter='opencode')
+        self.assertEqual((p_other['decision'], p_other['reason_code']), ('DENY', 'GATEWAY_AND_ADAPTER_NOT_READY'))
+
+        # Probe com imagem presente e conformance PASS -> doctor READY e authorize ALLOW
+        probes_ready = _healthy_probes()
+        probes_ready['runtime_components'] = {
+            'image_present': True,
+            'image_digest': 'sha256:' + 'a' * 64,
+            'conformance': {'status': 'PASS', 'adapter_name': 'pi'},
+        }
+        report_ready = run_doctor(env_probes=probes_ready)
+        self.assertEqual(report_ready['overall_status'], 'READY')
+        auth_ok = svc_v4.authorize_agent_execution(run_v4.run_id, env_probes=probes_ready)
+        self.assertEqual((auth_ok['decision'], auth_ok['reason_code']), ('ALLOW', 'AGENT_EXECUTION_AUTHORIZED'))
+
+        # run_conformance=True com imagem ausente falha fechado (NOT_READY)
+        probes_missing_img = _healthy_probes()
+        probes_missing_img['runtime_components'] = {'image_present': False}
+        report_conf_fail = run_doctor(env_probes=probes_missing_img, run_conformance=True)
+        self.assertEqual(report_conf_fail['overall_status'], 'NOT_READY')
+
+        # Cache STALE -> READY_WITH_LIMITS (sem --conformance) e authorize DENY
+        probes_stale = _healthy_probes()
+        probes_stale['runtime_components'] = {
+            'image_present': True,
+            'image_digest': 'sha256:' + 'a' * 64,
+            'conformance': {'status': 'STALE'},
+        }
+        report_stale = run_doctor(env_probes=probes_stale)
+        self.assertEqual(report_stale['overall_status'], 'READY_WITH_LIMITS')
+        auth_stale = svc_v4.authorize_agent_execution(run_v4.run_id, env_probes=probes_stale)
+        self.assertEqual((auth_stale['decision'], auth_stale['reason_code']), ('DENY', 'GATEWAY_AND_ADAPTER_NOT_READY'))
 
 
 if __name__ == '__main__':

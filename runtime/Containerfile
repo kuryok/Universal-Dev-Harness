@@ -1,0 +1,11 @@
+FROM docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+
+COPY --from=stage / /
+
+ENV PATH="/opt/udh/bin:/usr/bin:/bin" \
+    PYTHONDONTWRITEBYTECODE="1" \
+    PYTHONNOUSERSITE="1" \
+    PI_OFFLINE="1" \
+    PI_TELEMETRY="0"
+
+WORKDIR /workspace
