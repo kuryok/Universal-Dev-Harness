@@ -344,10 +344,10 @@ O contexto de REVIEW deve ser reconstruído a partir de dados autoritativos iden
 
 | Teste | Deve provar | Estado documental |
 |---|---|---|
-| POC-01 | Isolamento rootless, políticas efetivas, IPC de inferência, rede e acesso proibido | NOT_RUN |
-| POC-02 | Testes oficiais e baselines fora do alcance do agente, incluindo adulteração | NOT_RUN |
+| POC-01 | Isolamento rootless, políticas efetivas, IPC de inferência, rede e acesso proibido | PASS (Linux x86_64 rootless, Change 2 `beac057`, stub offline) |
+| POC-02 | Testes oficiais e baselines fora do alcance do agente, incluindo adulteração | PASS (Linux x86_64 rootless, Change 2 `beac057`) |
 | POC-03 | Handoff e recuperação entre agentes, snapshots e idempotência | NOT_RUN |
-| POC-04 | Coleta oficial de evidências não falsificável por saída editável do agente | NOT_RUN |
+| POC-04 | Coleta oficial de evidências não falsificável por saída editável do agente | PASS (Linux x86_64 rootless, Change 2 `beac057`, F-04) |
 | DOC-01/02 | Consulta seletiva, proveniência e defesa contra conteúdo/links maliciosos | NOT_RUN |
 | SKILL-01/02 | Seleção autorizada, correção dos exemplos inseguros de URL/caminho | NOT_RUN |
 | DISC-01 | Descoberta proporcional e handoff OpenSpec real | NOT_RUN |
@@ -374,5 +374,5 @@ O contexto de REVIEW deve ser reconstruído a partir de dados autoritativos iden
 - **Governança:** B1–B4, Emenda ADR-018 A e congelamento arquitetural ratificados no desenho por delegação do usuário em 23/11/2026 ([openspec/project.md](openspec/project.md)); sem novas ADRs até concluir POC-01–04.
 - **Skills:** validar os bytes/versões efetivamente instalados no momento da integração. O pacote corrigido de `security-best-practices` registrado na §6 do baseline continua `NOT_RUN` quanto ao carregamento autorizado pelo Core (SKILL-01/02).
 - **A confirmar em POC:** isolamento real de gateway/CLI com contexto de projeto, autenticação por assinatura quando aplicável, compatibilidade Linux e WSL2, extração de PDF em processo isolado, migração entre agentes, integridade de AT e evidência oficial.
-- **A detalhar ao implementar:** contratos exatos dos adapters e do Runtime Manager/Gateway (Change 2, com 1ª stack Python 3 stdlib e imagem OCI por digest já alinhados), orçamento de execução por ticket e confirmação de experiência no primeiro app. O ledger SQLite v4, leitura `O(1)`, checkpoints F-03, política v2 e `doctor` foram concluídos no Change 1 ([openspec/changes/v4-state-ledger-and-preflight](openspec/changes/v4-state-ledger-and-preflight/proposal.md)).
-- **Status factual:** todas as POC-01–04 e DOC/SKILL/DISC/TICKET permanecem `NOT_RUN`; este texto não atesta código produzido nem segurança validada.
+- **A detalhar ao implementar:** segundo agente (OpenCode) e handoff (`POC-03`), perfil `provision` (`B2.4`), preview web isolado (`B3.6`), interface guiada (`B1.7`), orçamento de execução por ticket e confirmação de experiência no primeiro app (`UX-04`). O Change 1 ([v4-state-ledger-and-preflight](openspec/changes/v4-state-ledger-and-preflight/proposal.md)) concluiu o Core SQLite v4/política v2/`doctor`, e o Change 2 ([vertical-runtime-pi-gateway-poc](openspec/changes/vertical-runtime-pi-gateway-poc/proposal.md)) concluiu Runtime Manager rootless, imagem OCI por digest, Gateway stdlib, adaptador Pi 1.2.0, Executor F-04 e `POC-01`/`02`/`04` (`PASS` em Linux x86_64 rootless offline).
+- **Status factual:** `POC-01`, `POC-02` e `POC-04` foram verificadas (`PASS`) no perfil Linux x86_64 rootless offline (`beac057`); `POC-03`, WSL2, `DOC`/`SKILL`/`DISC`/`TICKET`, `UX-04` e MVP liberável (B1.6) permanecem `NOT_RUN`.

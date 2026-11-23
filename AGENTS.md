@@ -44,13 +44,13 @@ Um sistema local-first que leva uma pessoa que não sabe programar de uma ideia 
 - Se não conseguiu executar algo, escreva "não executado" e explique o motivo.
 - Resultado parcial é resultado válido. Resultado inventado não é.
 
-## Fase atual: fundação SQLite v4 concluída e Change 2 do marco vertical de produto
+## Fase atual: Change 2 concluído (`POC-01`/`02`/`04` PASS) e preparo do Change 3
 
-A Slice 0 foi encerrada no perfil experimental Linux/API testado. O Core SQLite v1–v4 (ledger unificado de transições, leitura `O(1)` em v4, checkpoints F-03, política v2 e preflight `doctor`, preservando regressão dos 50 AT selados `v1–v6`) foi concluído e verificado; consulte [STATE.md](STATE.md), [MEMORY.md](MEMORY.md) e [openspec/project.md](openspec/project.md) para o estado verificado, decisões ratificadas e próximo passo.
+A Slice 0 foi encerrada no perfil experimental Linux/API testado. O Change 1 (Core SQLite v1–v4, leitura `O(1)`, checkpoints F-03, política v2 e `doctor`) e o **Change 2** (Runtime Manager rootless com imagem OCI dedicada por digest, Gateway stdlib endurecido, adaptador Pi 1.2.0, TrustStore + Executor Confiável F-04 e execução real de `POC-01`, `POC-02` e `POC-04` em Linux x86_64 rootless, preservando 50/50 AT selados `v1–v6`) foram concluídos e verificados; consulte [STATE.md](STATE.md), [MEMORY.md](MEMORY.md) e [openspec/project.md](openspec/project.md) para o estado verificado e próximo passo.
 
-Novos recortes seguem OpenSpec documental e aprovação antes de implementar. O `bootstrap/slice1/` está congelado (sem novos gates ou selo v7); evidências pesadas não entram em JSON cru no Git. A prioridade imediata é o **Change 2 do marco vertical de produto**: Runtime Manager rootless com imagem OCI dedicada por digest + Gateway de inferência stdlib endurecido + primeiro adaptador de agente (Pi 1.2.0) + Executor Confiável F-04 e execução das POCs de produto (`POC-01`/`02`/`04`, ainda `NOT_RUN`).
+Novos recortes seguem OpenSpec documental em branch dedicada e aprovação humana antes de implementar. O `bootstrap/slice1/` permanece congelado (sem novos gates ou selo v7); evidências pesadas não entram em JSON cru no Git (`<= 32 KiB`). As próximas prioridades são o segundo agente (OpenCode) + `POC-03` (handoff e retomada F-03), perfil `artifact` com preview local (`B3.6`) e interface guiada mínima (`B1.7`).
 
-O código da Slice 0 permanece **descartável**, com os limites registrados no relatório. Um Core só significa autoridade única, com módulos separados por responsabilidade; não concentrar todo o sistema em um arquivo.
+O código da Slice 0 permanece **descartável**, com os limites registrados no relatório. Um Core só significa autoridade única, com módulos separados por responsabilidade (somente arquivos `.py` sob `udh/`); não concentrar todo o sistema em um arquivo.
 
 ## Quando parar e perguntar
 

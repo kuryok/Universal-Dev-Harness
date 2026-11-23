@@ -1,6 +1,6 @@
 # Change 2 — Marco Vertical de Produto: Runtime Manager Rootless, Imagem OCI por Digest, Gateway Stdlib, Adaptador Pi 1.2.0, Store Protegida + Executor F-04 e POC-01/02/04
 
-**Estado:** APROVADO PARA IMPLEMENTAÇÃO EM 23/11/2026 (plano revisado e confirmado `APROVADO` em revisão independente F-02 `11e1c40e-5a91-4371-9876-b17d0f44cc1f`, após fechamento de 7 achados, e autorizado pelo usuário).  
+**Estado:** APROVADO, IMPLEMENTADO E VERIFICADO EM 23/11/2026 (`beac057`; resumo em [verification-summary.json](verification-summary.json)).
 **Data:** 23/11/2026.  
 **Branch dedicada:** `feat/change2-vertical-runtime-pi-gateway-poc` (a partir de `main` @ `df96201`, com Core v4 verificado em `9f84150`: 110/110 complementares PASS, 50/50 AT selados `v1–v6` PASS, revisão R2/F-02 PASS).  
 **Referências normativas:** [baseline normativo rastreado](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (`ADR-001`–`ADR-005`, `ADR-007`, `ADR-008`, `ADR-010`, `ADR-013`–`ADR-018`, `ADR-018 A`, `ADR-020`, `ADR-021`, `ADR-024`, `ADR-025`, `ADR-028`, `B1.1`–`B1.6`, `B2.1`–`B2.3`, `B3.1`–`B3.3`, `B4.1`, `B4.5`–`B4.9`, `F-02`, `F-04`) e ratificação registrada em [openspec/project.md](../../project.md).

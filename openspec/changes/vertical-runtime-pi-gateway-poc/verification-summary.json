@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "change": "vertical-runtime-pi-gateway-poc",
+  "classification": "change2-vertical-runtime-pi-gateway-poc-verified-not-mvp-complete",
+  "candidate_ref": "beac05744509de98b3ec83722d9e13697ad3bb74",
+  "image_oci": {
+    "repository": "localhost/udh-runtime",
+    "tag": "change2",
+    "digest": "sha256:bed9a71a98bb1bf224bd5e64bde7276f914867330229624384ce91cd7e72b8a3",
+    "stack_profile": "python3-stdlib-v1",
+    "pi_version": "1.2.0",
+    "build_mode": "offline-podman-rootless"
+  },
+  "candidate_hashes": {
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "99a13925d477f28f804f40f988b8eb9daf2cc4dbb3a81d592ee9a12400ebb63b",
+    "udh/adapters/__init__.py": "7b07bea62deadd51bc4a822ae21f927ff6e97932e419151699b5085c48cf87b6",
+    "udh/adapters/pi.py": "1624e8d4d5b03cbfb24ffbcf6ba71a2ed273dd7caf1aa0f82ee912e8f8582d35",
+    "udh/doctor.py": "5c2744d4c38c5cfda0ac3d11998a23ec527dfe3d785b496cd34ada3e43aa3df6",
+    "udh/domain.py": "eb2d1d3dcdcf87d33d7c06c2b9180e5ea3450a2b5f6d028294aa07b84c7497cc",
+    "udh/executor.py": "49a7ad8ae342197d63f5b841cd1e6187ecf4654c0fc4aead7c64a82f2b828ddc",
+    "udh/gateway.py": "ebf84f573e9b0b5e5347bbcc96b0e93d8482c04bdb0fc3789d8800f0121218b1",
+    "udh/lifecycle.py": "e2e4fc4d6aa3716a7e640cf56e93768475f703b79665b39767c5d84e31c0c87c",
+    "udh/migrations.py": "589c29464090c2ea92af5922e1d9d83a36bd25c035cf529f92a8c605745a476f",
+    "udh/operator.py": "a1e2440a385de249a681ac7105d45c8d51e60ddebb23b57314a4bfc696c34d01",
+    "udh/poc.py": "c4cd1f24edaa90e0331e568c1fd17d4d7f4f551e26d6393a31f475146b9cd28d",
+    "udh/policy.py": "2e63deb2069cb0c25ff686a7d1da280cd657b4810b55f05d8398ad7c4a64048b",
+    "udh/runtime.py": "0aadcc3caecde550858e45a5e1e3eba2e37bbe517e306b998c70b85619d80cd2",
+    "udh/service.py": "f2a5371c0ec64cc981d3441cea3e2f65d1530025fe16a8a278f020f4328cbc26",
+    "udh/store.py": "74abdd7ae53f41f3688ff218b8793b861d67c9ce1218d07bfcf102402a571a23",
+    "udh/transitions.py": "f669f059eb0b3fc4d215c9dec77b3464e4eb472766a695021a8c4ce19f80260c",
+    "udh/trust_store.py": "f2c8eac31ee18fdad99a815e0c5230231ea3754c469495688cd6e57ebb5adde3",
+    "runtime/Containerfile": "f3cd671c37b831230c130ac5e3cdd95f78931f207ec0b45ae479a7d67e3793cf",
+    "runtime/at_runner.py": "06566e6c88595464ca5f5fa378fe1eeb7c833e175e5f0ff6131aa32e14565beb",
+    "runtime/bridge.mjs": "af541261db23e22ad0ad49ca52335b2b12d2770672ea99f480c38d407f37cd74",
+    "runtime/build_image.py": "8e06604a794465c8c0105ccd7e20b7977f17707f1bf180194c93dbb7f8b308f7",
+    "runtime/image-manifest.json": "3a4e69e30372254bb61201961e7027a31f53cf7737fcbaa0ede050833bbd6056"
+  },
+  "complementary_tests": {
+    "status": "PASS",
+    "tests_run": 125,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "duration_seconds": 27.494
+  },
+  "doctor_conformance_live": {
+    "overall_status": "READY",
+    "platform": "Linux x86_64 6.12.113+deb13-amd64 (native, is_wsl2=false)",
+    "cgroups": "READY (cgroup v2)",
+    "userns": "READY (unprivileged_userns_clone=1, subuid/subgid ok)",
+    "podman": "READY (5.4.2 rootless)",
+    "runtime_components": "READY (RUNTIME_PI_CONFORMANT, pi 1.2.0 via UDS stub gateway)",
+    "policy_sha256_v2": "d06d749702fccfa89015fdb807b15667a46e0770188b1259e210c92db7645478",
+    "image_digest": "sha256:bed9a71a98bb1bf224bd5e64bde7276f914867330229624384ce91cd7e72b8a3"
+  },
+  "pocs_live": {
+    "overall_verdict": "PASS",
+    "elapsed_seconds": 8.377,
+    "backend_mode": "stub-offline-zero-credentials",
+    "POC-01": {
+      "verdict": "PASS",
+      "checks": [
+        "image_digest_enforcement",
+        "rootless_isolation (CapEff=0, NoNewPrivs=1, Seccomp=2, uid_map, distinct PID/NET ns, live_inspect=true:none:true)",
+        "cgroup_v2_limits (memory OOM, pids limit, cpu quota nr_throttled=10)",
+        "network_isolation (network=none, external blocked, loopback ok)",
+        "gateway_hardening (0700/0600, SO_PEERCRED, 401/403/400/413/429/503, slowloris 408, token absent in audit)",
+        "pi_adapter_and_e4 (conformance ok, E4 config protected, stream cut detected even on exit 0)"
+      ]
+    },
+    "POC-02": {
+      "verdict": "PASS",
+      "checks": [
+        "sealed_at_unreachable_from_developer",
+        "workspace_tampering_rejected (nested unittest/, .pth, symlink)",
+        "store_bitflip_rejected_by_executor (AT_INTEGRITY_VIOLATION)"
+      ]
+    },
+    "POC-04": {
+      "verdict": "PASS",
+      "checks": [
+        "forged_output_rejected (FAIL + COMPLETE_RUN blocked)",
+        "f04_proc_mem_fd_attack_rejected (PR_SET_DUMPABLE=0 in parent and worker + black-box AT)",
+        "valid_artifact_verified_and_completed (PASS + Policy v2 ALLOW + IN_PROGRESS -> DONE)"
+      ]
+    }
+  },
+  "independent_review_spec": {
+    "status": "APROVADO",
+    "context": "separate-readonly-subagent-pro",
+    "conversation_id": "11e1c40e-5a91-4371-9876-b17d0f44cc1f",
+    "findings_closed": 7
+  },
+  "independent_review_r2": {
+    "status": "PASS",
+    "context": "separate-readonly-subagent-pro",
+    "conversation_id": "24d83029-896b-43d1-8f9b-2281134b97cb",
+    "unresolved_findings": [],
+    "prior_findings_resolved": [
+      "runtime/at_runner.py: PR_SET_DUMPABLE=0 fail-closed (argtypes/restype + PR_GET_DUMPABLE) no pai e no worker; /artifact fora de sys.path do worker; AST independente em udh/executor.py",
+      "udh/gateway.py: validacao de usage.cost string e float antes do filtro numerico; dreno non-blocking + shutdown(SHUT_WR) em rejeicoes; LF/CR nu bloqueado; sock local no timer",
+      "udh/runtime.py: normalizacao posixpath.normpath em _validate_destination bloqueando //ipc e /./ipc",
+      "udh/poc.py + tests: slowloris com and, live_inspect + uid_map + namespaces distintos + nr_throttled > 0, testes unitarios TrustedExecutor/SO_PEERCRED/body_timeout/nonzero_cost"
+    ]
+  },
+  "sealed_acceptance_suites": {
+    "v6_unblock": {
+      "at_version": "sha256:7196e5f4eea1fc78806efcdbd2b1e231446b2632937d5aff69c4f2f8bf0d9b37",
+      "tests_run": 16,
+      "passed": 16,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 439,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "f4f880888217ce2fc19070a9034e0851a580bd8f8fd99cb8aab9327b8fdd8f3d"
+    },
+    "v5_block": {
+      "at_version": "sha256:182d2ba72a7b5dfb5648e650577dcc3bbbbd67048c72a3bf959406ce7dd89ac6",
+      "tests_run": 13,
+      "passed": 13,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 171,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "3985ebd69f5100708e117665754941e0551bd28c8eab8878329099c138f1bb48"
+    },
+    "v2_policy": {
+      "at_version": "sha256:438ce43f70e0137115f2c30920623eabf5bfd042035958951fdaafa151e41f3f",
+      "tests_run": 11,
+      "passed": 11,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 55,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "e1fa04b794a87665ea9429dfc8c4d6d1916bf32b46dc1e659c5fb82996799ea8"
+    },
+    "v1_core": {
+      "at_version": "sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704",
+      "tests_run": 10,
+      "passed": 10,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 49,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "4517f9b81af667e9cdcaa14679be95a5b29f8f50c3dc6f7d4099f991fe5ad68d"
+    }
+  },
+  "not_run": [
+    "POC-03 (handoff entre agentes — requer 2o agente, proximo marco)",
+    "openrouter_free chamada real em rede (backend testado com dubles deterministicos; opt-in explicito)",
+    "DOC-01/02, SKILL-01/02, DISC-01, TICKET-01/02, UX-04",
+    "Windows 11 / WSL2 (B1.1b)",
+    "CLI OpenSpec (ausente)"
+  ],
+  "limits": [
+    "Validacao realizada em Linux x86_64 nativo com Podman 5.4.2 rootless e backend stub offline; nao equivale a MVP liberavel (B1.6 exige ao menos dois agentes conformes e POC-03 aprovada).",
+    "Perfil provision (B2.4), preview web isolado (B3.6), interface guiada (B1.7), segundo/terceiro agentes, Memorix, Judge e instalador permanecem pendentes."
+  ]
+}
