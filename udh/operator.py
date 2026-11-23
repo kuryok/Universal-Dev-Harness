@@ -20,22 +20,32 @@ def main(argv=None, *, context=None):
     parser = Parser(prog='python3 -m udh.operator', add_help=False)
     parser.add_argument('-h', '--help', action='help', help='mostrar esta ajuda e sair')
     commands = parser.add_subparsers(dest='command', required=True, title='comandos')
-    migrate = commands.add_parser('migrate', add_help=False, help='migrar banco explicitamente para v2')
+    migrate = commands.add_parser('migrate', add_help=False, help='migrar banco explicitamente para v2 ou v3')
     migrate.add_argument('--to', choices=('2', '3'), required=True, help='versão de destino')
     block = commands.add_parser('block', add_help=False, help='registrar pausa de uma execução pendente')
     block.add_argument('--run-id', required=True, help='UUID da execução')
     block.add_argument('--expected-revision', required=True, type=int, help='revisão observada')
     block.add_argument('--request-id', required=True, help='chave idempotente do bloqueio')
     block.add_argument('--reason', required=True, help='motivo da pausa')
+    unblock = commands.add_parser('unblock', add_help=False, help='retirar pausa administrativa de uma execução bloqueada')
+    unblock.add_argument('--run-id', required=True, help='UUID da execução')
+    unblock.add_argument('--expected-revision', required=True, type=int, help='revisão observada')
+    unblock.add_argument('--request-id', required=True, help='chave idempotente do desbloqueio')
+    unblock.add_argument('--reason', required=True, help='motivo da retirada da pausa')
     args = parser.parse_args(argv)
     try:
-        if args.command == 'migrate' and f'MIGRATE_V{args.to}' not in context['allowed_operations']:
+        required_operation = (f'MIGRATE_V{args.to}' if args.command == 'migrate'
+                              else 'BLOCK_PENDING' if args.command == 'block'
+                              else 'UNBLOCK_RUN')
+        if required_operation not in context['allowed_operations']:
             raise AuthorizationError('Operação exige a entrada administrativa protegida.')
         core = CoreService(SQLiteStore(context['db_path']))
         if args.command == 'migrate':
             result = core.migrate(int(args.to), context=context)
-        else:
+        elif args.command == 'block':
             result = core.block(args.run_id, args.expected_revision, args.request_id, args.reason, context=context)
+        else:
+            result = core.unblock(args.run_id, args.expected_revision, args.request_id, args.reason, context=context)
         print(json.dumps(result, ensure_ascii=False))
         return 0
     except AuthorizationError:
@@ -44,7 +54,7 @@ def main(argv=None, *, context=None):
             next_action='Use o controlador local autorizado.'), ensure_ascii=False))
         return 3
     except ConflictError as error:
-        print('Bloqueio em conflito: ' + str(error), file=sys.stderr)
+        print('Conflito na operação administrativa: ' + str(error), file=sys.stderr)
         return 4
     except (CoreError, OSError) as error:
         print('Não foi possível concluir a operação administrativa: ' + str(error), file=sys.stderr)

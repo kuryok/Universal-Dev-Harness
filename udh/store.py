@@ -28,6 +28,10 @@ _EVENTS_SQL = f"""CREATE TABLE events (
 )"""
 
 
+def _valid_sha256(value) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in '0123456789abcdef' for char in value)
+
+
 def _canonical(sql: str) -> str:
     # Espaços dentro de literais SQL fazem parte das regras de integridade.
     return sql.strip()
@@ -131,11 +135,16 @@ class SQLiteStore:
         parsed = [Event(sequence=events[0]['sequence'], kind=events[0]['kind'], created_at=events[0]['created_at'])]
         if version in (2, 3):
             requests = connection.execute('SELECT * FROM block_requests WHERE run_id = ?', (run_id,)).fetchall()
-            if len(events) in (2, 3) and len(requests) == 1:
+            if (len(events) == 2 or (version == 3 and len(events) == 3)) and len(requests) == 1:
                 event, request = events[1], requests[0]
                 if (event['kind'] != 'RUN_BLOCKED' or request['event_sequence'] != event['sequence']
-                        or request['expected_revision'] != 0 or request['controller_route'] != 'OPERATOR_LOCAL'
-                        or request['authorization_rule_version'] != 1):
+                        or type(request['expected_revision']) is not int or request['expected_revision'] != 0
+                        or request['controller_route'] != 'OPERATOR_LOCAL'
+                        or type(request['authorization_rule_version']) is not int or request['authorization_rule_version'] != 1
+                        or not _valid_sha256(request['core_manifest_sha256'])
+                        or not _valid_sha256(request['control_sha256'])
+                        or (version == 3 and (type(request['result_schema_version']) is not int
+                                              or request['result_schema_version'] not in (2, 3)))):
                     raise CoreError('Vínculo de autorização inconsistente.')
                 parsed.append(BlockedEvent(sequence=event['sequence'], created_at=event['created_at'],
                     reason=request['reason'], request_id=request['request_id'], authorization_id=request['authorization_id']))
@@ -147,8 +156,11 @@ class SQLiteStore:
                     event, request = events[2], unblocks[0]
                     if (event['kind'] != 'RUN_UNBLOCKED' or request['event_sequence'] != event['sequence']
                             or request['blocked_event_sequence'] != events[1]['sequence']
-                            or request['expected_revision'] != 1 or request['controller_route'] != 'OPERATOR_LOCAL'
-                            or request['authorization_rule_version'] != 1):
+                            or type(request['expected_revision']) is not int or request['expected_revision'] != 1
+                            or request['controller_route'] != 'OPERATOR_LOCAL'
+                            or type(request['authorization_rule_version']) is not int or request['authorization_rule_version'] != 1
+                            or not _valid_sha256(request['core_manifest_sha256'])
+                            or not _valid_sha256(request['control_sha256'])):
                         raise CoreError('Vínculo de desbloqueio inconsistente.')
                     parsed.append(UnblockedEvent(sequence=event['sequence'], created_at=event['created_at'],
                         reason=request['reason'], request_id=request['request_id'], authorization_id=request['authorization_id'],
@@ -255,6 +267,57 @@ class SQLiteStore:
                     from_state='PENDING', to_state='BLOCKED', revision=1,
                     event_sequence=blocked.sequence, created_at=blocked.created_at,
                     authorization_id=blocked.authorization_id)
+                connection.commit()
+                return result
+            except BaseException:
+                connection.rollback()
+                raise
+
+    def unblock(self, request, *, created_at, authorization_id, context):
+        with self._connection('rw') as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            try:
+                version = self._validate_schema(connection)
+                if version != 3:
+                    raise CoreError('Desbloqueio exige migração explícita para SQLite v3.')
+                existing = connection.execute(
+                    'SELECT * FROM unblock_requests WHERE request_id = ?',
+                    (request.request_id,),
+                ).fetchone()
+                if existing is not None:
+                    request.check_replay(run_id=existing['run_id'],
+                        expected_revision=existing['expected_revision'], reason=existing['reason'])
+                else:
+                    current = self._load(connection, request.run_id)
+                    request.check_blocked(current)
+                    blocked_event_sequence = current.events[1].sequence
+                    event = connection.execute(
+                        "INSERT INTO events (run_id, kind, created_at) VALUES (?, 'RUN_UNBLOCKED', ?)",
+                        (request.run_id, created_at),
+                    ).lastrowid
+                    connection.execute(
+                        'INSERT INTO unblock_requests (request_id, run_id, expected_revision, reason, '
+                        'event_sequence, blocked_event_sequence, authorization_id, controller_route, '
+                        'core_manifest_sha256, control_sha256, authorization_rule_version) '
+                        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (request.request_id, request.run_id, request.expected_revision, request.reason,
+                         event, blocked_event_sequence, authorization_id, context['controller_route'],
+                         context['core_manifest_sha256'], context['control_sha256'],
+                         context['authorization_rule_version']),
+                    )
+                    changed = connection.execute(
+                        "UPDATE runs SET state = 'PENDING', revision = 2 WHERE id = ? AND state = 'BLOCKED' AND revision = ?",
+                        (request.run_id, request.expected_revision),
+                    ).rowcount
+                    if changed != 1:
+                        raise ConflictError('Execução mudou antes da confirmação do desbloqueio.')
+                self._validate_schema(connection)
+                run = self._load(connection, request.run_id)
+                unblocked = run.events[2]
+                result = dict(schema_version=3, request_id=unblocked.request_id, run_id=run.run_id,
+                    from_state='BLOCKED', to_state='PENDING', revision=2,
+                    event_sequence=unblocked.sequence, created_at=unblocked.created_at,
+                    authorization_id=unblocked.authorization_id)
                 connection.commit()
                 return result
             except BaseException:

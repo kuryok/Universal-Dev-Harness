@@ -62,7 +62,7 @@ def validate_schema(connection, version=2):
         expected = {'runs': RUNS_V3_SQL, 'events': EVENTS_V3_SQL, 'block_requests': BLOCK_V3_SQL, 'unblock_requests': UNBLOCK_V3_SQL}
     if (len(objects) != len(expected) or any(row['type'] != 'table' for row in objects)
             or {row['name']: (row['sql'] or '').strip() for row in objects} != expected):
-        raise CoreError('Esquema SQLite v2 incompatível.')
+        raise CoreError(f'Esquema SQLite v{version} incompatível.')
 
 
 def check_integrity(connection, store, version):

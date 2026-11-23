@@ -2,10 +2,10 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from .domain import Run, require_run_id, require_text
+from .domain import CoreError, Run, require_run_id, require_text
 from .store import SQLiteStore
 from .policy import evaluate
-from .transitions import BlockRequest, AuthorizationError, operator_context_valid
+from .transitions import BlockRequest, UnblockRequest, AuthorizationError, operator_context_valid
 
 
 class CoreService:
@@ -33,18 +33,29 @@ class CoreService:
         return evaluate(self.show(run_id), action)
 
     def migrate(self, target=2, *, context=None) -> dict:
-        if target == 3:
+        if type(target) is int and target == 3:
             if not operator_context_valid(context) or 'MIGRATE_V3' not in context['allowed_operations']:
                 raise AuthorizationError('Operação exige a entrada administrativa protegida.')
             return self.store.migrate_v3()
-        if target != 2:
-            raise ValueError('Versão de migração inválida.')
-        return self.store.migrate()
+        if type(target) is int and target == 2:
+            if context is not None and (not operator_context_valid(context)
+                                        or 'MIGRATE_V2' not in context['allowed_operations']):
+                raise AuthorizationError('Operação exige a entrada administrativa protegida.')
+            return self.store.migrate()
+        raise CoreError('Versão de migração inválida.')
 
     def block(self, run_id, expected_revision, request_id, reason, *, context):
-        if not operator_context_valid(context):
+        if not operator_context_valid(context) or 'BLOCK_PENDING' not in context['allowed_operations']:
             raise AuthorizationError('Operação exige a entrada administrativa protegida.')
         request = BlockRequest(require_run_id(run_id), expected_revision, request_id, reason)
         return self.store.block(request, created_at=datetime.now(timezone.utc).isoformat(
+            timespec='microseconds').replace('+00:00', 'Z'),
+            authorization_id=str(uuid4()), context=context)
+
+    def unblock(self, run_id, expected_revision, request_id, reason, *, context):
+        if not operator_context_valid(context) or 'UNBLOCK_RUN' not in context['allowed_operations']:
+            raise AuthorizationError('Operação exige a entrada administrativa protegida.')
+        request = UnblockRequest(require_run_id(run_id), expected_revision, request_id, reason)
+        return self.store.unblock(request, created_at=datetime.now(timezone.utc).isoformat(
             timespec='microseconds').replace('+00:00', 'Z'),
             authorization_id=str(uuid4()), context=context)

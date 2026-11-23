@@ -49,3 +49,27 @@ class BlockRequest:
     def check_pending(self, run: Run):
         if run.state != 'PENDING' or run.revision != self.expected_revision or self.expected_revision != 0:
             raise ConflictError('Estado ou revisão não permite este bloqueio.')
+
+
+@dataclass(frozen=True)
+class UnblockRequest:
+    run_id: str
+    expected_revision: int
+    request_id: str
+    reason: str
+
+    def __post_init__(self):
+        require_run_id(self.run_id)
+        require_text(self.request_id, 'Identificador do desbloqueio')
+        require_text(self.reason, 'Motivo do desbloqueio')
+        if type(self.expected_revision) is not int or self.expected_revision < 0:
+            raise CoreError('Revisão esperada deve ser um inteiro não negativo.')
+
+    def check_replay(self, *, run_id, expected_revision, reason):
+        if (self.run_id, self.expected_revision, self.reason) != (run_id, expected_revision, reason):
+            raise ConflictError('Requisição de desbloqueio já utilizada com outro conteúdo.')
+
+    def check_blocked(self, run: Run):
+        if (run.state != 'BLOCKED' or run.revision != self.expected_revision
+                or self.expected_revision != 1 or len(run.events) != 2):
+            raise ConflictError('Estado ou revisão não permite este desbloqueio.')

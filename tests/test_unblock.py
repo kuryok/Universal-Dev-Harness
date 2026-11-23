@@ -138,3 +138,166 @@ class MigrationV3Tests(unittest.TestCase):
                 core.migrate()
             with self.assertRaises(CoreError):
                 core.initialize()
+
+
+class UnblockOperationTests(unittest.TestCase):
+    @staticmethod
+    def context(schema=2, **changes):
+        operations = (('MIGRATE_V2', 'BLOCK_PENDING') if schema == 1
+                      else ('MIGRATE_V2', 'BLOCK_PENDING', 'MIGRATE_V3', 'UNBLOCK_RUN'))
+        data = dict(schema=schema, db_path='/state/udh.sqlite', controller_route='OPERATOR_LOCAL',
+                    authorization_rule_version=1, allowed_operations=operations,
+                    core_manifest_sha256='a' * 64, control_sha256='b' * 64)
+        data.update(changes)
+        return data
+
+    def setup_v3_blocked(self, directory, *, migrated=True):
+        from udh.service import CoreService
+        from udh.store import SQLiteStore
+        path = Path(directory) / 'state.sqlite'
+        core = CoreService(SQLiteStore(path))
+        core.initialize()
+        core.migrate()
+        run = core.create(' spec ', '1', 'create-1')
+        if migrated:
+            blocked = core.block(run.run_id, 0, 'block-1', ' pausa ', context=self.context(schema=1))
+            core.migrate(3, context=self.context())
+        else:
+            core.migrate(3, context=self.context())
+            blocked = core.block(run.run_id, 0, 'block-1', ' pausa ', context=self.context())
+        return path, core, run, blocked
+
+    def test_unblock_persists_replays_and_preserves_historical_block(self):
+        from udh.transitions import ConflictError
+        for migrated in (True, False):
+            with self.subTest(migrated=migrated), tempfile.TemporaryDirectory(dir=BASE) as directory:
+                _, core, run, blocked = self.setup_v3_blocked(directory, migrated=migrated)
+                result = core.unblock(run.run_id, 1, 'block-1', ' retomada ', context=self.context())
+                self.assertEqual((result['schema_version'], result['from_state'], result['to_state'], result['revision']),
+                                 (3, 'BLOCKED', 'PENDING', 2))
+                replay = core.unblock(run.run_id, 1, 'block-1', ' retomada ',
+                                      context=self.context(core_manifest_sha256='c' * 64, control_sha256='d' * 64))
+                self.assertEqual(replay, result)
+                self.assertEqual(core.block(run.run_id, 0, 'block-1', ' pausa ', context=self.context()), blocked)
+                shown = core.show(run.run_id).to_dict()
+                self.assertEqual((shown['schema_version'], shown['state'], shown['revision']), (3, 'PENDING', 2))
+                self.assertEqual([event['kind'] for event in shown['events']],
+                                 ['RUN_CREATED', 'RUN_BLOCKED', 'RUN_UNBLOCKED'])
+                self.assertEqual(shown['events'][1]['reason'], ' pausa ')
+                self.assertEqual(shown['events'][2]['reason'], ' retomada ')
+                with self.assertRaises(ConflictError):
+                    core.unblock(run.run_id, 1, 'block-1', 'outro', context=self.context())
+                with self.assertRaises(ConflictError):
+                    core.unblock(run.run_id, 1, 'new-unblock', ' retomada ', context=self.context())
+                with self.assertRaises(ConflictError):
+                    core.block(run.run_id, 0, 'new-block', 'nova pausa', context=self.context())
+                with self.assertRaises(ConflictError):
+                    core.block(run.run_id, 2, 'new-block', 'nova pausa', context=self.context())
+
+    def test_unblock_requires_schema2_context_and_v3_database(self):
+        from io import StringIO
+        from contextlib import redirect_stderr, redirect_stdout
+        from unittest.mock import Mock, patch
+        from udh.domain import CoreError
+        from udh.operator import main as operator_main
+        from udh.service import CoreService
+        from udh.store import SQLiteStore
+        from udh.transitions import AuthorizationError
+
+        store = Mock(spec=SQLiteStore)
+        service = CoreService(store)
+        for bad_context in (None, self.context(schema=1), self.context(allowed_operations=('MIGRATE_V2', 'BLOCK_PENDING'))):
+            with self.subTest(context=bad_context), self.assertRaises(AuthorizationError):
+                service.unblock('00000000-0000-0000-0000-000000000001', 1, 'req', 'motivo', context=bad_context)
+            self.assertEqual(store.mock_calls, [])
+        with self.assertRaises(CoreError):
+            service.migrate(4, context=self.context())
+
+        stdout, stderr = StringIO(), StringIO()
+        with patch('sqlite3.connect', side_effect=AssertionError('I/O indevido')), \
+                redirect_stdout(stdout), redirect_stderr(stderr):
+            code = operator_main(['unblock', '--run-id', '00000000-0000-0000-0000-000000000001',
+                                  '--expected-revision', '1', '--request-id', 'r', '--reason', 'm'],
+                                 context=self.context(schema=1))
+        self.assertEqual(code, 3)
+        self.assertEqual(stderr.getvalue(), '')
+        self.assertEqual(json.loads(stdout.getvalue())['reason_code'], 'AUTHORIZATION_REQUIRED')
+
+        with tempfile.TemporaryDirectory(dir=BASE) as directory:
+            core = CoreService(SQLiteStore(Path(directory) / 'state.sqlite'))
+            core.initialize()
+            core.migrate()
+            run = core.create('s', '1', 'c')
+            core.block(run.run_id, 0, 'b', 'm', context=self.context(schema=1))
+            with self.assertRaises(CoreError):
+                core.unblock(run.run_id, 1, 'u', 'm', context=self.context())
+
+    def test_unblock_rolls_back_on_each_write_failure_and_validates_measurements(self):
+        from contextlib import closing, contextmanager
+        import sqlite3
+        from unittest.mock import patch
+        from udh.domain import CoreError
+
+        with tempfile.TemporaryDirectory(dir=BASE) as directory:
+            path, core, run, _ = self.setup_v3_blocked(directory)
+            original_connection = core.store._connection
+
+            class FailingConnection:
+                def __init__(self, connection, fail_at):
+                    self.connection = connection
+                    self.fail_at = fail_at
+                    self.writes = 0
+
+                def execute(self, sql, *args, **kwargs):
+                    if sql.lstrip().split()[0].upper() in ('INSERT', 'UPDATE', 'DELETE'):
+                        self.writes += 1
+                        if self.writes == self.fail_at:
+                            raise sqlite3.OperationalError('Falha complementar injetada.')
+                    return self.connection.execute(sql, *args, **kwargs)
+
+                def __getattr__(self, name):
+                    return getattr(self.connection, name)
+
+            for fail_at in (1, 2, 3):
+                @contextmanager
+                def connection_with_failure(mode):
+                    with original_connection(mode) as connection:
+                        yield FailingConnection(connection, fail_at)
+
+                with self.subTest(write=fail_at), patch.object(core.store, '_connection', connection_with_failure):
+                    with self.assertRaises(CoreError):
+                        core.unblock(run.run_id, 1, 'u-fail', 'motivo', context=self.context())
+                shown = core.show(run.run_id)
+                self.assertEqual((shown.state, shown.revision, len(shown.events)), ('BLOCKED', 1, 2))
+
+            core.unblock(run.run_id, 1, 'u-ok', 'motivo', context=self.context())
+            with closing(sqlite3.connect(path)) as db, db:
+                db.execute('PRAGMA ignore_check_constraints=ON')
+                db.execute("UPDATE unblock_requests SET core_manifest_sha256='INVALID'")
+            with self.assertRaises(CoreError):
+                core.show(run.run_id)
+
+    def test_v2_loader_rejects_third_event_even_without_quick_check(self):
+        from contextlib import closing
+        import sqlite3
+        from udh.domain import CoreError
+        from udh.service import CoreService
+        from udh.store import SQLiteStore
+
+        with tempfile.TemporaryDirectory(dir=BASE) as directory:
+            path = Path(directory) / 'state.sqlite'
+            store = SQLiteStore(path)
+            core = CoreService(store)
+            core.initialize()
+            core.migrate()
+            run = core.create('s', '1', 'c')
+            blocked = core.block(run.run_id, 0, 'b', 'm', context=self.context(schema=1))
+            with closing(sqlite3.connect(path)) as db:
+                db.row_factory = sqlite3.Row
+                db.execute('PRAGMA ignore_check_constraints=ON')
+                db.execute("INSERT INTO events (run_id, kind, created_at) VALUES (?, 'RUN_UNBLOCKED', ?)",
+                           (run.run_id, blocked['created_at']))
+                with self.assertRaises(CoreError):
+                    store._load(db, run.run_id, version=2)
+            with self.assertRaises(CoreError):
+                core.migrate(2.0, context=self.context(schema=1))
