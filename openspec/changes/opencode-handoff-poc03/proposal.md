@@ -1,6 +1,6 @@
 # Change 3 — Segundo Agente (OpenCode 1.18.35), Gateway com Allowlist de Tools, Seleção Determinística (ADR-026), Pacote de Handoff F-03 e POC-03
 
-**Estado:** APROVADO (autorização humana explícita + revisão independente F-02 `PASS` em 24/11/2026) — em implementação (`T1`–`T7`).  
+**Estado:** APROVADO, IMPLEMENTADO E VERIFICADO EM 24/11/2026 (`5164e26`; resumo em [verification-summary.json](verification-summary.json)).
 **Data:** 24/11/2026.  
 **Branch dedicada:** `feat/change3-opencode-handoff-poc03` (a partir de `main` @ `9397639`, com Change 2 verificado em `beac057`: 125/125 complementares PASS, 50/50 AT selados `v1–v6` PASS, `POC-01`/`02`/`04` PASS, revisão R2/F-02 PASS).  
 **Referências normativas:** [baseline normativo rastreado](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (`ADR-001`–`ADR-005`, `ADR-008`, `ADR-010`, `ADR-011`, `ADR-013`–`ADR-018`, `ADR-020`, `ADR-021`, `ADR-025`, `ADR-026`, `ADR-027`, `ADR-028`, `B1.1`–`B1.6`, `F-02`, `F-03`, `F-04`) e ratificação registrada em [openspec/project.md](../../project.md).

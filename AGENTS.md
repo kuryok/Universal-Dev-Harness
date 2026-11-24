@@ -44,11 +44,11 @@ Um sistema local-first que leva uma pessoa que não sabe programar de uma ideia 
 - Se não conseguiu executar algo, escreva "não executado" e explique o motivo.
 - Resultado parcial é resultado válido. Resultado inventado não é.
 
-## Fase atual: Change 2 concluído (`POC-01`/`02`/`04` PASS) e preparo do Change 3
+## Fase atual: Change 3 concluído (`POC-01`–`POC-04` 4/4 PASS) e preparo do Change 4
 
-A Slice 0 foi encerrada no perfil experimental Linux/API testado. O Change 1 (Core SQLite v1–v4, leitura `O(1)`, checkpoints F-03, política v2 e `doctor`) e o **Change 2** (Runtime Manager rootless com imagem OCI dedicada por digest, Gateway stdlib endurecido, adaptador Pi 1.2.0, TrustStore + Executor Confiável F-04 e execução real de `POC-01`, `POC-02` e `POC-04` em Linux x86_64 rootless, preservando 50/50 AT selados `v1–v6`) foram concluídos e verificados; consulte [STATE.md](STATE.md), [MEMORY.md](MEMORY.md) e [openspec/project.md](openspec/project.md) para o estado verificado e próximo passo.
+A Slice 0 foi encerrada no perfil experimental Linux/API testado. O Change 1 (Core SQLite v1–v4, leitura `O(1)`, checkpoints F-03, política v2 e `doctor`), o Change 2 (Runtime Manager rootless, imagem OCI dedicada do Pi 1.2.0 por digest, Gateway stdlib endurecido, TrustStore + Executor Confiável F-04 e `POC-01`/`02`/`04` PASS) e o **Change 3** (imagem OCI separada do OpenCode 1.18.35 por digest, Gateway `allowed_tool_names` fail-closed, adaptador OpenCode com E3 `zero_tools` e E4 `/udh/agent-config:ro`, handoff F-03 com `git_dir` externo + seleção ADR-026, `doctor --conformance` multi-agente `READY` e **`POC-03` PASS** em Linux x86_64 rootless, preservando 50/50 AT selados `v1–v6`) foram concluídos e verificados; consulte [STATE.md](STATE.md), [MEMORY.md](MEMORY.md) e [openspec/project.md](openspec/project.md) para o estado verificado e próximo passo.
 
-Novos recortes seguem OpenSpec documental em branch dedicada e aprovação humana antes de implementar. O `bootstrap/slice1/` permanece congelado (sem novos gates ou selo v7); evidências pesadas não entram em JSON cru no Git (`<= 32 KiB`). As próximas prioridades são o segundo agente (OpenCode) + `POC-03` (handoff e retomada F-03), perfil `artifact` com preview local (`B3.6`) e interface guiada mínima (`B1.7`).
+Novos recortes seguem OpenSpec documental em branch dedicada e aprovação humana antes de implementar. O `bootstrap/slice1/` permanece congelado (sem novos gates ou selo v7); evidências pesadas não entram em JSON cru no Git (`<= 32 KiB`). As próximas prioridades são o perfil `artifact` com preview web local isolado (`B3.6`) e a interface guiada mínima (`B1.7`).
 
 O código da Slice 0 permanece **descartável**, com os limites registrados no relatório. Um Core só significa autoridade única, com módulos separados por responsabilidade (somente arquivos `.py` sob `udh/`); não concentrar todo o sistema em um arquivo.
 
@@ -61,4 +61,4 @@ O código da Slice 0 permanece **descartável**, com os limites registrados no r
 
 ## O que não fazer nesta fase
 
-Interface web, memória auxiliar, segundo e terceiro agente, skill de descoberta, Judge, instalador. Tudo isso vem depois que a fundação provar que se sustenta.
+Terceiro agente (Codex), memória auxiliar (Memorix), skill de descoberta, Judge, instalador ou perfil `provision` antes de especificação e aprovação no OpenSpec do respectivo change.
