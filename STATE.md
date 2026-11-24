@@ -14,15 +14,15 @@ Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte no
 
 ## Pendente
 
-- **Change 5 em andamento:** T2 valida contratos e dependências (SQLite v8 opt-in). T3 filtra perguntas, acompanha lacunas com confirmação humana em memória e valida snapshots com OpenSpec 2.1.1. Aceite oficial de `TICKET-01`, `DISC-01` e `TICKET-02` pendentes.
+- **Change 5 em andamento:** T2 valida contratos e dependências. T3 persiste a descoberta (SQLite v9 opt-in) e registra `SPEC_READY` após aprovação e OpenSpec 2.1.1. `TICKET-01`, `DISC-01` e `TICKET-02` aguardam aceite oficial.
 - **Restante do produto:** perfil `provision` (`B2.4`), execução protegida persistente (`B3.8`) e exportação (`B3.9`), `DOC-01/02`, `SKILL-01/02`, `UX-04`, terceiro agente (Codex), WSL2 (`B1.1b`), Chromium/Chrome, Memorix, Judge consultivo e instalador. Ainda não é MVP liberável completo.
 
 ## Próxima tarefa
 
-Na branch `feat/change5-discover-plan-tickets`, autorizar o provisionamento e qualificar [Qwen2.5-0.5B-Instruct Q4_K_M com llama.cpp](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#candidato-para-o-ensaio-offline). A skill está conferida; T3b.2b requer aprovação. T3-org adiada.
+Na branch `feat/change5-discover-plan-tickets`, [qualificar o modelo local na máquina doméstica (RTX)](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#retomada-na-máquina-doméstica) e executar C5-T3b.2b-03. T4 aguarda detalhamento e aprovação; T3-org adiada.
 
 ## Verificação
 
-- `UDH_TEST_OPENSPEC="$(command -v openspec)" PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests` (210 PASS, incluindo CLI real; AT selados e R2/F-02 pendentes para o fechamento).
+- `UDH_TEST_DISCOVERY_PI=1 UDH_TEST_OPENSPEC="$(command -v openspec)" PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests` (216 PASS; Pi e CLI reais com servidor simulado. AT selados e R2/F-02 pendentes).
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m udh doctor --conformance` (`READY`: `['pi', 'opencode']`), `PYTHONDONTWRITEBYTECODE=1 python3 -m udh.poc` (4/4 PASS) e `python3 -m udh.web --db <path> --store <path>`.
 - [README](README.md) para entrada. Não abrir credenciais nem limpar `spike/slice0/workspace/` sem autorização.

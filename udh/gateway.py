@@ -218,6 +218,8 @@ class GatewayConfig:
     secret_resolver: Callable[[], str | None] | None = None
     openrouter_connection_factory: Callable[[], http.client.HTTPConnection] | None = None
     ipc_base_dir: Path | None = None
+    local_discovery_port: int | None = None
+    local_discovery_max_tokens: int = 2048
 
     def __post_init__(self):
         if not isinstance(self.allowed_tool_names, tuple):
@@ -407,8 +409,13 @@ class InferenceGateway:
     """Gateway de inferência UDS (função do Core, sem microserviço permanente)."""
 
     def __init__(self, config: GatewayConfig):
-        if config.backend not in ('stub', 'openrouter_free'):
+        if config.backend not in ('stub', 'openrouter_free', 'local_discovery'):
             raise GatewayError(f'Backend de gateway inválido: {config.backend}.')
+        if config.backend == 'local_discovery' and (
+                type(config.local_discovery_port) is not int or not 1 <= config.local_discovery_port <= 65535
+                or type(config.local_discovery_max_tokens) is not int or not 1 <= config.local_discovery_max_tokens <= 2048
+                or config.allow_tools or config.allowed_tool_names or len(config.allowed_models) != 1):
+            raise GatewayError('Inferência local exige porta válida, um modelo e nenhuma ferramenta.')
         if not config.allowed_models:
             raise GatewayError('Allowlist de modelos não pode ser vazia.')
         for tool_name in config.allowed_tool_names:
@@ -623,11 +630,95 @@ class InferenceGateway:
                 conn, peer_uid=peer_uid, model=model, has_tools=has_tools,
                 tool_names=tool_names, req_bytes=req_bytes, started=started,
             )
+        elif self.config.backend == 'local_discovery':
+            self._serve_local_discovery(conn, body=body, peer_uid=peer_uid, model=model,
+                                        req_bytes=req_bytes, started=started)
         else:
             self._serve_openrouter_free(
                 conn, body=body, peer_uid=peer_uid, model=model,
                 has_tools=has_tools, tool_names=tool_names, req_bytes=req_bytes, started=started,
             )
+
+    def _serve_local_discovery(self, conn, *, body, peer_uid, model, req_bytes, started):
+        status, verdict, resp_bytes = 400, 'local_messages_denied', 0
+        try:
+            messages = []
+            for item in body['messages']:
+                if (type(item) is not dict or item.get('role') not in ('system', 'user', 'assistant')
+                        or 'tool_calls' in item or 'function_call' in item):
+                    break
+                text = item.get('content')
+                # O SDK do Pi envia partes de texto no turno de usuário.
+                if type(text) is list and text and all(type(part) is dict and set(part) == {'type', 'text'}
+                                                       and part['type'] == 'text' and type(part['text']) is str
+                                                       for part in text):
+                    text = ''.join(part['text'] for part in text)
+                if type(text) is not str:
+                    break
+                messages.append({'role': item['role'], 'content': text})
+            cap = self.config.local_discovery_max_tokens
+            requested = body.get('max_completion_tokens', body.get('max_tokens', cap))
+            if not messages or len(messages) != len(body['messages']) or type(requested) is not int or requested < 1:
+                _send_json_response(conn, 400, 'Bad Request', {'error': verdict})
+                return
+            payload = json.dumps({'model': model, 'stream': False, 'max_tokens': min(requested, cap),
+                                  'messages': messages})
+            upstream = http.client.HTTPConnection('127.0.0.1', self.config.local_discovery_port,
+                                                 timeout=self.config.call_timeout_seconds)
+            status, verdict = 502, 'local_inference_failed'
+            try:
+                upstream.request('POST', '/v1/chat/completions', payload,
+                                 {'Content-Type': 'application/json', 'Connection': 'close'})
+                response = upstream.getresponse()
+                if response.status != 200:
+                    raise GatewayError('Servidor de inferência local recusou a chamada.')
+                deadline = started + self.config.call_timeout_seconds
+                data = bytearray()
+                while len(data) <= self.config.max_response_bytes:
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError
+                    chunk = response.read1(min(8192, self.config.max_response_bytes - len(data) + 1))
+                    if not chunk:
+                        break
+                    data.extend(chunk)
+                if len(data) > self.config.max_response_bytes:
+                    raise GatewayError('Resposta local excedeu o limite.')
+                parsed = strict_json_loads(data.decode('utf-8'), 'Resposta local')
+                choices = parsed.get('choices') if type(parsed) is dict else None
+                if type(choices) is not list or len(choices) != 1 or type(choices[0]) is not dict:
+                    raise GatewayError('Resposta local inválida.')
+                choice = choices[0]
+                message = choice.get('message')
+                if (choice.get('finish_reason') != 'stop' or type(message) is not dict
+                        or message.get('role') != 'assistant' or type(message.get('content')) is not str
+                        or 'function_call' in message or message.get('tool_calls') not in (None, [])):
+                    raise GatewayError('Resposta local incompleta ou com ferramentas.')
+            except (OSError, http.client.HTTPException, ValueError, RecursionError):
+                _send_json_response(conn, status, 'Bad Gateway', {'error': verdict})
+                return
+            finally:
+                upstream.close()
+
+            frames = []
+            for delta, stop in (({'role': 'assistant', 'content': message['content']}, None), ({}, 'stop')):
+                chunk = {'id': 'udh-local-chatcmpl', 'object': 'chat.completion.chunk', 'created': 1, 'model': model,
+                         'choices': [{'index': 0, 'delta': delta, 'finish_reason': stop}]}
+                frames.append(('data: ' + json.dumps(chunk, separators=(',', ':')) + '\n\n').encode('ascii'))
+            frames.append(b'data: [DONE]\n\n')
+            if sum(map(len, frames)) > self.config.max_response_bytes:
+                _send_json_response(conn, status, 'Bad Gateway', {'error': verdict})
+                return
+            conn.sendall(b'HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\n'
+                         b'Connection: close\r\n\r\n')
+            for frame in frames:
+                resp_bytes += self._write_chunk(conn, frame)
+            conn.sendall(b'0\r\n\r\n')
+            status, verdict = 200, 'local_stream_complete'
+        except OSError:
+            status, verdict = 499, 'client_disconnected'
+        finally:
+            self._audit(status=status, verdict=verdict, peer_uid=peer_uid, model=model,
+                        request_bytes=req_bytes, response_bytes=resp_bytes, elapsed_seconds=time.monotonic() - started)
 
     def _write_chunk(self, conn: socket.socket, data: bytes) -> int:
         frame = f'{len(data):x}\r\n'.encode('ascii') + data + b'\r\n'

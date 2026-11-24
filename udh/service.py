@@ -5,6 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from .doctor import run_doctor
+from .discovery_flow import DiscoveryFlow
 from .domain import (
     COMPLETION_EVIDENCE_KINDS,
     CoreError,
@@ -401,6 +402,10 @@ class CoreService:
         )
 
     def migrate(self, target=2, *, context=None) -> dict:
+        if type(target) is int and target == 9:
+            if context is not None:
+                raise AuthorizationError('Contexto administrativo legado não autoriza migração para v9.')
+            return self.store.migrate_v9()
         if type(target) is int and target == 8:
             if context is not None:
                 raise AuthorizationError('Contexto administrativo legado não autoriza migração para v8.')
@@ -431,6 +436,10 @@ class CoreService:
                 raise AuthorizationError('Operação exige a entrada administrativa protegida.')
             return self.store.migrate()
         raise CoreError('Versão de migração inválida.')
+
+    def discovery_flow(self, config) -> DiscoveryFlow:
+        """Acesso ao fluxo de descoberta pela rota local confiável."""
+        return DiscoveryFlow(self.store, config)
 
     def approve_ticket_input(self, spec, *, expected=None):
         """Fixa a entrada aprovada fornecida pelo chamador confiável."""

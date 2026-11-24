@@ -127,12 +127,17 @@ class PiAdapter:
         limits: ResourceLimits | None = None,
         forbidden_rw_roots: tuple[Path, ...] = (),
         allowed_tools: tuple[str, ...] | None = None,
+        max_output_tokens: int = 512,
         on_started=None,
     ) -> AgentExecutionResult:
         if profile not in self.capabilities.profiles:
             raise CoreError(f'Perfil não suportado pelo adaptador Pi: {profile}.')
         if gateway.ipc_dir is None or gateway.socket_path is None:
             raise CoreError('Gateway de inferência deve estar iniciado antes de executar o PiAdapter.')
+        local_discovery = gateway.config.backend == 'local_discovery'
+        if (type(max_output_tokens) is not int or not 1 <= max_output_tokens <= (2048 if local_discovery else 512)
+                or (local_discovery and allowed_tools != ())):
+            raise CoreError('Configuração de geração inválida para o adaptador Pi.')
 
         manifest = self.runtime_manager.load_manifest()
         ws_resolved = Path(workspace).resolve(strict=True)
@@ -156,7 +161,7 @@ class PiAdapter:
                             'id': model,
                             'name': 'UDH Mediated Model',
                             'contextWindow': 16000,
-                            'maxTokens': 512,
+                            'maxTokens': max_output_tokens,
                             'input': ['text'],
                             'reasoning': False,
                         }],
@@ -166,8 +171,9 @@ class PiAdapter:
             settings_payload = {
                 'enableInstallTelemetry': False,
                 'enableAnalytics': False,
-                'httpIdleTimeoutMs': 8000,
-                'retry': {'enabled': False, 'provider': {'maxRetries': 0, 'timeoutMs': 8000}},
+                'httpIdleTimeoutMs': 30000 if local_discovery else 8000,
+                'retry': {'enabled': False, 'provider': {'maxRetries': 0,
+                                                          'timeoutMs': 30000 if local_discovery else 8000}},
             }
             (config_files_dir / 'models.json').write_text(json.dumps(models_payload), encoding='utf-8')
             (config_files_dir / 'settings.json').write_text(json.dumps(settings_payload), encoding='utf-8')
@@ -221,7 +227,7 @@ class PiAdapter:
                 'PI_CODING_AGENT_DIR': '/udh/agent-config',
                 'PI_OFFLINE': '1',
                 'PI_TELEMETRY': '0',
-                'UDH_GATEWAY_TIMEOUT_MS': '15000',
+                'UDH_GATEWAY_TIMEOUT_MS': '30000' if local_discovery else '15000',
             }
 
             container_res = self.runtime_manager.run_developer(

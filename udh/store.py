@@ -1,4 +1,4 @@
-"""Persistência transacional do Core em SQLite (v1–v8)."""
+"""Persistência transacional do Core em SQLite (v1–v9)."""
 
 from contextlib import contextmanager
 import json
@@ -23,7 +23,7 @@ from .transitions import ConflictError, EvidenceRequest
 
 
 _NONEMPTY = "length(trim({field}, char(9)||char(10)||char(11)||char(12)||char(13)||' ')) > 0"
-_LEDGER_VERSIONS = (4, 5, 6, 7, 8)
+_LEDGER_VERSIONS = (4, 5, 6, 7, 8, 9)
 _UTC = "length(created_at) >= 20 AND substr(created_at, -1) = 'Z' AND julianday(created_at) IS NOT NULL"
 _RUNS_SQL = f"""CREATE TABLE runs (
     id TEXT PRIMARY KEY NOT NULL,
@@ -100,6 +100,9 @@ class SQLiteStore:
         if version == 8 and not v1_only:
             migrations.validate_schema_v8(connection)
             return 8
+        if version == 9 and not v1_only:
+            migrations.validate_schema_v9(connection)
+            return 9
         if version in (2, 3) and not v1_only:
             migrations.validate_schema(connection, version)
             migrations.check_integrity(connection, SQLiteStore, version)
@@ -144,6 +147,9 @@ class SQLiteStore:
 
     def migrate_v8(self) -> dict:
         return migrations.migrate_v8(self)
+
+    def migrate_v9(self) -> dict:
+        return migrations.migrate_v9(self)
 
     _check_managed_integrity = staticmethod(check_managed_integrity)
     _check_contract_integrity = staticmethod(check_contract_integrity)

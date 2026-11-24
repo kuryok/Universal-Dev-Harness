@@ -8,7 +8,7 @@ Atualizado: 24/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e confe
 - Governança em [openspec/project.md](openspec/project.md) (`bootstrap/slice1/` congelado, resumos `<= 32 KiB`, 1 branch por change).
 
 ## Próximo passo
-- Branch `feat/change5-discover-plan-tickets`: skill `grill-with-docs-udh` conferida; 210/210 complementares PASS. Para T3b.2b, [selecionado Qwen2.5-0.5B-Instruct Q4_K_M com llama.cpp](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#candidato-para-o-ensaio-offline). Próximo: autorizar provisionamento, qualificar ensaio offline e aprovar integração. T3-org adiada.
+- Branch `feat/change5-discover-plan-tickets`: T3b.2b implementada (SQLite v9 opt-in, Pi/OpenSpec reais com servidor simulado; 216/216 complementares PASS). Próximo: [qualificar com Ollama local em casa](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#retomada-na-máquina-doméstica) e registrar C5-T3b.2b-03. `DISC-01` segue `NOT_RUN`. T4 e T3-org ainda pendentes.
 
 ## Cuidados
 - `DOC`/`SKILL`/`DISC`/`TICKET`, `B2.4`, `B3.8`/`B3.9`, `UX-04`, Codex, Chromium/Chrome e WSL2 seguem `NOT_RUN`; ainda não declarar MVP liberável completo.

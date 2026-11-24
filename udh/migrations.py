@@ -296,6 +296,13 @@ _MANAGED_ACCEPTANCES_SQL = '''CREATE TABLE "managed_ticket_acceptances" (
  created_at TEXT NOT NULL
 )'''
 _EXPECTED_V8 = {**_EXPECTED_V7, ('table', 'managed_ticket_acceptances'): _MANAGED_ACCEPTANCES_SQL}
+_DISCOVERY_SESSIONS_SQL = '''CREATE TABLE "discovery_sessions" (
+ session_id TEXT PRIMARY KEY NOT NULL,
+ change_id TEXT NOT NULL,
+ revision INTEGER NOT NULL CHECK (typeof(revision) = 'integer' AND revision >= 0),
+ payload_json TEXT NOT NULL CHECK (length(CAST(payload_json AS BLOB)) BETWEEN 1 AND 2097152)
+)'''
+_EXPECTED_V9 = {**_EXPECTED_V8, ('table', 'discovery_sessions'): _DISCOVERY_SESSIONS_SQL}
 
 
 def init_v4(connection):
@@ -339,6 +346,33 @@ def validate_schema_v7(connection):
 
 def validate_schema_v8(connection):
     _validate_ledger_schema(connection, _EXPECTED_V8, 8)
+
+
+def validate_schema_v9(connection):
+    _validate_ledger_schema(connection, _EXPECTED_V9, 9)
+
+
+def migrate_v9(store):
+    with store._connection('rw') as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        try:
+            version = connection.execute('PRAGMA user_version').fetchone()[0]
+            if version not in (8, 9):
+                raise CoreError('Migração para v9 exige banco SQLite v8 válido.')
+            (validate_schema_v8 if version == 8 else validate_schema_v9)(connection)
+            check_integrity_v4(connection, store)
+            store._check_managed_integrity(connection, allow_started=True)
+            store._check_contract_integrity(connection)
+            store._check_acceptance_integrity(connection)
+            if version == 8:
+                connection.execute(_DISCOVERY_SESSIONS_SQL)
+                connection.execute('PRAGMA user_version = 9')
+                validate_schema_v9(connection)
+            connection.commit()
+            return {'schema_version': 9, 'changed': version == 8}
+        except BaseException:
+            connection.rollback()
+            raise
 
 
 def migrate_v8(store):
