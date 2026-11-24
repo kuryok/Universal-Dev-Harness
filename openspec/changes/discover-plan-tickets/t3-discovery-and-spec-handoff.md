@@ -1,6 +1,6 @@
 # T3 — Descoberta proporcional e handoff para SPEC (`DISC-01`)
 
-**Estado:** T3a, T3b.1 e T3b.2a implementadas e verificadas. A adaptação `grill-with-docs-udh` foi preparada e conferida em 24/11/2026; T3b.2b aguarda aprovação de integração e qualificação da inferência offline.
+**Estado:** T3a, T3b.1 e T3b.2a implementadas e verificadas. A adaptação `grill-with-docs-udh` foi conferida e o candidato de inferência offline foi selecionado em 24/11/2026. T3b.2b aguarda qualificação do candidato e aprovação da integração.
 
 **Base:** [proposta do Change 5](proposal.md#condições-para-fechar-o-change) e [baseline](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md), DELTA-03/04. A descoberta levanta decisões que mudam o comportamento observável e encaminha uma especificação para revisão humana. Não aprova requisitos, cria tickets, executa comandos propostos nem escreve código de produção.
 
@@ -91,7 +91,11 @@
 - **Arquivos e verificação:** `skills/grill-with-docs-udh/SKILL.md`, `skills/grill-with-docs-udh/LICENSE` e documentação ativa. Conferir conteúdo, atribuição, UTF-8, tamanho e SHA-256 no checkout. A skill é um insumo para o futuro executor do UDH, não uma instalação no OpenCode ou no Pi. Aprovação para uso no runtime fica no recorte T3b.2b.
 - **Artefato conferido:** [`grill-with-docs-udh/SKILL.md`](skills/grill-with-docs-udh/SKILL.md), 3.042 bytes UTF-8, SHA-256 `0013c3849856ad8f629b9b19a9260be26583a7b715b1ba713016739fa4de7f27`. Licença MIT e crédito ao autor em [`LICENSE`](skills/grill-with-docs-udh/LICENSE). O exemplo JSON passou pelo validador real de T3a; a suíte complementar passou com 210/210, incluindo a CLI OpenSpec real. Isso verifica o artefato e o exemplo, não a qualidade das respostas de um modelo.
 
-**Bloqueios:** aprovar a integração com a adaptação versionada e selecionar a fonte local de inferência. O Gateway concede apenas `stub` e `openrouter_free`, e `ollama`, `llama-cli`, `llama-server` e `llamafile` não apareceram no `PATH`. Essa sondagem não exclui serviço local já provido pelo operador. `DISC-01` segue `NOT_RUN`.
+##### Candidato para o ensaio offline
+
+- **Sondagem local em 24/11/2026:** Linux x86_64 com AVX2, 12 CPUs lógicas, 2.910 MiB de RAM total e 1.195 MiB disponíveis na medição; 38 GiB livres no volume do checkout. Não apareceram `ollama`, `llama-cli`, `llama-server` ou `llamafile` no `PATH`, imagens locais de inferência no Podman, pesos no checkout ou listeners nas quatro portas de referência sondadas (`11434`, `8080`, `1234`, `8000`). Isso não exclui um serviço em outro endereço configurado pelo operador.
+- **Candidato selecionado:** `Qwen2.5-0.5B-Instruct`, pesos `Q4_K_M` do [GGUF oficial da Qwen](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF), com `llama-server` do [llama.cpp](https://github.com/ggml-org/llama.cpp), somente CPU. A variante de 0,5B prioriza caber na memória disponível junto ao Pi e ao Core; o tamanho exato do download, o pico de RAM, o tempo e a qualidade ainda não foram medidos. Antes de baixar, conferir a origem, fixar a versão do runtime e a revisão dos pesos e obter autorização para provisionar esses artefatos. Guardá-los fora do Git.
+- **Qualificação:** iniciar o servidor apenas em loopback com pesos locais e verificar `/v1/chat/completions`, sem acesso externo durante o ensaio. Medir tempo e pico de RAM na execução com Pi, respeitando o timeout proposto. Usar os casos de C5-T3b.2b-03 para verificar distinção entre pedido completo e lacuna material e validade do rascunho; JSON válido sozinho não prova qualidade. Se o candidato não passar, registrar a falha e reavaliar o modelo ou os recursos antes de aprovar a integração. Escolher esse candidato não altera os gates nem o resultado de `DISC-01`, que segue `NOT_RUN`.
 
 ### T3-org — Agrupar os módulos de descoberta e SPEC
 

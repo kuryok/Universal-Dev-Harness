@@ -19,7 +19,7 @@ Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte no
 
 ## Próxima tarefa
 
-Na branch `feat/change5-discover-plan-tickets`, qualificar a inferência offline e aprovar [T3b.2b](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#t3b2b--integrar-o-agente-e-executar-o-encaminhamento-real). A adaptação `grill-with-docs-udh` foi conferida. T3-org adiada.
+Na branch `feat/change5-discover-plan-tickets`, autorizar o provisionamento e qualificar [Qwen2.5-0.5B-Instruct Q4_K_M com llama.cpp](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#candidato-para-o-ensaio-offline). A skill está conferida; T3b.2b requer aprovação. T3-org adiada.
 
 ## Verificação
 
