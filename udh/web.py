@@ -191,10 +191,16 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
             },
         )
 
-    def _read_body(self, *, max_bytes: int) -> bytes | None:
+    def _read_body(self, *, max_bytes: int, for_preview: bool = False, allow_iframe: bool = False) -> bytes | None:
+        def _err(status: int, code: str, msg: str) -> None:
+            if for_preview:
+                self._send_preview_error(status, code, msg, allow_iframe=allow_iframe)
+            else:
+                self._send_ui_error(status, code, msg)
+
         te_values = self.headers.get_all('Transfer-Encoding') or []
         if te_values:
-            self._send_ui_error(400, 'TRANSFER_ENCODING_DENIED', 'Transfer-Encoding não é aceito neste servidor.')
+            _err(400, 'TRANSFER_ENCODING_DENIED', 'Transfer-Encoding não é aceito neste servidor.')
             return None
         cl_values = self.headers.get_all('Content-Length') or []
         if not cl_values:
@@ -202,16 +208,16 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
         try:
             length = int(cl_values[0].strip())
         except ValueError:
-            self._send_ui_error(400, 'INVALID_CONTENT_LENGTH', 'Content-Length inválido.')
+            _err(400, 'INVALID_CONTENT_LENGTH', 'Content-Length inválido.')
             return None
         if length < 0 or length > max_bytes:
-            self._send_ui_error(413, 'PAYLOAD_TOO_LARGE', 'Corpo da requisição excede o limite permitido.')
+            _err(413, 'PAYLOAD_TOO_LARGE', 'Corpo da requisição excede o limite permitido.')
             return None
         if length == 0:
             return b''
         data = self.rfile.read(length)
         if len(data) != length:
-            self._send_ui_error(400, 'TRUNCATED_BODY', 'Corpo da requisição incompleto.')
+            _err(400, 'TRUNCATED_BODY', 'Corpo da requisição incompleto.')
             return None
         return data
 
@@ -235,6 +241,9 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
                 self._send_ui_error(421, 'INVALID_HOST', 'Cabeçalho Host ausente ou duplicado.')
             else:
                 self._send_ui_error(400, dup_code or 'DUPLICATE_HEADER', 'Cabeçalho duplicado rejeitado.')
+            return
+        if self.headers.get_all('Transfer-Encoding'):
+            self._send_ui_error(400, 'TRANSFER_ENCODING_DENIED', 'Transfer-Encoding não é aceito neste servidor.')
             return
 
         raw_host = (self.headers.get('Host') or '').strip().lower()
@@ -349,6 +358,7 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
         return parsed
 
     def _resolve_artifact_digest(self, run_id: str, payload: dict) -> str:
+        self.app.core_service.show(run_id)
         requested = payload.get('artifact_digest')
         if requested is not None:
             require_sha256(requested, 'Digest do artefato')
@@ -540,7 +550,15 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
 
         self._send_ui_error(404, 'NOT_FOUND', 'Endpoint de API não encontrado.')
 
-    def _send_preview_error(self, status: int, reason_code: str, message: str) -> None:
+    def _send_preview_error(
+        self,
+        status: int,
+        reason_code: str,
+        message: str,
+        *,
+        allow_iframe: bool = False,
+    ) -> None:
+        frame_ancestors = f'http://127.0.0.1:{self.app.port}' if allow_iframe else "'none'"
         body = f'{reason_code}: {message}\n'.encode('utf-8')
         self._send_bytes(
             status,
@@ -548,7 +566,7 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
             body,
             content_type='text/plain; charset=utf-8',
             extra_headers=(
-                ('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'"),
+                ('Content-Security-Policy', f"default-src 'none'; frame-ancestors {frame_ancestors}"),
                 ('X-Content-Type-Options', 'nosniff'),
                 ('Referrer-Policy', 'no-referrer'),
                 ('Cache-Control', 'no-store'),
@@ -557,23 +575,34 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
         )
 
     def _handle_preview(self, session, preview_origin: str) -> None:
+        allow_iframe = session.embed_mode == 'iframe'
+        frame_ancestors = f'http://127.0.0.1:{self.app.port}' if allow_iframe else "'none'"
         # B1.7(d): bloquear X-UDH-Token ou o valor do token da UI em qualquer cabeçalho no host de preview
         req_headers = list(self.headers.items())
         for name, val in req_headers:
             if name.lower().strip() == 'x-udh-token' or (self.app.session_token and self.app.session_token in val):
-                self._send_preview_error(403, 'UI_TOKEN_FORBIDDEN_IN_PREVIEW', 'Token da UI não permitido no preview.')
+                self._send_preview_error(
+                    403, 'UI_TOKEN_FORBIDDEN_IN_PREVIEW', 'Token da UI não permitido no preview.',
+                    allow_iframe=allow_iframe,
+                )
                 return
 
         parsed = urlsplit(self.path)
         if parsed.path == RESERVED_AUTH_PATH:
             if self.command != 'GET':
-                self._send_preview_error(405, 'METHOD_NOT_ALLOWED', 'Autenticação de preview aceita somente GET.')
+                self._send_preview_error(
+                    405, 'METHOD_NOT_ALLOWED', 'Autenticação de preview aceita somente GET.',
+                    allow_iframe=allow_iframe,
+                )
                 return
             qs = parse_qs(parsed.query, keep_blank_values=False)
             grant = (qs.get('grant') or [''])[0]
             cookie_token = self.app.preview_manager.consume_grant(session.preview_id, grant)
             if not cookie_token:
-                self._send_preview_error(403, 'PREVIEW_GRANT_INVALID', 'Autorização de preview inválida, expirada ou já utilizada.')
+                self._send_preview_error(
+                    403, 'PREVIEW_GRANT_INVALID', 'Autorização de preview inválida, expirada ou já utilizada.',
+                    allow_iframe=allow_iframe,
+                )
                 return
             # Cookie host-only (SEM Domain=), HttpOnly, SameSite=Lax, exclusivo deste subdomínio p-<id>.localhost
             set_cookie = f'{PREVIEW_COOKIE_NAME}={cookie_token}; Path=/; HttpOnly; SameSite=Lax'
@@ -585,7 +614,7 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
                 extra_headers=(
                     ('Location', '/'),
                     ('Set-Cookie', set_cookie),
-                    ('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'"),
+                    ('Content-Security-Policy', f"default-src 'none'; frame-ancestors {frame_ancestors}"),
                     ('X-Content-Type-Options', 'nosniff'),
                     ('Referrer-Policy', 'no-referrer'),
                     ('Cache-Control', 'no-store'),
@@ -598,20 +627,29 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
         cookie_val = _extract_cookie_value(cookie_headers, PREVIEW_COOKIE_NAME)
         validated_session = self.app.preview_manager.validate_session_cookie(session.preview_id, cookie_val)
         if validated_session is None:
-            self._send_preview_error(403, 'PREVIEW_UNAUTHORIZED', 'Sessão de preview ausente ou inválida.')
+            self._send_preview_error(
+                403, 'PREVIEW_UNAUTHORIZED', 'Sessão de preview ausente ou inválida.',
+                allow_iframe=allow_iframe,
+            )
             return
 
         if self.command in MUTATING_HTTP_METHODS:
             origin = self.headers.get('Origin')
             if origin is not None and origin.strip().lower() != preview_origin.lower():
-                self._send_preview_error(403, 'PREVIEW_ORIGIN_DENIED', 'Origem inválida para ação no preview.')
+                self._send_preview_error(
+                    403, 'PREVIEW_ORIGIN_DENIED', 'Origem inválida para ação no preview.',
+                    allow_iframe=allow_iframe,
+                )
                 return
             sfs = self.headers.get('Sec-Fetch-Site')
             if sfs is not None and sfs.strip().lower() != 'same-origin':
-                self._send_preview_error(403, 'PREVIEW_CROSS_SITE_DENIED', 'Requisição cross-site bloqueada no preview.')
+                self._send_preview_error(
+                    403, 'PREVIEW_CROSS_SITE_DENIED', 'Requisição cross-site bloqueada no preview.',
+                    allow_iframe=allow_iframe,
+                )
                 return
 
-        body = self._read_body(max_bytes=MAX_PREVIEW_BODY_BYTES)
+        body = self._read_body(max_bytes=MAX_PREVIEW_BODY_BYTES, for_preview=True, allow_iframe=allow_iframe)
         if body is None:
             return
 
@@ -627,7 +665,7 @@ class _GuidedRequestHandler(BaseHTTPRequestHandler):
                 ui_origin=f'http://127.0.0.1:{self.app.port}',
             )
         except PreviewError as exc:
-            self._send_preview_error(exc.status_code, exc.reason_code, str(exc))
+            self._send_preview_error(exc.status_code, exc.reason_code, str(exc), allow_iframe=allow_iframe)
             return
 
         self.send_response(resp.status, resp.reason)

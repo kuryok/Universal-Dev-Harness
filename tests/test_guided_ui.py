@@ -163,7 +163,13 @@ class GuidedUISecurityAndUXTests(unittest.TestCase):
         port = self.server.port
         preview_origin = f'http://p-{"b"*24}.localhost:{port}'
         for bad_origin in ('http://evil.example', 'null', preview_origin):
-            for method, path in (('GET', '/'), ('GET', '/assets/app.js'), ('GET', '/api/overview'), ('POST', '/api/runs')):
+            for method, path in (
+                ('GET', '/'),
+                ('GET', '/assets/app.js'),
+                ('GET', '/api/overview'),
+                ('POST', '/api/runs'),
+                ('OPTIONS', '/api/runs'),
+            ):
                 status, headers, _ = _http_req(
                     port, method, path,
                     headers={'Origin': bad_origin, 'X-UDH-Token': self.token},
@@ -188,9 +194,11 @@ class GuidedUISecurityAndUXTests(unittest.TestCase):
 
     def test_token_required_on_get_and_post_api_never_cookie(self):
         port = self.server.port
-        # Sem token -> 401
+        # Sem token em GET e POST -> 401
         st1, _, _ = _http_req(port, 'GET', '/api/overview')
         self.assertEqual(st1, 401)
+        st1_post, _, _ = _http_req(port, 'POST', '/api/runs', body=b'{}')
+        self.assertEqual(st1_post, 401)
 
         # Cookie tentando autenticar -> 401 (UI não aceita cookie!)
         st2, _, _ = _http_req(port, 'GET', '/api/overview', headers={'Cookie': f'session={self.token}'})
@@ -215,6 +223,7 @@ class GuidedUISecurityAndUXTests(unittest.TestCase):
         r1 = self.core.create('proj-a', '1.0', 'req-c1', mode='FAST')
         r2 = self.core.create('proj-b', '1.0', 'req-c2', mode='STANDARD')
         r3 = self.core.create('proj-c', '1.0', 'req-c3', mode='DEEP')
+        r4 = self.core.create('proj-d', '1.0', 'req-c4', mode='STANDARD')
         self.core.start(r2.run_id, 0, 'req-s2')
         self.core.block_v4(
             r3.run_id, 0, 'req-b3',
@@ -223,26 +232,42 @@ class GuidedUISecurityAndUXTests(unittest.TestCase):
             reason='Tentativa de acesso externo bloqueada pela política.',
             next_action='Remova a dependência externa ou use dublê local.',
         )
+        self.core.block_v4(
+            r4.run_id, 0, 'req-b4',
+            category='FUNCTIONAL_FAILURE',
+            reason_code='SMOKE_CHECK_FAILED',
+            reason='Rota principal retornou erro 500.',
+            next_action='Corrija a rota principal e rode o smoke novamente.',
+        )
 
         # list_runs com limit menor que total não trunca count_runs_by_state
         self.assertEqual(len(self.core.list_runs(limit=2)), 2)
-        self.assertEqual(self.core.count_runs_by_state(), {'PENDING': 1, 'IN_PROGRESS': 1, 'BLOCKED': 1, 'DONE': 0})
+        self.assertEqual(self.core.count_runs_by_state(), {'PENDING': 1, 'IN_PROGRESS': 1, 'BLOCKED': 2, 'DONE': 0})
 
         st_ov, _, body_ov = _http_req(port, 'GET', '/api/overview', headers=hdr)
         self.assertEqual(st_ov, 200)
         ov = json.loads(body_ov.decode('utf-8'))
-        self.assertEqual(ov['counts'], {'PENDING': 1, 'IN_PROGRESS': 1, 'BLOCKED': 1, 'DONE': 0})
-        self.assertEqual(len(ov['runs']), 3)
+        self.assertEqual(ov['counts'], {'PENDING': 1, 'IN_PROGRESS': 1, 'BLOCKED': 2, 'DONE': 0})
+        self.assertEqual(len(ov['runs']), 4)
 
-        # Detalhe da execução bloqueada exibe os 4 campos obrigatórios ADR-025 e allows_bypass=False
+        # Detalhe da execução bloqueada exibe reason_code real, os 4 campos obrigatórios ADR-025 e allows_bypass=False
         st_det, _, body_det = _http_req(port, 'GET', f'/api/runs/{r3.run_id}', headers=hdr)
         self.assertEqual(st_det, 200)
         det = json.loads(body_det.decode('utf-8'))
         blk = det['block_explanation']
         self.assertEqual(blk['category'], 'POLICY_VIOLATION')
+        self.assertEqual(blk['reason_code'], 'EGRESS_DENIED')
+        self.assertIn('EGRESS_DENIED', blk['what_was_verified'])
         self.assertFalse(blk['allows_bypass'])
         for field in ('what_happened', 'why_it_matters', 'what_was_verified', 'safe_next_action'):
             self.assertTrue(blk[field].strip())
+
+        st_det4, _, body_det4 = _http_req(port, 'GET', f'/api/runs/{r4.run_id}', headers=hdr)
+        self.assertEqual(st_det4, 200)
+        blk4 = json.loads(body_det4.decode('utf-8'))['block_explanation']
+        self.assertEqual(blk4['category'], 'FUNCTIONAL_FAILURE')
+        self.assertEqual(blk4['reason_code'], 'SMOKE_CHECK_FAILED')
+        self.assertFalse(blk4['allows_bypass'])
 
         # Desbloqueio retorna para PENDING (nunca DONE/bypass)
         st_unb, _, _ = _http_req(
@@ -380,12 +405,42 @@ class GuidedUIEndToEndPodmanTests(unittest.TestCase):
         self.assertIn("frame-ancestors 'none'", h_home['content-security-policy'][0])
         self.assertIn("style-src 'self'", h_home['content-security-policy'][0])
 
-        # 5e. X-UDH-Token rejeitado no host de preview (B1.7(d))
+        # 5e. X-UDH-Token e valor do token em outro cabeçalho (ex. Referer) rejeitados no host de preview (B1.7(d))
         st_leak, _, _ = _http_req(
             port, 'GET', '/', host=preview_host,
             headers={'Cookie': preview_cookie, 'X-UDH-Token': self.token},
         )
         self.assertEqual(st_leak, 403)
+        st_leak_ref, _, _ = _http_req(
+            port, 'GET', '/', host=preview_host,
+            headers={'Cookie': preview_cookie, 'Referer': f'http://127.0.0.1:{port}/?x={self.token}'},
+        )
+        self.assertEqual(st_leak_ref, 403)
+
+        # 5e2. Preview B em modo iframe: cookie do preview A é rejeitado no preview B (403) e CSP libera ui_origin
+        st_prev_b, _, b_prev_b = _http_req(
+            port, 'POST', f'/api/runs/{run_id}/preview/start', headers=ui_hdr,
+            body=json.dumps({'embed_mode': 'iframe'}).encode(),
+        )
+        self.assertEqual(st_prev_b, 200, b_prev_b.decode())
+        prev_b = json.loads(b_prev_b.decode())
+        pid_b = prev_b['preview_id']
+        preview_host_b = f'{prev_b["hostname"]}:{port}'
+        parsed_b = urlsplit(prev_b['launch_url'])
+        # Cookie do preview A não funciona no preview B
+        st_cross_ck, _, _ = _http_req(
+            port, 'GET', '/', host=preview_host_b, headers={'Cookie': preview_cookie},
+        )
+        self.assertEqual(st_cross_ck, 403)
+        # /_udh_preview_auth e resposta em modo iframe liberam frame-ancestors http://127.0.0.1:<port>
+        st_auth_b, h_auth_b, _ = _http_req(port, 'GET', f'{parsed_b.path}?{parsed_b.query}', host=preview_host_b)
+        self.assertEqual(st_auth_b, 303)
+        self.assertIn(f'frame-ancestors http://127.0.0.1:{port}', h_auth_b['content-security-policy'][0])
+        cookie_b = h_auth_b['set-cookie'][0].split(';', 1)[0]
+        st_home_b, h_home_b, _ = _http_req(port, 'GET', '/', host=preview_host_b, headers={'Cookie': cookie_b})
+        self.assertEqual(st_home_b, 200)
+        self.assertIn(f'frame-ancestors http://127.0.0.1:{port}', h_home_b['content-security-policy'][0])
+        _http_req(port, 'POST', f'/api/previews/{pid_b}/stop', headers=ui_hdr, body=b'{}')
 
         # 5f. CSRF em mutação no preview bloqueado; same-origin no preview aceito
         st_prev_csrf, _, _ = _http_req(

@@ -22,6 +22,7 @@ from .trust_store import TrustStore, _read_regular_nofollow
 
 PREVIEW_ID_RE = re.compile(r'^[0-9a-f]{24}$')
 PREVIEW_HOST_RE = re.compile(r'^p-([0-9a-f]{24})\.localhost:([0-9]{1,5})$')
+HTTP_HEADER_NAME_RE = re.compile(rb"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
 ALLOWED_PROXY_METHODS = frozenset({'GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'})
 MUTATING_HTTP_METHODS = frozenset({'POST', 'PUT', 'PATCH', 'DELETE'})
 PREVIEW_COOKIE_NAME = '_udh_preview_session'
@@ -217,9 +218,10 @@ def allocate_preview_ipc_dir(prefix: str = 'udh-prev-') -> Path:
             continue
         candidate_dir = Path(tempfile.mkdtemp(prefix=prefix, dir=str(parent)))
         os.chmod(candidate_dir, 0o700)
-        sock_candidate = candidate_dir / 'preview.sock'
+        resolved_dir = candidate_dir.resolve(strict=True)
+        sock_candidate = resolved_dir / 'preview.sock'
         if len(str(sock_candidate).encode('utf-8')) <= MAX_UDS_PATH_BYTES:
-            return candidate_dir.resolve(strict=True)
+            return resolved_dir
         shutil.rmtree(candidate_dir, ignore_errors=True)
     raise PreviewError('Não foi possível alocar diretório IPC curto (<= 100 bytes) para preview.sock.',
                        reason_code='IPC_DIR_UNAVAILABLE', status_code=500)
@@ -415,10 +417,13 @@ def _read_http_response_from_uds(conn: socket.socket, *, method: str) -> UdsHttp
             raise PreviewError('Cabeçalho malformado na resposta do preview.',
                                reason_code='PREVIEW_BAD_UPSTREAM', status_code=502)
         name_b, val_b = raw_line.split(b':', 1)
-        name = name_b.decode('latin-1').strip()
+        if not HTTP_HEADER_NAME_RE.fullmatch(name_b):
+            raise PreviewError('Nome de cabeçalho fora do padrão RFC 9110 na resposta do preview.',
+                               reason_code='PREVIEW_BAD_UPSTREAM', status_code=502)
+        name = name_b.decode('ascii')
         val = val_b.decode('latin-1').strip()
-        if not name or any(ch in name for ch in (' ', '\t', '\r', '\n')) or '\r' in val or '\n' in val:
-            raise PreviewError('Cabeçalho com caracteres proibidos na resposta do preview.',
+        if any((ord(ch) < 0x20 and ch != '\t') or ord(ch) == 0x7f for ch in val):
+            raise PreviewError('Valor de cabeçalho com caractere de controle proibido na resposta do preview.',
                                reason_code='PREVIEW_BAD_UPSTREAM', status_code=502)
         low = name.lower()
         if low == 'content-length':
@@ -435,7 +440,7 @@ def _read_http_response_from_uds(conn: socket.socket, *, method: str) -> UdsHttp
                                    reason_code='PREVIEW_BAD_UPSTREAM', status_code=502)
             content_length = cl
         elif low == 'transfer-encoding':
-            if 'chunked' in val.lower():
+            if val.lower() == 'chunked':
                 is_chunked = True
             else:
                 raise PreviewError('Transfer-Encoding não suportado na resposta.',
@@ -545,7 +550,7 @@ def _sanitize_app_set_cookie(raw_value: str) -> str | None:
 
 
 def _is_safe_preview_location(location: str, preview_origin: str) -> bool:
-    if not location or any(ch in location for ch in ('\r', '\n', '\x00', ' ', '\t', '\\')):
+    if not location or any(ord(ch) <= 0x20 or ord(ch) == 0x7f or ch == '\\' for ch in location):
         return False
     low = location.lower()
     if low.startswith('//') or low.startswith('javascript:') or low.startswith('data:'):
@@ -695,6 +700,7 @@ class PreviewManager:
         ipc_dir = allocate_preview_ipc_dir()
         data_dir = allocate_demo_data_dir()
 
+        proc: ArtifactPreviewProcess | None = None
         try:
             effective_limits = limits or ResourceLimits(
                 memory_mb=DEFAULT_PREVIEW_LIMITS.memory_mb,
@@ -721,15 +727,18 @@ class PreviewManager:
                 require_isolated_netns=self.require_isolated_netns,
             )
             if ready_resp.status < 200 or ready_resp.status >= 400:
-                proc.stop()
                 raise PreviewError(
                     f'App não respondeu prontidão saudável em {descriptor.ready_path} (HTTP {ready_resp.status}).',
                     reason_code='PREVIEW_NOT_READY',
                     status_code=502,
                 )
         except BaseException:
-            shutil.rmtree(ipc_dir, ignore_errors=True)
-            shutil.rmtree(data_dir, ignore_errors=True)
+            try:
+                if proc is not None:
+                    proc.stop()
+            finally:
+                shutil.rmtree(ipc_dir, ignore_errors=True)
+                shutil.rmtree(data_dir, ignore_errors=True)
             raise
 
         now_mono = time.monotonic()

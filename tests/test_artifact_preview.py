@@ -336,15 +336,37 @@ class ArtifactPreviewUnitTests(unittest.TestCase):
             '/\\evil.example/x',
             'http://127.0.0.1:9999/api/runs',
             'javascript:alert(1)',
+            'data:text/html,<script>alert(1)</script>',
+            '/\x01/control',
+            '/\x0b/vtab',
         ):
             r = UdsHttpResponse(status=302, reason='Found', headers=(('Location', bad_loc),), body=b'')
             out = harden_preview_response(r, preview_origin=preview_origin, ui_origin=ui_origin, allow_iframe=False)
-            self.assertEqual(out.status, 502, f'Deveria bloquear redirect {bad_loc}')
+            self.assertEqual(out.status, 502, f'Deveria bloquear redirect {bad_loc!r}')
 
         for good_loc in ('/notes', f'{preview_origin}/notes'):
             r = UdsHttpResponse(status=302, reason='Found', headers=(('Location', good_loc),), body=b'')
             out = harden_preview_response(r, preview_origin=preview_origin, ui_origin=ui_origin, allow_iframe=False)
             self.assertEqual(out.status, 302)
+
+    def test_upstream_smuggling_te_cl_and_bad_header_name_rejected(self):
+        from udh.preview import _read_http_response_from_uds
+
+        for bad_wire in (
+            b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\n0\r\n\r\n',
+            b'HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip, chunked\r\n\r\n0\r\n\r\n',
+            b'HTTP/1.1 200 OK\r\nContent-Length : 2\r\n\r\nok',
+        ):
+            s1, s2 = socket.socketpair()
+            try:
+                s1.sendall(bad_wire)
+                s1.shutdown(socket.SHUT_WR)
+                with self.assertRaises(PreviewError) as ctx:
+                    _read_http_response_from_uds(s2, method='GET')
+                self.assertEqual(ctx.exception.status_code, 502)
+            finally:
+                s1.close()
+                s2.close()
 
     def test_parse_trusted_smoke_checks_fail_closed(self):
         with self.assertRaises(CoreError):

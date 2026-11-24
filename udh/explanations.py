@@ -97,8 +97,8 @@ def explain_run_block(run: Run) -> dict | None:
 
     latest = block_events[-1]
     category = getattr(latest, 'block_category', None) or 'ADMIN_PAUSE'
-    reason_code = getattr(latest, 'block_reason_code', None) or 'RUN_BLOCKED'
-    reason = getattr(latest, 'block_reason', None) or getattr(latest, 'reason', None) or 'Bloqueio registrado pelo Core.'
+    reason_code = getattr(latest, 'reason_code', None) or getattr(latest, 'block_reason_code', None) or 'RUN_BLOCKED'
+    reason = getattr(latest, 'reason', None) or getattr(latest, 'block_reason', None) or 'Bloqueio registrado pelo Core.'
     next_action = getattr(latest, 'next_action', None) or 'Corrija a causa informada e retome a execução de forma segura.'
 
     if category == 'POLICY_VIOLATION':

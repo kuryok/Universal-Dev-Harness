@@ -263,12 +263,15 @@ def main(argv=None) -> int:
         )
         _wait_tcp_ready(args.internal_port, child, args.ready_timeout)
 
-        if socket_path.exists() or socket_path.is_symlink():
-            socket_path.unlink()
+        tmp_socket_path = socket_path.parent / f'.{socket_path.name}.tmp.{os.getpid()}'
+        for candidate in (tmp_socket_path, socket_path):
+            if candidate.exists() or candidate.is_symlink():
+                candidate.unlink()
         server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server_sock.bind(str(socket_path))
-        os.chmod(socket_path, 0o600)
+        server_sock.bind(str(tmp_socket_path))
+        os.chmod(tmp_socket_path, 0o600)
         server_sock.listen(64)
+        os.replace(tmp_socket_path, socket_path)
         server_sock.settimeout(0.5)
 
         sem = threading.Semaphore(MAX_CONCURRENT_CONNS)
