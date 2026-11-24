@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "profile": "artifact",
+  "stack_profile": "python3-stdlib-web-v1",
+  "image_repository": "localhost/udh-runtime-artifact",
+  "image_tag": "change4",
+  "image_digest": "sha256:0eda589885348c6084ba1e3d028c77f3fd0096a2476cb5a242b70d929fe5af8f",
+  "image_ref": "localhost/udh-runtime-artifact@sha256:0eda589885348c6084ba1e3d028c77f3fd0096a2476cb5a242b70d929fe5af8f",
+  "at_runner_path": "/opt/udh/at_runner.py",
+  "at_runner_sha256": "06566e6c88595464ca5f5fa378fe1eeb7c833e175e5f0ff6131aa32e14565beb",
+  "preview_bridge_path": "/opt/udh/preview_bridge.py",
+  "preview_bridge_sha256": "473de01db8828df29d429f31d8d95b53c5f19d3610b1bff82faad3c347418134",
+  "smoke_verified": {
+    "python_stdlib": "PY_STDLIB_OK",
+    "scripts_syntax": "SCRIPTS_OK",
+    "zero_agents": "ZERO_AGENTS_OK"
+  }
+}

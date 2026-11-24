@@ -396,6 +396,41 @@ class SQLiteStore:
                 raise
         return result
 
+    def list_runs(self, limit: int = 100) -> list[Run]:
+        if type(limit) is not int or limit < 1 or limit > 1000:
+            raise CoreError('Limite de listagem inválido (esperado inteiro entre 1 e 1000).')
+        with self._connection('ro') as connection:
+            connection.execute('BEGIN')
+            try:
+                version = self._validate_schema(connection)
+                rows = connection.execute(
+                    'SELECT id FROM "runs" ORDER BY created_at DESC, id DESC LIMIT ?',
+                    (limit,),
+                ).fetchall()
+                results = [self._load(connection, row['id'], version=version) for row in rows]
+                connection.commit()
+            except BaseException:
+                connection.rollback()
+                raise
+        return results
+
+    def count_runs_by_state(self) -> dict[str, int]:
+        counts = {'PENDING': 0, 'IN_PROGRESS': 0, 'BLOCKED': 0, 'DONE': 0}
+        with self._connection('ro') as connection:
+            connection.execute('BEGIN')
+            try:
+                self._validate_schema(connection)
+                rows = connection.execute(
+                    'SELECT state, COUNT(*) AS total FROM "runs" GROUP BY state'
+                ).fetchall()
+                for row in rows:
+                    counts[row['state']] = int(row['total'])
+                connection.commit()
+            except BaseException:
+                connection.rollback()
+                raise
+        return counts
+
     def deep_check(self) -> dict:
         with self._connection('ro') as connection:
             connection.execute('BEGIN')

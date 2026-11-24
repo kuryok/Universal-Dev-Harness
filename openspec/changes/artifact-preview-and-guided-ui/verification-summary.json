@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "change": "artifact-preview-and-guided-ui",
+  "classification": "change4-artifact-preview-and-guided-ui-verified-not-mvp-complete",
+  "candidate_ref": "20150aca7b4bd9b9e7cab9a05ce712f5837860c6",
+  "images_oci": {
+    "pi": {
+      "repository": "localhost/udh-runtime",
+      "tag": "change2",
+      "digest": "sha256:bed9a71a98bb1bf224bd5e64bde7276f914867330229624384ce91cd7e72b8a3",
+      "status": "unchanged-from-change2"
+    },
+    "opencode": {
+      "repository": "localhost/udh-runtime-opencode",
+      "tag": "change3",
+      "digest": "sha256:7af7a5d4922697c3fa8fca54a40d971b2b8f6e5bf2d625b34a26f3a6a773e770",
+      "status": "unchanged-from-change3"
+    },
+    "artifact": {
+      "repository": "localhost/udh-runtime-artifact",
+      "tag": "change4",
+      "digest": "sha256:0eda589885348c6084ba1e3d028c77f3fd0096a2476cb5a242b70d929fe5af8f",
+      "stack_profile": "python3-stdlib-web-v1",
+      "zero_agents": true,
+      "build_mode": "offline-podman-rootless"
+    }
+  },
+  "candidate_hashes": {
+    "runtime/Containerfile": "f3cd671c37b831230c130ac5e3cdd95f78931f207ec0b45ae479a7d67e3793cf",
+    "runtime/Containerfile.artifact": "bda068be1bc61395afb62f3d7b17172757962fee235dcaf6d0933e0e2fd915c9",
+    "runtime/Containerfile.opencode": "7863040387ee46f991b0ac5a844f182489ef62f54a7c5d46da9b818ced1e2904",
+    "runtime/artifact-image-manifest.json": "e35eac2f7ea35ab2f8c07a7abd813489c463f50494194e64dd9f9623f9929d86",
+    "runtime/at_runner.py": "06566e6c88595464ca5f5fa378fe1eeb7c833e175e5f0ff6131aa32e14565beb",
+    "runtime/bridge.mjs": "af541261db23e22ad0ad49ca52335b2b12d2770672ea99f480c38d407f37cd74",
+    "runtime/build_image.py": "d7adfacbca3aaaa1d02d16a1aa65bc9f6a922c435e583f0a01049e8197bd172a",
+    "runtime/image-manifest.json": "3a4e69e30372254bb61201961e7027a31f53cf7737fcbaa0ede050833bbd6056",
+    "runtime/opencode-image-manifest.json": "bdea558f7f6e0d90220439b72087aaa204e434e51dc6d7cabfd422512953402c",
+    "runtime/preview_bridge.py": "473de01db8828df29d429f31d8d95b53c5f19d3610b1bff82faad3c347418134",
+    "udh/__init__.py": "c480e26f289ce2061ce59b3ded500f02b0c475564e1c2ef3b382876935d5cb01",
+    "udh/__main__.py": "f30d05c4a07c905dd8f8f0929783a795f73cf485e4f22a677f65849d461186d5",
+    "udh/adapters/__init__.py": "802e9511ecbcdad5c3b8ec71a930f7990271af7ec50998c215a373ae87d7f978",
+    "udh/adapters/opencode.py": "b8926a4f7e40493f1d2fcf6bbeddeca85bc6ad7138b78cefe77b5f7d830c5e8c",
+    "udh/adapters/pi.py": "79ac8066b9b88c47580f7b12279b601d749d2ff062e535a7515a2f8c951d1222",
+    "udh/doctor.py": "6311f079fa91a71abc885ccfa0940203b7c9961add6f424fa7ff973b9d287bc0",
+    "udh/domain.py": "eb2d1d3dcdcf87d33d7c06c2b9180e5ea3450a2b5f6d028294aa07b84c7497cc",
+    "udh/executor.py": "e9de166c68f060b7a9e61d111fff57df94addd4f0383360fd199b34fe24702ea",
+    "udh/explanations.py": "52fdac93cf86d86887248062377ad9da554ff8e787acb9be09505ee9464afb93",
+    "udh/gateway.py": "c15e9308c9dd28fcb0bb1a128181193ec0cd9ea348bd6939d1ddd2fe84bcb7bc",
+    "udh/handoff.py": "21a00228e4009f95d26e8595d5b16038a14a9515db3bb234ae1d63409eeea130",
+    "udh/lifecycle.py": "e2e4fc4d6aa3716a7e640cf56e93768475f703b79665b39767c5d84e31c0c87c",
+    "udh/migrations.py": "589c29464090c2ea92af5922e1d9d83a36bd25c035cf529f92a8c605745a476f",
+    "udh/operator.py": "a1e2440a385de249a681ac7105d45c8d51e60ddebb23b57314a4bfc696c34d01",
+    "udh/poc.py": "d5f5a049b2caa767831d7f3fb303358e1f0c83909593512dd785aefd8197a328",
+    "udh/policy.py": "2e63deb2069cb0c25ff686a7d1da280cd657b4810b55f05d8398ad7c4a64048b",
+    "udh/preview.py": "4b357a90c4018f2f6f070393b2219e2871aa5ecea4dc2dca455d65a3a734d690",
+    "udh/runtime.py": "5b05a3c27af8f841925da03068629b585b3f9f3f7d465c83b852b0e148d6fb56",
+    "udh/service.py": "2b3126832911435dabbad18941b551cc4ed0b4022e674e13a8c0c62ddf4e3745",
+    "udh/smoke.py": "8fb2548350459c5a10b2756a64dcd67a3f4f64ee4a13525cc3f066fcb15fee5a",
+    "udh/store.py": "3f17a9478095f30d1261cb1ddcbd1c46032fab748a852555aaa5f36dfd5ff1fa",
+    "udh/transitions.py": "f669f059eb0b3fc4d215c9dec77b3464e4eb472766a695021a8c4ce19f80260c",
+    "udh/trust_store.py": "97b967bc4a87f7a8447aa242152fac32884b86c10c684f7f8abfea1529034ee9",
+    "udh/web.py": "146c0df1da5992af2f71955755bb3830cff827404ba299066903f8f9ecbd32c9",
+    "udh/web_ui.py": "17dbd3221931968bc36177a08054358946e9de0dfe39a814160cc79bfda43cc2"
+  },
+  "complementary_tests": {
+    "status": "PASS",
+    "tests_run": 157,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "duration_seconds": 79.82
+  },
+  "doctor_conformance_live": {
+    "overall_status": "READY",
+    "conformant_adapters": ["pi", "opencode"],
+    "conformance_tool_modes": {
+      "pi": "zero_tools",
+      "opencode": "zero_tools"
+    }
+  },
+  "pocs_live": {
+    "overall_verdict": "PASS",
+    "elapsed_seconds": 21.355,
+    "POC-01": "PASS",
+    "POC-02": "PASS",
+    "POC-03": "PASS",
+    "POC-04": "PASS"
+  },
+  "browser_check_c4_06": {
+    "firefox_linux_offline": {
+      "status": "PASS",
+      "browser": "Mozilla Firefox 153.7.0esr",
+      "mode": "headless-offline",
+      "rfc6761_subdomain_resolved": true,
+      "grant_consumed_and_redirected": true,
+      "preview_screenshot_bytes": 24947,
+      "ui_screenshot_bytes": 93958
+    },
+    "chromium_chrome": "NOT_RUN (not installed)",
+    "wsl2": "NOT_RUN (native Linux x86_64 host)"
+  },
+  "independent_review_spec": {
+    "status": "PASS",
+    "context": "separate-readonly-subagent",
+    "conversation_id": "546f0a7d-4436-412b-802b-db7594d9703b",
+    "findings_closed": 8
+  },
+  "independent_review_r2": {
+    "status": "PASS",
+    "context": "separate-readonly-subagent",
+    "conversation_id": "7e925966-c741-4358-b776-b5cd896182a7",
+    "unresolved_findings": [],
+    "prior_findings_resolved": [
+      "udh/explanations.py: leitura de latest.reason_code e latest.reason em explain_run_block com testes POLICY_VIOLATION e FUNCTIONAL_FAILURE",
+      "udh/preview.py: stop() garantido do container em start_preview quando prontidao UDS falha; bloqueio de todos os caracteres de controle <=0x20 e 0x7f em _is_safe_preview_location; parser RFC 9110 estrito e TE==chunked; resolve() antes do limite <=100 bytes",
+      "udh/web.py: frame-ancestors dinamico em /_udh_preview_auth e _send_preview_error para embed_mode=iframe; show(run_id) em _resolve_artifact_digest; erro separado de _read_body no host de preview; bloqueio global de Transfer-Encoding",
+      "runtime/preview_bridge.py + artifact-image-manifest.json: publicacao atomica do socket (bind temp -> chmod 0600 -> listen -> os.replace) e reconstrucao offline sincronizada"
+    ]
+  },
+  "sealed_acceptance_suites": {
+    "v6_unblock": {
+      "at_version": "sha256:7196e5f4eea1fc78806efcdbd2b1e231446b2632937d5aff69c4f2f8bf0d9b37",
+      "tests_run": 16,
+      "passed": 16,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 439,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "ff5f5118ea0e4e36d7cbadec6c4123e56fbaca5809cd1f198c953c40358d9b37"
+    },
+    "v5_block": {
+      "at_version": "sha256:182d2ba72a7b5dfb5648e650577dcc3bbbbd67048c72a3bf959406ce7dd89ac6",
+      "tests_run": 13,
+      "passed": 13,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 171,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "a155b93375e53aa953f60fe7d58815342ba4f5380f70c140c3edbf26cd0b85b3"
+    },
+    "v2_policy": {
+      "at_version": "sha256:438ce43f70e0137115f2c30920623eabf5bfd042035958951fdaafa151e41f3f",
+      "tests_run": 11,
+      "passed": 11,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 55,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "de8a7d3169049b442f5b20477b6c505cd43dbc381ae922afea5e9c8f6ba58d14"
+    },
+    "v1_core": {
+      "at_version": "sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704",
+      "tests_run": 10,
+      "passed": 10,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 49,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "36068b03c4f85f166cb2d818a750933fc1cc34391689bb22290c0e0df35a1120"
+    }
+  },
+  "not_run": [
+    "DISCOVER/SPEC/PLAN e multi-ticket DAG (TICKET-01/02, DISC-01)",
+    "DOC-01/02, SKILL-01/02, UX-04",
+    "Perfil provision (B2.4), execucao persistente B3.8 e exportacao B3.9",
+    "Terceiro agente (Codex), Memorix, Judge consultivo e chamada ao vivo openrouter_free",
+    "Windows 11 / WSL2 (B1.1b) e navegadores Chromium/Chrome",
+    "CLI OpenSpec (ausente)"
+  ],
+  "limits": [
+    "Validado em Linux x86_64 nativo com Podman 5.4.2 rootless, Mozilla Firefox 153.7.0esr headless e modo 100% offline; ainda nao constitui MVP liberavel completo para iniciantes (faltam DISCOVER/SPEC/PLAN, multi-ticket DAG, B2.4, B3.8/B3.9, UX-04, Codex e WSL2)."
+  ]
+}

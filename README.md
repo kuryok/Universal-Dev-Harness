@@ -1,6 +1,6 @@
 # Universal Dev Harness — UDH
 
-Projeto local-first para conduzir uma pessoa que não sabe programar de uma ideia a software funcional, testado e utilizável. O Core (100% Python 3 stdlib) implementa o ledger SQLite v1–v4, Runtime Manager rootless com imagens OCI dedicadas por agente fixadas por digest (Pi 1.2.0 e OpenCode 1.18.35), Gateway de inferência stdlib endurecido com allowlist de ferramentas, módulo de handoff F-03 com `git_dir` externo, seleção determinística ADR-026 e Executor Confiável F-04, com todas as **4 POCs fundacionais (`POC-01`–`POC-04`) verificadas (`PASS`)** em Linux x86_64 rootless.
+Projeto local-first para conduzir uma pessoa que não sabe programar de uma ideia a software funcional, testado e utilizável. O Core (100% Python 3 stdlib, somente arquivos `.py` sob `udh/`) implementa o ledger SQLite v1–v4, Runtime Manager rootless com 3 imagens OCI dedicadas fixadas por digest (Pi 1.2.0, OpenCode 1.18.35 e `artifact-only` sem agentes), Gateway de inferência stdlib endurecido, handoff F-03 com `git_dir` externo, seleção ADR-026, Executor Confiável F-04, smoke test `B3.4` com contrato de entrega `ADR-028`, preview web local isolado (`B3.6`) e interface guiada mínima local (`B1.7`), com **4/4 POCs fundacionais (`POC-01`–`POC-04`)** e **`B3.1`/`B3.4`/`B3.6`/`B1.7`** verificados (`PASS`) em Linux x86_64 rootless offline.
 
 - [Baseline normativo](Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md): propósito (Seção 0), ADRs e invariantes. A [nota v2.5.1](UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md) é derivada para consulta.
 - [Estado atual](STATE.md), [memória curta](MEMORY.md) e [instruções de trabalho](AGENTS.md).
@@ -10,10 +10,11 @@ Projeto local-first para conduzir uma pessoa que não sabe programar de uma idei
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests
-python3 -m udh doctor --conformance
-python3 -m udh.poc
+PYTHONDONTWRITEBYTECODE=1 python3 -m udh doctor --conformance
+PYTHONDONTWRITEBYTECODE=1 python3 -m udh.poc
+PYTHONDONTWRITEBYTECODE=1 python3 -m udh.web --db /tmp/udh-demo.db --store /tmp/udh-demo-store
 ```
 
-Os testes usam Python 3 (stdlib-only), Podman rootless e as imagens OCI locais construídas offline por `python3 runtime/build_image.py --target all` (digests fixados em `runtime/image-manifest.json` e `runtime/opencode-image-manifest.json`). Todo o fluxo padrão roda 100% offline com o backend `stub` do Gateway, sem credenciais reais de LLM.
+Os testes usam Python 3 (stdlib-only), Podman rootless e as 3 imagens OCI locais construídas offline por `python3 runtime/build_image.py --target all` (digests fixados em `runtime/image-manifest.json`, `runtime/opencode-image-manifest.json` e `runtime/artifact-image-manifest.json`). Todo o fluxo padrão roda 100% offline com o backend `stub` do Gateway, sem credenciais reais de LLM.
 
-Preview web local isolado (`B3.6`), interface guiada (`B1.7`), `DISCOVER`/`SPEC`/`PLAN`, terceiro agente (Codex), WSL2 e entrega ponta a ponta para iniciantes continuam pendentes (`NOT_RUN`); o projeto ainda não é um MVP liberável.
+`DISCOVER`/`SPEC`/`PLAN`, multi-ticket DAG (`TICKET-01/02`), perfil `provision` (`B2.4`), execução persistente (`B3.8`), exportação (`B3.9`), `DOC`/`SKILL`/`UX-04`, terceiro agente (Codex), Chromium/Chrome e WSL2 continuam pendentes (`NOT_RUN`); o projeto ainda não é um MVP liberável completo.
