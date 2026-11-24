@@ -12,6 +12,7 @@ class AdapterCapabilities:
     supports_network_none: bool
     supports_uds_bridge: bool
     profiles: tuple[str, ...]
+    supports_zero_tools_conformance: bool = True
 
 
 @dataclass(frozen=True)

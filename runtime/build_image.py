@@ -24,10 +24,14 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 RUNTIME_DIR = ROOT / 'runtime'
 MANIFEST_PATH = RUNTIME_DIR / 'image-manifest.json'
+OPENCODE_MANIFEST_PATH = RUNTIME_DIR / 'opencode-image-manifest.json'
 DEFAULT_NODE = Path('/home/debian/.local/share/pi-node/current/bin/node')
 DEFAULT_PI_MODULES = Path('/home/debian/.pi/agent/install/releases/1.2.0/node_modules')
+DEFAULT_OPENCODE_BIN = Path('/home/debian/.opencode/bin/opencode')
 DEFAULT_REPO = 'localhost/udh-runtime'
 DEFAULT_TAG = 'change2'
+DEFAULT_OPENCODE_REPO = 'localhost/udh-runtime-opencode'
+DEFAULT_OPENCODE_TAG = 'change3'
 EXCLUDED_STDLIB_DIRS = frozenset({
     '__pycache__', 'test', 'tests', 'idlelib', 'tkinter', 'turtledemo',
     'ensurepip', 'venv', 'pydoc_data', 'config-3.13-x86_64-linux-gnu',
@@ -296,15 +300,180 @@ def build_image(*, node_path: Path = DEFAULT_NODE, pi_modules: Path = DEFAULT_PI
     return manifest
 
 
+def _prepare_opencode_stage(stage: Path, *, node_path: Path, opencode_bin: Path) -> dict:
+    node_real = node_path.resolve(strict=True)
+    opencode_real = opencode_bin.resolve(strict=True)
+    python_real = Path(sys.executable).resolve(strict=True)
+    py_ver = f'python{sys.version_info.major}.{sys.version_info.minor}'
+    stdlib_dir = Path(f'/usr/lib/{py_ver}').resolve(strict=True)
+
+    for rel_dir in (
+        'opt/udh/bin', 'udh/agent-config', 'run/udh-scratch',
+        'ipc', 'workspace', 'usr/bin',
+    ):
+        (stage / rel_dir).mkdir(parents=True, exist_ok=True)
+
+    _stage_file(opencode_real, stage / 'opt/udh/bin/opencode', mode=0o755)
+    _stage_file(node_real, stage / 'opt/udh/bin/node', mode=0o755)
+
+    _stage_file(python_real, stage / f'usr/bin/{python_real.name}', mode=0o755)
+    py_link = stage / 'usr/bin/python3'
+    if py_link.exists() or py_link.is_symlink():
+        py_link.unlink()
+    py_link.symlink_to(python_real.name)
+    py_files = _copy_tree_safe(
+        stdlib_dir, stage / f'usr/lib/{py_ver}',
+        exclude_dirs=EXCLUDED_STDLIB_DIRS,
+        exclude_files=EXCLUDED_STDLIB_FILES,
+    )
+
+    binaries_to_scan = [opencode_real, node_real, python_real]
+    dynload = stdlib_dir / 'lib-dynload'
+    if dynload.is_dir():
+        binaries_to_scan.extend(sorted(dynload.glob('*.so')))
+    libs = _ldd_paths(binaries_to_scan)
+    for lib in sorted(libs):
+        _stage_library(lib, stage)
+
+    bridge_src = RUNTIME_DIR / 'bridge.mjs'
+    _stage_file(bridge_src, stage / 'opt/udh/bridge.mjs', mode=0o444)
+
+    return {
+        'python_stdlib_files': py_files,
+        'shared_libs_count': len(libs),
+        'bridge_sha256': _sha256_file(bridge_src),
+        'opencode_sha256': _sha256_file(opencode_real),
+    }
+
+
+def _smoke_check_opencode_image(image_ref: str) -> dict:
+    with tempfile.TemporaryDirectory(prefix='udh-opencode-smoke-') as scratch:
+        scratch_root = Path(scratch)
+        for sub in ('home', 'config', 'data', 'cache', 'state', 'tmp'):
+            (scratch_root / sub).mkdir(parents=True, exist_ok=True)
+        base_cmd = [
+            'podman', 'run', '--rm', '--pull=never', '--network=none',
+            '--read-only', '--read-only-tmpfs=false', '--cap-drop=ALL',
+            '--security-opt=no-new-privileges', '--userns=keep-id',
+            f'--user={os.getuid()}:{os.getgid()}',
+            '--pids-limit=128', '--memory=768m', '--memory-swap=768m',
+            f'--mount=type=bind,source={scratch_root},destination=/run/udh-scratch',
+            '-e', 'HOME=/run/udh-scratch/home',
+            '-e', 'XDG_CONFIG_HOME=/run/udh-scratch/config',
+            '-e', 'XDG_DATA_HOME=/run/udh-scratch/data',
+            '-e', 'XDG_CACHE_HOME=/run/udh-scratch/cache',
+            '-e', 'XDG_STATE_HOME=/run/udh-scratch/state',
+            '-e', 'TMPDIR=/run/udh-scratch/tmp',
+            image_ref,
+        ]
+        py_check = subprocess.run(
+            base_cmd + [
+                'python3', '-I', '-B', '-c',
+                'import ast, ctypes, hashlib, hmac, http.client, json, secrets, sqlite3, ssl, unittest; '
+                'print("PY_STDLIB_OK")',
+            ],
+            capture_output=True, text=True, timeout=20, check=False,
+        )
+        if py_check.returncode != 0 or 'PY_STDLIB_OK' not in py_check.stdout:
+            raise RuntimeError(f'Smoke check Python falhou (rc={py_check.returncode}): {py_check.stderr}')
+
+        oc_check = subprocess.run(
+            base_cmd + ['/opt/udh/bin/opencode', '--version'],
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+        oc_version = (oc_check.stdout or '').strip().splitlines()[-1].strip() if (oc_check.stdout or '').strip() else ''
+        if oc_check.returncode != 0 or not oc_version:
+            raise RuntimeError(
+                f'Smoke check OpenCode falhou (rc={oc_check.returncode}): {oc_check.stdout} {oc_check.stderr}'
+            )
+
+        syntax_check = subprocess.run(
+            base_cmd + ['/opt/udh/bin/node', '--check', '/opt/udh/bridge.mjs'],
+            capture_output=True, text=True, timeout=20, check=False,
+        )
+        if syntax_check.returncode != 0:
+            raise RuntimeError(f'Smoke check bridge.mjs falhou: {syntax_check.stderr}')
+
+    return {
+        'python_stdlib': 'PY_STDLIB_OK',
+        'opencode_version': oc_version,
+        'bridge_syntax': 'BRIDGE_OK',
+    }
+
+
+def build_opencode_image(
+    *,
+    node_path: Path = DEFAULT_NODE,
+    opencode_bin: Path = DEFAULT_OPENCODE_BIN,
+    repo: str = DEFAULT_OPENCODE_REPO,
+    tag: str = DEFAULT_OPENCODE_TAG,
+) -> dict:
+    tag_ref = f'{repo}:{tag}'
+    with tempfile.TemporaryDirectory(prefix='udh-oci-opencode-stage-') as tmpdir:
+        stage = Path(tmpdir)
+        stage_info = _prepare_opencode_stage(stage, node_path=node_path, opencode_bin=opencode_bin)
+        cmd = [
+            'podman', 'build', '--pull=never', '--network=none',
+            '--build-context', f'stage={stage}',
+            '-f', str(RUNTIME_DIR / 'Containerfile.opencode'),
+            '-t', tag_ref,
+            str(RUNTIME_DIR),
+        ]
+        completed = subprocess.run(cmd, capture_output=True, text=True, timeout=300, check=False)
+        if completed.returncode != 0:
+            raise RuntimeError(
+                f'podman build (opencode) falhou (rc={completed.returncode}):\n{completed.stdout}\n{completed.stderr}'
+            )
+
+    digest = _extract_digest(tag_ref, repo)
+    image_ref = f'{repo}@{digest}'
+    smoke = _smoke_check_opencode_image(image_ref)
+    manifest = {
+        'schema_version': 1,
+        'adapter_name': 'opencode',
+        'stack_profile': 'python3-stdlib-v1',
+        'image_repository': repo,
+        'image_tag': tag,
+        'image_digest': digest,
+        'image_ref': image_ref,
+        'opencode_version': smoke['opencode_version'],
+        'opencode_bin': '/opt/udh/bin/opencode',
+        'node_bin': '/opt/udh/bin/node',
+        'bridge_path': '/opt/udh/bridge.mjs',
+        'bridge_sha256': stage_info['bridge_sha256'],
+        'smoke_verified': smoke,
+    }
+    OPENCODE_MANIFEST_PATH.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    return manifest
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='Construir imagem OCI local do UDH offline por digest.')
+    parser.add_argument('--target', choices=('pi', 'opencode', 'all'), default='pi')
     parser.add_argument('--node', type=Path, default=DEFAULT_NODE)
     parser.add_argument('--pi-modules', type=Path, default=DEFAULT_PI_MODULES)
+    parser.add_argument('--opencode-bin', type=Path, default=DEFAULT_OPENCODE_BIN)
     parser.add_argument('--repo', default=DEFAULT_REPO)
     parser.add_argument('--tag', default=DEFAULT_TAG)
+    parser.add_argument('--opencode-repo', default=DEFAULT_OPENCODE_REPO)
+    parser.add_argument('--opencode-tag', default=DEFAULT_OPENCODE_TAG)
     args = parser.parse_args(argv)
-    manifest = build_image(node_path=args.node, pi_modules=args.pi_modules, repo=args.repo, tag=args.tag)
-    print(json.dumps(manifest, indent=2, ensure_ascii=False))
+    if args.target == 'pi':
+        result = build_image(node_path=args.node, pi_modules=args.pi_modules, repo=args.repo, tag=args.tag)
+    elif args.target == 'opencode':
+        result = build_opencode_image(
+            node_path=args.node, opencode_bin=args.opencode_bin,
+            repo=args.opencode_repo, tag=args.opencode_tag,
+        )
+    else:
+        result = {
+            'pi': build_image(node_path=args.node, pi_modules=args.pi_modules, repo=args.repo, tag=args.tag),
+            'opencode': build_opencode_image(
+                node_path=args.node, opencode_bin=args.opencode_bin,
+                repo=args.opencode_repo, tag=args.opencode_tag,
+            ),
+        }
+    print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0
 
 

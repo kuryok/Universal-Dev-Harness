@@ -17,6 +17,7 @@ import uuid
 from .domain import CoreError, require_sha256, require_text, strict_json_loads
 
 DEFAULT_MANIFEST_PATH = Path(__file__).resolve().parent.parent / 'runtime' / 'image-manifest.json'
+DEFAULT_OPENCODE_MANIFEST_PATH = Path(__file__).resolve().parent.parent / 'runtime' / 'opencode-image-manifest.json'
 VALID_PROFILES = ('developer', 'artifact')
 DIGEST_RE = re.compile(r'^sha256:[0-9a-f]{64}$')
 IMAGE_REF_RE = re.compile(r'^[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$')
@@ -68,6 +69,39 @@ class ImageManifest:
         require_text(self.at_runner_path, 'Caminho do runner F-04 na imagem')
         require_sha256(self.bridge_sha256, 'Hash SHA-256 da ponte')
         require_sha256(self.at_runner_sha256, 'Hash SHA-256 do runner F-04')
+
+
+@dataclass(frozen=True)
+class OpenCodeImageManifest:
+    schema_version: int
+    adapter_name: str
+    stack_profile: str
+    image_repository: str
+    image_digest: str
+    image_ref: str
+    opencode_version: str
+    opencode_bin: str
+    node_bin: str
+    bridge_path: str
+    bridge_sha256: str
+
+    def __post_init__(self):
+        if self.schema_version != 1:
+            raise RuntimeIsolationError('Versão de manifesto de imagem OCI OpenCode não suportada.')
+        if self.adapter_name != 'opencode':
+            raise RuntimeIsolationError('Manifesto de imagem OCI OpenCode deve declarar adapter_name="opencode".')
+        require_text(self.stack_profile, 'Perfil de stack')
+        require_text(self.image_repository, 'Repositório da imagem OCI OpenCode')
+        if not isinstance(self.image_digest, str) or not DIGEST_RE.fullmatch(self.image_digest):
+            raise RuntimeIsolationError('Digest da imagem OCI OpenCode inválido; esperado sha256:<64-hex>.')
+        expected_ref = f'{self.image_repository}@{self.image_digest}'
+        if self.image_ref != expected_ref or not IMAGE_REF_RE.fullmatch(self.image_ref):
+            raise RuntimeIsolationError('Referência da imagem OCI OpenCode não corresponde ao digest fixado.')
+        require_text(self.opencode_version, 'Versão do OpenCode')
+        require_text(self.opencode_bin, 'Binário OpenCode na imagem')
+        require_text(self.node_bin, 'Binário Node na imagem')
+        require_text(self.bridge_path, 'Caminho da ponte na imagem')
+        require_sha256(self.bridge_sha256, 'Hash SHA-256 da ponte')
 
 
 @dataclass(frozen=True)
@@ -154,6 +188,37 @@ def load_image_manifest(manifest_path: Path = DEFAULT_MANIFEST_PATH, *, verify_l
             raise RuntimeIsolationError('IMAGE_DIGEST_STALE: runtime/bridge.mjs diverge do manifesto da imagem.')
         if runner_local.is_file() and _sha256_file(runner_local) != manifest.at_runner_sha256:
             raise RuntimeIsolationError('IMAGE_DIGEST_STALE: runtime/at_runner.py diverge do manifesto da imagem.')
+    return manifest
+
+
+def load_opencode_manifest(
+    manifest_path: Path = DEFAULT_OPENCODE_MANIFEST_PATH,
+    *,
+    verify_local_sources: bool = True,
+) -> OpenCodeImageManifest:
+    path = Path(manifest_path)
+    if not path.is_file():
+        raise RuntimeIsolationError(f'IMAGE_DIGEST_UNAVAILABLE: manifesto de imagem OpenCode ausente em {path}.')
+    raw = strict_json_loads(path.read_text(encoding='utf-8'), 'Manifesto de imagem OCI OpenCode')
+    if not isinstance(raw, dict):
+        raise RuntimeIsolationError('Manifesto de imagem OCI OpenCode deve ser um objeto JSON.')
+    manifest = OpenCodeImageManifest(
+        schema_version=raw.get('schema_version'),
+        adapter_name=raw.get('adapter_name', ''),
+        stack_profile=raw.get('stack_profile', ''),
+        image_repository=raw.get('image_repository', ''),
+        image_digest=raw.get('image_digest', ''),
+        image_ref=raw.get('image_ref', ''),
+        opencode_version=raw.get('opencode_version', ''),
+        opencode_bin=raw.get('opencode_bin', ''),
+        node_bin=raw.get('node_bin', ''),
+        bridge_path=raw.get('bridge_path', ''),
+        bridge_sha256=raw.get('bridge_sha256', ''),
+    )
+    if verify_local_sources:
+        bridge_local = path.parent / 'bridge.mjs'
+        if bridge_local.is_file() and _sha256_file(bridge_local) != manifest.bridge_sha256:
+            raise RuntimeIsolationError('IMAGE_DIGEST_STALE: runtime/bridge.mjs diverge do manifesto da imagem OpenCode.')
     return manifest
 
 
@@ -309,12 +374,28 @@ def _collect_streams(
 class RuntimeManager:
     """Gerencia contêineres Podman rootless sob contratos fail-closed."""
 
-    def __init__(self, *, manifest_path: Path = DEFAULT_MANIFEST_PATH, podman_bin: str = 'podman'):
+    def __init__(
+        self,
+        *,
+        manifest_path: Path = DEFAULT_MANIFEST_PATH,
+        opencode_manifest_path: Path = DEFAULT_OPENCODE_MANIFEST_PATH,
+        podman_bin: str = 'podman',
+    ):
         self.manifest_path = Path(manifest_path)
+        self.opencode_manifest_path = Path(opencode_manifest_path)
         self.podman_bin = podman_bin
 
     def load_manifest(self, *, verify_local_sources: bool = True) -> ImageManifest:
         return load_image_manifest(self.manifest_path, verify_local_sources=verify_local_sources)
+
+    def load_opencode_manifest(
+        self,
+        *,
+        manifest_path: Path | None = None,
+        verify_local_sources: bool = True,
+    ) -> OpenCodeImageManifest:
+        target = Path(manifest_path) if manifest_path is not None else self.opencode_manifest_path
+        return load_opencode_manifest(target, verify_local_sources=verify_local_sources)
 
     def verify_image_present(self, image_ref: str) -> dict:
         if not isinstance(image_ref, str) or not IMAGE_REF_RE.fullmatch(image_ref):

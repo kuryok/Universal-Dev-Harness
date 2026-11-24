@@ -12,14 +12,26 @@ import tempfile
 import threading
 import time
 
+from .adapters.opencode import DEFAULT_OPENCODE_LIMITS, OpenCodeAdapter
 from .adapters.pi import PiAdapter
+from .doctor import run_doctor
 from .domain import CoreError
 from .executor import TrustedExecutor
 from .gateway import DEFAULT_STUB_MODEL, GatewayConfig, InferenceGateway
+from .handoff import (
+    HandoffError,
+    build_handoff_packet,
+    commit_handoff_snapshot,
+    init_core_worktree,
+    render_handoff_prompt,
+    select_adapter,
+    verify_handoff_packet,
+)
 from .policy import policy_v2_sha256
 from .runtime import (
     BindMount,
     DEFAULT_MANIFEST_PATH,
+    DEFAULT_OPENCODE_MANIFEST_PATH,
     ResourceLimits,
     RuntimeIsolationError,
     RuntimeManager,
@@ -699,13 +711,462 @@ def run_poc_04(*, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> dict:
     return {'poc': 'POC-04', 'verdict': 'PASS' if overall_ok else 'FAIL', 'checks': checks}
 
 
-def run_all_pocs(*, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> dict:
+def run_poc_03(
+    *,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
+    opencode_manifest_path: Path = DEFAULT_OPENCODE_MANIFEST_PATH,
+) -> dict:
+    """POC-03: handoff reprodutível Pi -> OpenCode, git_dir externo, F-03, E3/E4 e aceite oficial F-04."""
+    manager = RuntimeManager(
+        manifest_path=manifest_path,
+        opencode_manifest_path=opencode_manifest_path,
+    )
+    pol_sha = policy_v2_sha256()
+    checks: dict[str, dict] = {}
+
+    with tempfile.TemporaryDirectory(prefix='udh-poc03-') as tmp:
+        root = Path(tmp)
+        store = TrustStore(root / 'trust-store')
+        db_path = root / 'core-v4.db'
+        git_dir = root / 'core-git-dir'
+        ws = root / 'workspace'
+        ws.mkdir()
+
+        svc = CoreService(SQLiteStore(db_path))
+        svc.initialize(schema_version=4)
+
+        # 1. Conformance multi-agente real (Pi 1.2.0 + OpenCode 1.18.35 em imagens OCI separadas)
+        doc_conf = run_doctor(
+            db_path=db_path,
+            store_dir=store.root,
+            run_conformance=True,
+            manifest_path=manifest_path,
+            opencode_manifest_path=opencode_manifest_path,
+        )
+        rt_check = next(c for c in doc_conf['checks'] if c['id'] == 'runtime_components')
+        conformant_adapters = list(rt_check['details']['conformant_adapters'])
+        checks['multi_agent_conformance'] = {
+            'ok': doc_conf['overall_status'] == 'READY' and conformant_adapters == ['pi', 'opencode'],
+            'overall_status': doc_conf['overall_status'],
+            'conformant_adapters': conformant_adapters,
+            'adapters': rt_check['details'].get('adapters', {}),
+        }
+
+        # 2. Selar AT oficial e inicializar worktree com git_dir externo
+        at_src = root / 'at-src'
+        at_src.mkdir()
+        (at_src / 'test_calc_at.py').write_text(
+            'import subprocess, sys, unittest\n'
+            'class TestCalcHandoffAT(unittest.TestCase):\n'
+            '    def test_add(self):\n'
+            '        p = subprocess.run([sys.executable, "/artifact/calc.py", "add", "3", "4"], capture_output=True, text=True, check=True)\n'
+            '        self.assertEqual(p.stdout.strip(), "7")\n'
+            '    def test_mul(self):\n'
+            '        p = subprocess.run([sys.executable, "/artifact/calc.py", "mul", "3", "4"], capture_output=True, text=True, check=True)\n'
+            '        self.assertEqual(p.stdout.strip(), "12")\n',
+            encoding='utf-8',
+        )
+        at_manifest = store.seal_at_suite(at_src)
+        at_version = at_manifest['at_version']
+
+        (ws / 'calc.py').write_text('# stub inicial\n', encoding='utf-8')
+        base_git = init_core_worktree(git_dir, ws, initial_message='udh: poc03 base')
+        base_sha = base_git['base_commit_sha']
+
+        run = svc.create('spec-poc03-calc', '1', 'req-poc03-create', ticket_id='T-POC03', mode='STANDARD')
+        svc.start(run.run_id, 0, 'req-poc03-start')
+
+        # 3. Agente 1 (Pi 1.2.0): escreve implementação parcial via tool real e sofre corte no turno 2
+        sel1 = select_adapter(conformant_adapters, preference_order=('pi', 'opencode'))
+        auth1 = svc.authorize_agent_execution(
+            run.run_id,
+            store_dir=store.root,
+            adapter=sel1['selected_adapter'],
+            manifest_path=manifest_path,
+            opencode_manifest_path=opencode_manifest_path,
+        )
+        pi_gw_cfg = GatewayConfig(
+            run_id=run.run_id,
+            policy_sha256=pol_sha,
+            audit_path=store.audit_path_for(f'{run.run_id}-pi'),
+            backend='stub',
+            allowed_models=(DEFAULT_STUB_MODEL,),
+            allow_tools=True,
+            allowed_tool_names=('read', 'write', 'edit'),
+            stub_turns=(
+                {
+                    'require_tools': True,
+                    'tool_calls': [{
+                        'id': 'call_poc03_pi_1',
+                        'name': 'write',
+                        'arguments': {
+                            'path': 'calc.py',
+                            'content': (
+                                'import sys\n'
+                                'op, a, b = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])\n'
+                                'print(a + b if op == "add" else 0)\n'
+                            ),
+                        },
+                    }],
+                },
+                {
+                    'require_tools': True,
+                    'text': 'PI_SECRET_CHAT_TRANSCRIPT_DO_NOT_LEAK_TO_OPENCODE',
+                    'cut_after_first_chunk': True,
+                },
+            ),
+        )
+        with InferenceGateway(pi_gw_cfg) as pi_gw:
+            pi_res = PiAdapter(runtime_manager=manager).run(
+                workspace=ws,
+                gateway=pi_gw,
+                profile='developer_python_stdlib',
+                prompt='Implemente calc.py com add e mul.',
+                allowed_tools=('read', 'write', 'edit'),
+                forbidden_rw_roots=(store.root, git_dir),
+            )
+
+        # Executor F-04 verifica trabalho parcial do Pi -> AT_RESULT FAIL oficial
+        executor = TrustedExecutor(runtime_manager=manager, trust_store=store, core_service=svc)
+        partial_art = store.promote_artifact(ws)
+        partial_ev = executor.verify_run(
+            run.run_id,
+            request_id='req-poc03-pi-verify',
+            artifact_digest=partial_art['artifact_digest'],
+            at_version=at_version,
+        )
+        checks['agent1_pi_partial_and_cut'] = {
+            'ok': (
+                auth1['decision'] == 'ALLOW'
+                and sel1['selected_adapter'] == 'pi'
+                and pi_res.ok is False
+                and pi_res.reason_code == 'AGENT_STREAM_INTERRUPTED'
+                and partial_ev['report']['verdict'] == 'FAIL'
+            ),
+            'pi_reason_code': pi_res.reason_code,
+            'partial_at_verdict': partial_ev['report']['verdict'],
+        }
+
+        # 4. Core cria commit de handoff (git_dir externo) + Checkpoint F-03 com pendência UNKNOWN
+        handoff_git = commit_handoff_snapshot(git_dir, ws, message='udh: poc03 pi partial handoff')
+        head_sha = handoff_git['head_commit_sha']
+        snap_sha = handoff_git['worktree_snapshot_sha256']
+        ev_hash = partial_ev['evidence']['evidence_sha256']
+
+        svc.record_checkpoint(
+            run.run_id,
+            expected_revision=1,
+            request_id='req-poc03-ckpt-unknown',
+            last_confirmed_step='pi_partial_interrupted',
+            base_commit_sha=base_sha,
+            head_commit_sha=head_sha,
+            worktree_snapshot_sha256=snap_sha,
+            evidence_hashes=(ev_hash,),
+            external_idempotency_keys=('idem-poc03-pi-1',),
+            unknown_pendencies=({'kind': 'gateway_cut_unconfirmed', 'adapter': 'pi'},),
+        )
+
+        # Handoff e EXECUTE_AGENT devem bloquear fail-closed com UNKNOWN ativa
+        unknown_blocked_code = None
+        try:
+            build_handoff_packet(
+                core_service=svc,
+                trust_store=store,
+                run_id=run.run_id,
+                git_dir=git_dir,
+                workspace=ws,
+                from_adapter='pi',
+                to_adapter='opencode',
+                objective='Corrigir multiplicação em calc.py.',
+                acceptance_criteria=('add e mul devem passar nos ATs selados',),
+                allowed_tools=('read', 'write', 'edit', 'glob', 'grep', 'list'),
+                manifest_path=manifest_path,
+                opencode_manifest_path=opencode_manifest_path,
+            )
+        except HandoffError as err:
+            unknown_blocked_code = err.reason_code
+
+        policy_unknown = svc.authorize_agent_execution(
+            run.run_id,
+            store_dir=store.root,
+            adapter='opencode',
+            manifest_path=manifest_path,
+            opencode_manifest_path=opencode_manifest_path,
+        )
+        checks['f03_unknown_pendency_fail_closed'] = {
+            'ok': unknown_blocked_code == 'UNKNOWN_PENDENCY_ACTIVE' and policy_unknown['decision'] == 'DENY',
+            'handoff_reason_code': unknown_blocked_code,
+            'policy_reason_code': policy_unknown['reason_code'],
+        }
+
+        # 5. Reconciliar UNKNOWN -> novo checkpoint limpo + controles negativos F-03
+        svc.record_checkpoint(
+            run.run_id,
+            expected_revision=1,
+            request_id='req-poc03-ckpt-reconciled',
+            last_confirmed_step='pi_partial_reconciled',
+            base_commit_sha=base_sha,
+            head_commit_sha=head_sha,
+            worktree_snapshot_sha256=snap_sha,
+            evidence_hashes=(ev_hash,),
+            external_idempotency_keys=('idem-poc03-pi-1',),
+            unknown_pendencies=(),
+        )
+
+        # 5a. Controle negativo: worktree sujo / arquivo ocultado por .gitignore
+        dirty_file = ws / 'smuggled.py'
+        gitignore_file = ws / '.gitignore'
+        gitignore_file.write_text('smuggled.py\n', encoding='utf-8')
+        dirty_file.write_text('print("smuggled")\n', encoding='utf-8')
+        dirty_code = None
+        try:
+            build_handoff_packet(
+                core_service=svc, trust_store=store, run_id=run.run_id,
+                git_dir=git_dir, workspace=ws, from_adapter='pi', to_adapter='opencode',
+                objective='Corrigir calc.py.', acceptance_criteria=('ATs verdes',),
+                allowed_tools=('read', 'write', 'edit'),
+                manifest_path=manifest_path, opencode_manifest_path=opencode_manifest_path,
+            )
+        except HandoffError as err:
+            dirty_code = err.reason_code
+        finally:
+            dirty_file.unlink(missing_ok=True)
+            gitignore_file.unlink(missing_ok=True)
+
+        # 5b. Controle negativo F-03: crash entre commit Git e gravação SQLite (HEAD != checkpoint.head_commit_sha)
+        crash_file = ws / 'unrecorded.txt'
+        crash_file.write_text('crash-between-writes\n', encoding='utf-8')
+        commit_handoff_snapshot(git_dir, ws, message='udh: simulated crash commit without sqlite checkpoint')
+        crash_code = None
+        try:
+            build_handoff_packet(
+                core_service=svc, trust_store=store, run_id=run.run_id,
+                git_dir=git_dir, workspace=ws, from_adapter='pi', to_adapter='opencode',
+                objective='Corrigir calc.py.', acceptance_criteria=('ATs verdes',),
+                allowed_tools=('read', 'write', 'edit'),
+                manifest_path=manifest_path, opencode_manifest_path=opencode_manifest_path,
+            )
+        except HandoffError as err:
+            crash_code = err.reason_code
+        finally:
+            # Restaurar git_dir e worktree exatamente para head_sha do checkpoint
+            subprocess.run(
+                ['git', '-c', 'core.hooksPath=/dev/null', '--git-dir', str(git_dir), '--work-tree', str(ws),
+                 'reset', '--hard', head_sha],
+                capture_output=True, text=True, check=True, timeout=15,
+            )
+            crash_file.unlink(missing_ok=True)
+
+        # 5c. Controle negativo E4: /workspace/opencode.json hostil ignorado pelo OpenCode
+        hostile_cfg = ws / 'opencode.json'
+        hostile_cfg.write_text(json.dumps({
+            'autoupdate': True,
+            'share': 'manual',
+            'plugin': ['hostile-plugin'],
+            'tools': {'webfetch': True, 'bash': True},
+            'permission': {'*': 'allow'},
+        }), encoding='utf-8')
+        try:
+            inspected = OpenCodeAdapter(runtime_manager=manager).inspect_effective_config(
+                workspace=ws,
+                profile='conformance',
+                forbidden_rw_roots=(store.root, git_dir),
+            )
+            e4_hostile_ignored = (
+                inspected['config_integrity_ok'] is True
+                and inspected['config'].get('autoupdate') is False
+                and inspected['config'].get('share') == 'disabled'
+                and inspected['config'].get('plugin') == []
+                and inspected['config'].get('tools', {}).get('webfetch') is False
+            )
+        finally:
+            hostile_cfg.unlink(missing_ok=True)
+
+        checks['f03_and_e4_negative_controls'] = {
+            'ok': (
+                dirty_code == 'HANDOFF_INTEGRITY_VIOLATION'
+                and crash_code == 'HANDOFF_INTEGRITY_VIOLATION'
+                and e4_hostile_ignored
+            ),
+            'dirty_or_gitignore_code': dirty_code,
+            'crash_head_mismatch_code': crash_code,
+            'e4_hostile_workspace_config_ignored': e4_hostile_ignored,
+        }
+
+        # 6. Seleção determinística ADR-026 (excluindo 'pi') + HandoffPacket verificado
+        sel2 = svc.select_conformant_adapter(
+            store_dir=store.root,
+            preference_order=('pi', 'opencode'),
+            exclude=('pi',),
+            manifest_path=manifest_path,
+            opencode_manifest_path=opencode_manifest_path,
+        )
+        packet = build_handoff_packet(
+            core_service=svc,
+            trust_store=store,
+            run_id=run.run_id,
+            git_dir=git_dir,
+            workspace=ws,
+            from_adapter='pi',
+            to_adapter=sel2['selected_adapter'],
+            objective='Corrigir operação mul em calc.py mantendo add funcionando.',
+            acceptance_criteria=('calc.py add 3 4 == 7', 'calc.py mul 3 4 == 12'),
+            allowed_tools=('read', 'write', 'edit', 'glob', 'grep', 'list'),
+            manifest_path=manifest_path,
+            opencode_manifest_path=opencode_manifest_path,
+        )
+        verify_handoff_packet(packet)
+        handoff_prompt = render_handoff_prompt(packet)
+        no_pi_transcript = 'PI_SECRET_CHAT_TRANSCRIPT_DO_NOT_LEAK_TO_OPENCODE' not in handoff_prompt
+        checks['handoff_packet_and_selection'] = {
+            'ok': (
+                sel2['selected_adapter'] == 'opencode'
+                and sel2['fallback_used'] is True
+                and packet['git']['base_commit_sha'] == base_sha
+                and packet['git']['head_commit_sha'] == head_sha
+                and packet['git']['worktree_snapshot_sha256'] == snap_sha
+                and len(packet['evidence']) == 1
+                and no_pi_transcript
+            ),
+            'selected_adapter': sel2['selected_adapter'],
+            'fallback_used': sel2['fallback_used'],
+            'packet_sha256': packet['packet_sha256'],
+            'no_agent1_transcript': no_pi_transcript,
+        }
+
+        # 7. Agente 2 (OpenCode 1.18.35 em imagem OCI dedicada): valida E3 allowlist + conclui calc.py
+        oc_gw_cfg = GatewayConfig(
+            run_id=run.run_id,
+            policy_sha256=pol_sha,
+            audit_path=store.audit_path_for(f'{run.run_id}-opencode'),
+            backend='stub',
+            allowed_models=(DEFAULT_STUB_MODEL,),
+            allow_tools=True,
+            allowed_tool_names=('read', 'write', 'edit', 'glob', 'grep', 'list'),
+            stub_turns=(
+                {
+                    'require_tools': True,
+                    'tool_calls': [{
+                        'id': 'call_poc03_oc_1',
+                        'name': 'write',
+                        'arguments': {
+                            'filePath': '/workspace/calc.py',
+                            'content': (
+                                'import sys\n'
+                                'op, a, b = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])\n'
+                                'print(a + b if op == "add" else a * b)\n'
+                            ),
+                        },
+                    }],
+                },
+                {
+                    'require_tools': True,
+                    'text': 'OPENCODE_POC03_FIX_COMPLETE',
+                },
+            ),
+        )
+        with InferenceGateway(oc_gw_cfg) as oc_gw:
+            # Controle negativo E3 no mesmo Gateway: tool proibida (webfetch) recusada com 403
+            st_webfetch, _ = _uds_raw_request(
+                oc_gw.socket_path,
+                _build_post_request(
+                    token=oc_gw.capability_token,
+                    body=json.dumps({
+                        'model': DEFAULT_STUB_MODEL,
+                        'stream': True,
+                        'messages': [{'role': 'user', 'content': 'probe'}],
+                        'tools': [{'type': 'function', 'function': {'name': 'webfetch'}}],
+                    }).encode('utf-8'),
+                ),
+            )
+            oc_res = OpenCodeAdapter(runtime_manager=manager).run(
+                workspace=ws,
+                gateway=oc_gw,
+                profile='developer_python_stdlib',
+                prompt=handoff_prompt,
+                allowed_tools=('read', 'write', 'edit', 'glob', 'grep', 'list'),
+                limits=DEFAULT_OPENCODE_LIMITS,
+                forbidden_rw_roots=(store.root, git_dir),
+            )
+
+        checks['agent2_opencode_handoff_execution'] = {
+            'ok': (
+                st_webfetch == 403
+                and oc_res.ok is True
+                and oc_res.config_integrity_ok is True
+                and 'OPENCODE_POC03_FIX_COMPLETE' in oc_res.assistant_text
+            ),
+            'gateway_webfetch_denied_status': st_webfetch,
+            'opencode_reason_code': oc_res.reason_code,
+            'config_integrity_ok': oc_res.config_integrity_ok,
+        }
+
+        # 8. Core commita entrega final + promove artefato + Executor Confiável F-04 -> PASS -> DONE
+        final_git = commit_handoff_snapshot(git_dir, ws, message='udh: poc03 opencode completed')
+        final_art = store.promote_artifact(ws)
+        final_ev = executor.verify_run(
+            run.run_id,
+            request_id='req-poc03-final-verify',
+            artifact_digest=final_art['artifact_digest'],
+            at_version=at_version,
+            commit_sha=final_git['head_commit_sha'],
+        )
+        svc.record_checkpoint(
+            run.run_id,
+            expected_revision=1,
+            request_id='req-poc03-ckpt-final',
+            last_confirmed_step='opencode_verified_pass',
+            base_commit_sha=base_sha,
+            head_commit_sha=final_git['head_commit_sha'],
+            worktree_snapshot_sha256=final_git['worktree_snapshot_sha256'],
+            evidence_hashes=(ev_hash, final_ev['evidence']['evidence_sha256']),
+            external_idempotency_keys=('idem-poc03-pi-1', 'idem-poc03-oc-2'),
+            unknown_pendencies=(),
+        )
+        accept_pol = svc.policy(run.run_id, 'ACCEPT_ARTIFACT')
+        completed = executor.complete_verified_run(
+            run.run_id,
+            expected_revision=1,
+            request_id='req-poc03-complete',
+            evidence_id=final_ev['evidence']['evidence_id'],
+            artifact_digest=final_art['artifact_digest'],
+            at_version=at_version,
+        )
+        final_run = svc.show(run.run_id)
+        checks['final_f04_acceptance_and_done'] = {
+            'ok': (
+                final_ev['report']['verdict'] == 'PASS'
+                and final_ev['report']['tests_run'] == 2
+                and accept_pol['decision'] == 'ALLOW'
+                and completed['to_state'] == 'DONE'
+                and final_run.state == 'DONE'
+                and final_git['head_commit_sha'] != head_sha
+            ),
+            'final_commit_sha': final_git['head_commit_sha'],
+            'final_at_verdict': final_ev['report']['verdict'],
+            'policy_accept': accept_pol['decision'],
+            'final_state': final_run.state,
+        }
+
+    overall_ok = all(item['ok'] for item in checks.values())
+    return {'poc': 'POC-03', 'verdict': 'PASS' if overall_ok else 'FAIL', 'checks': checks}
+
+
+def run_all_pocs(
+    *,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
+    opencode_manifest_path: Path = DEFAULT_OPENCODE_MANIFEST_PATH,
+    selected: str = 'all',
+) -> dict:
     started = time.monotonic()
-    results = {
-        'POC-01': run_poc_01(manifest_path=manifest_path),
-        'POC-02': run_poc_02(manifest_path=manifest_path),
-        'POC-04': run_poc_04(manifest_path=manifest_path),
+    runners = {
+        '01': ('POC-01', lambda: run_poc_01(manifest_path=manifest_path)),
+        '02': ('POC-02', lambda: run_poc_02(manifest_path=manifest_path)),
+        '03': ('POC-03', lambda: run_poc_03(manifest_path=manifest_path, opencode_manifest_path=opencode_manifest_path)),
+        '04': ('POC-04', lambda: run_poc_04(manifest_path=manifest_path)),
     }
+    keys = ('01', '02', '03', '04') if selected == 'all' else (selected,)
+    results = {runners[k][0]: runners[k][1]() for k in keys}
     all_pass = all(item['verdict'] == 'PASS' for item in results.values())
     return {
         'schema_version': 1,
@@ -717,11 +1178,17 @@ def run_all_pocs(*, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> dict:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog='python3 -m udh.poc', description='Executar POC-01, POC-02 e POC-04 do Change 2.')
+    parser = argparse.ArgumentParser(prog='python3 -m udh.poc', description='Executar POCs fundacionais (POC-01 a POC-04).')
     parser.add_argument('--manifest', type=Path, default=DEFAULT_MANIFEST_PATH)
+    parser.add_argument('--opencode-manifest', type=Path, default=DEFAULT_OPENCODE_MANIFEST_PATH)
+    parser.add_argument('--poc', choices=('01', '02', '03', '04', 'all'), default='all')
     parser.add_argument('--output', type=Path, default=None)
     args = parser.parse_args(argv)
-    summary = run_all_pocs(manifest_path=args.manifest)
+    summary = run_all_pocs(
+        manifest_path=args.manifest,
+        opencode_manifest_path=args.opencode_manifest,
+        selected=args.poc,
+    )
     rendered = json.dumps(summary, indent=2, ensure_ascii=False)
     if args.output is not None:
         args.output.write_text(rendered + '\n', encoding='utf-8')

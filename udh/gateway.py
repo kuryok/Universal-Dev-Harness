@@ -111,14 +111,73 @@ def verify_openrouter_free_model(
         conn.close()
 
 
+def _validate_tools_payload(
+    body: dict,
+    *,
+    allow_tools: bool,
+    allowed_tool_names: tuple[str, ...] = (),
+) -> tuple[int | None, str | None, list[str], list[dict]]:
+    """Valida estritamente tools/functions (fail-closed, sem strip silencioso)."""
+    if 'functions' in body and body['functions'] is not None:
+        return 403, 'tools_denied', [], []
+    raw_tools = body.get('tools')
+    if raw_tools is None:
+        return None, None, [], []
+    if not isinstance(raw_tools, list):
+        return 400, 'tools_invalid', [], []
+    if not raw_tools:
+        return None, None, [], []
+    if not allow_tools:
+        names: list[str] = []
+        for entry in raw_tools:
+            if isinstance(entry, dict):
+                fn = entry.get('function')
+                if isinstance(fn, dict) and isinstance(fn.get('name'), str) and fn['name']:
+                    names.append(fn['name'])
+        return 403, 'tools_denied', sorted(set(names)), []
+
+    allowed_set = set(allowed_tool_names)
+    sanitized: list[dict] = []
+    extracted_names: list[str] = []
+    for entry in raw_tools:
+        if not isinstance(entry, dict) or entry.get('type') != 'function':
+            return 400, 'tools_invalid', [], []
+        fn = entry.get('function')
+        if not isinstance(fn, dict):
+            return 400, 'tools_invalid', [], []
+        name = fn.get('name')
+        if not isinstance(name, str) or not name or name.strip() != name:
+            return 400, 'tools_invalid', [], []
+        extracted_names.append(name)
+        rebuilt_fn: dict = {'name': name}
+        if 'description' in fn and isinstance(fn['description'], str):
+            rebuilt_fn['description'] = fn['description']
+        if 'parameters' in fn and isinstance(fn['parameters'], dict):
+            rebuilt_fn['parameters'] = fn['parameters']
+        sanitized.append({'type': 'function', 'function': rebuilt_fn})
+
+    unique_names = sorted(set(extracted_names))
+    if not allowed_set or any(name not in allowed_set for name in unique_names):
+        return 403, 'tools_denied', unique_names, []
+    return None, None, unique_names, sanitized
+
+
 def build_openrouter_payload(
     body: dict,
     *,
     allowed_model: str,
     max_tokens_cap: int = 1024,
     allow_tools: bool = False,
+    allowed_tool_names: tuple[str, ...] = (),
 ) -> dict:
-    """Reconstrói payload upstream por allowlist estrita (impede bypass de max_price/provider)."""
+    """Reconstrói payload upstream por allowlist estrita (impede bypass de max_price/provider e sem strip silencioso)."""
+    sanitized_tools: list[dict] = []
+    if allow_tools:
+        err_status, err_code, _tool_names, sanitized_tools = _validate_tools_payload(
+            body, allow_tools=True, allowed_tool_names=allowed_tool_names,
+        )
+        if err_status is not None:
+            raise GatewayError(f'Payload de ferramentas recusado ({err_status} {err_code}).')
     req_max = body.get('max_tokens')
     if type(req_max) is int and 1 <= req_max <= max_tokens_cap:
         max_tokens = req_max
@@ -131,8 +190,8 @@ def build_openrouter_payload(
         'max_tokens': max_tokens,
         'provider': {'max_price': {'prompt': 0, 'completion': 0}},
     }
-    if allow_tools and isinstance(body.get('tools'), list):
-        rebuilt['tools'] = body['tools']
+    if sanitized_tools:
+        rebuilt['tools'] = sanitized_tools
     return rebuilt
 
 
@@ -144,6 +203,7 @@ class GatewayConfig:
     backend: str = 'stub'
     allowed_models: tuple[str, ...] = (DEFAULT_STUB_MODEL,)
     allow_tools: bool = False
+    allowed_tool_names: tuple[str, ...] = ()
     max_concurrency: int = DEFAULT_MAX_CONCURRENCY
     max_calls: int = DEFAULT_MAX_CALLS
     max_header_bytes: int = DEFAULT_MAX_HEADER_BYTES
@@ -153,6 +213,7 @@ class GatewayConfig:
     body_timeout_seconds: float = DEFAULT_BODY_TIMEOUT
     call_timeout_seconds: float = DEFAULT_CALL_TIMEOUT
     stub_response_text: str = 'UDH_CONFORMANCE_OK'
+    stub_turns: tuple[dict, ...] = ()
     cut_after_first_chunk: bool = False
     secret_resolver: Callable[[], str | None] | None = None
     openrouter_connection_factory: Callable[[], http.client.HTTPConnection] | None = None
@@ -343,11 +404,16 @@ class InferenceGateway:
             raise GatewayError(f'Backend de gateway inválido: {config.backend}.')
         if not config.allowed_models:
             raise GatewayError('Allowlist de modelos não pode ser vazia.')
+        for tool_name in config.allowed_tool_names:
+            if not isinstance(tool_name, str) or not tool_name or tool_name.strip() != tool_name:
+                raise GatewayError('Nome inválido em allowed_tool_names.')
         self.config = config
         self.capability_token = secrets.token_urlsafe(32)
         self._slots = threading.BoundedSemaphore(config.max_concurrency)
         self._budget_lock = threading.Lock()
         self._audit_lock = threading.Lock()
+        self._stub_turn_lock = threading.Lock()
+        self._stub_remaining_turns: list[dict] = [dict(t) for t in config.stub_turns]
         self._calls = 0
         self._secret: str | None = None
         self.ipc_dir: Path | None = None
@@ -432,6 +498,7 @@ class InferenceGateway:
         peer_uid: int | None,
         model: str | None = None,
         has_tools: bool = False,
+        tool_names: list[str] | None = None,
         request_bytes: int = 0,
         response_bytes: int = 0,
         stream_events: int = 0,
@@ -449,6 +516,7 @@ class InferenceGateway:
             'peer_uid': peer_uid,
             'model': model,
             'has_tools': has_tools,
+            'tool_names': list(tool_names) if tool_names else [],
             'request_bytes': request_bytes,
             'response_bytes': response_bytes,
             'stream_events': stream_events,
@@ -516,12 +584,19 @@ class InferenceGateway:
                 request_bytes=req_bytes, elapsed_seconds=time.monotonic() - started,
             )
             return
-        has_tools = bool(body.get('tools'))
-        if has_tools and not self.config.allow_tools:
-            _send_json_response(conn, 403, 'Forbidden', {'error': 'tools_denied'})
+        tools_err_status, tools_err_code, tool_names, _sanitized_tools = _validate_tools_payload(
+            body,
+            allow_tools=self.config.allow_tools,
+            allowed_tool_names=self.config.allowed_tool_names,
+        )
+        has_tools = bool(tool_names) or bool(body.get('tools')) or ('functions' in body and body['functions'] is not None)
+        if tools_err_status is not None:
+            reason_phrase = 'Bad Request' if tools_err_status == 400 else 'Forbidden'
+            _send_json_response(conn, tools_err_status, reason_phrase, {'error': tools_err_code})
             self._audit(
-                status=403, verdict='tools_denied', peer_uid=peer_uid, model=model,
-                has_tools=True, request_bytes=req_bytes, elapsed_seconds=time.monotonic() - started,
+                status=tools_err_status, verdict=tools_err_code or 'tools_denied', peer_uid=peer_uid, model=model,
+                has_tools=has_tools, tool_names=tool_names, request_bytes=req_bytes,
+                elapsed_seconds=time.monotonic() - started,
             )
             return
 
@@ -530,23 +605,35 @@ class InferenceGateway:
                 _send_json_response(conn, 429, 'Too Many Requests', {'error': 'run_budget_exceeded'})
                 self._audit(
                     status=429, verdict='run_budget_exceeded', peer_uid=peer_uid, model=model,
-                    has_tools=has_tools, request_bytes=req_bytes, elapsed_seconds=time.monotonic() - started,
+                    has_tools=has_tools, tool_names=tool_names, request_bytes=req_bytes,
+                    elapsed_seconds=time.monotonic() - started,
                 )
                 return
             self._calls += 1
 
         if self.config.backend == 'stub':
-            self._serve_stub(conn, peer_uid=peer_uid, model=model, has_tools=has_tools, req_bytes=req_bytes, started=started)
+            self._serve_stub(
+                conn, peer_uid=peer_uid, model=model, has_tools=has_tools,
+                tool_names=tool_names, req_bytes=req_bytes, started=started,
+            )
         else:
             self._serve_openrouter_free(
                 conn, body=body, peer_uid=peer_uid, model=model,
-                has_tools=has_tools, req_bytes=req_bytes, started=started,
+                has_tools=has_tools, tool_names=tool_names, req_bytes=req_bytes, started=started,
             )
 
     def _write_chunk(self, conn: socket.socket, data: bytes) -> int:
         frame = f'{len(data):x}\r\n'.encode('ascii') + data + b'\r\n'
         conn.sendall(frame)
         return len(data)
+
+    def _pop_stub_turn(self, *, has_tools: bool) -> dict | None:
+        with self._stub_turn_lock:
+            for idx, turn in enumerate(self._stub_remaining_turns):
+                req_tools = turn.get('require_tools')
+                if req_tools is None or bool(req_tools) == bool(has_tools):
+                    return self._stub_remaining_turns.pop(idx)
+        return None
 
     def _serve_stub(
         self,
@@ -555,6 +642,7 @@ class InferenceGateway:
         peer_uid: int,
         model: str,
         has_tools: bool,
+        tool_names: list[str],
         req_bytes: int,
         started: float,
     ) -> None:
@@ -567,6 +655,10 @@ class InferenceGateway:
         resp_bytes = 0
         events = 0
         verdict = 'stub_stream_complete'
+        turn = self._pop_stub_turn(has_tools=has_tools)
+        cut_after_first = bool(turn.get('cut_after_first_chunk')) if turn is not None else self.config.cut_after_first_chunk
+        tool_calls = turn.get('tool_calls') if turn is not None else None
+        text = str(turn.get('text', self.config.stub_response_text)) if turn is not None else self.config.stub_response_text
         try:
             conn.sendall(headers)
 
@@ -583,24 +675,50 @@ class InferenceGateway:
                 resp_bytes += self._write_chunk(conn, payload)
                 events += 1
 
-            text = self.config.stub_response_text
-            midpoint = max(1, len(text) // 2)
-            emit({'role': 'assistant', 'content': ''})
-            emit({'content': text[:midpoint]})
-            self.first_chunk_sent.set()
+            if isinstance(tool_calls, list) and tool_calls:
+                emit({'role': 'assistant', 'content': ''})
+                for idx, call in enumerate(tool_calls):
+                    call_id = str(call.get('id') or f'call_udh_{idx + 1}')
+                    fn_name = str(call['name'])
+                    raw_args = call.get('arguments', {})
+                    args_str = raw_args if isinstance(raw_args, str) else json.dumps(raw_args, ensure_ascii=False)
+                    emit({
+                        'tool_calls': [{
+                            'index': idx,
+                            'id': call_id,
+                            'type': 'function',
+                            'function': {'name': fn_name, 'arguments': args_str},
+                        }]
+                    })
+                self.first_chunk_sent.set()
+                if cut_after_first:
+                    verdict = 'stub_stream_cut'
+                    try:
+                        conn.shutdown(socket.SHUT_RDWR)
+                    except OSError:
+                        pass
+                    return
+                emit({}, 'tool_calls')
+                resp_bytes += self._write_chunk(conn, b'data: [DONE]\n\n')
+                conn.sendall(b'0\r\n\r\n')
+            else:
+                midpoint = max(1, len(text) // 2)
+                emit({'role': 'assistant', 'content': ''})
+                emit({'content': text[:midpoint]})
+                self.first_chunk_sent.set()
 
-            if self.config.cut_after_first_chunk:
-                verdict = 'stub_stream_cut'
-                try:
-                    conn.shutdown(socket.SHUT_RDWR)
-                except OSError:
-                    pass
-                return
+                if cut_after_first:
+                    verdict = 'stub_stream_cut'
+                    try:
+                        conn.shutdown(socket.SHUT_RDWR)
+                    except OSError:
+                        pass
+                    return
 
-            emit({'content': text[midpoint:]})
-            emit({}, 'stop')
-            resp_bytes += self._write_chunk(conn, b'data: [DONE]\n\n')
-            conn.sendall(b'0\r\n\r\n')
+                emit({'content': text[midpoint:]})
+                emit({}, 'stop')
+                resp_bytes += self._write_chunk(conn, b'data: [DONE]\n\n')
+                conn.sendall(b'0\r\n\r\n')
         except OSError:
             verdict = 'client_disconnected'
         finally:
@@ -610,6 +728,7 @@ class InferenceGateway:
                 peer_uid=peer_uid,
                 model=model,
                 has_tools=has_tools,
+                tool_names=tool_names,
                 request_bytes=req_bytes,
                 response_bytes=resp_bytes,
                 stream_events=events,
@@ -625,12 +744,18 @@ class InferenceGateway:
         peer_uid: int,
         model: str,
         has_tools: bool,
+        tool_names: list[str],
         req_bytes: int,
         started: float,
     ) -> None:
         assert self._secret is not None
         upstream_payload = json.dumps(
-            build_openrouter_payload(body, allowed_model=model, allow_tools=self.config.allow_tools),
+            build_openrouter_payload(
+                body,
+                allowed_model=model,
+                allow_tools=self.config.allow_tools,
+                allowed_tool_names=self.config.allowed_tool_names,
+            ),
             separators=(',', ':'), ensure_ascii=False,
         ).encode('utf-8')
         upstream = (
@@ -769,6 +894,7 @@ class InferenceGateway:
                 peer_uid=peer_uid,
                 model=model,
                 has_tools=has_tools,
+                tool_names=tool_names,
                 request_bytes=req_bytes,
                 response_bytes=resp_bytes,
                 stream_events=events,
