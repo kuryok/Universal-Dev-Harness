@@ -8,7 +8,7 @@ Atualizado: 24/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e confe
 - Governança em [openspec/project.md](openspec/project.md) (`bootstrap/slice1/` congelado, resumos `<= 32 KiB`, 1 branch por change).
 
 ## Próximo passo
-- Branch `feat/change5-discover-plan-tickets`: T3a implementada (filtro de perguntas; 200/200 complementares PASS). Próximo: detalhar e aprovar [T3b](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#t3b--skill-autorizada-e-handoff-real). CLI OpenSpec 2.1.1 está no `PATH`; falta verificar a skill e aprovar a integração ao executor.
+- Branch `feat/change5-discover-plan-tickets`: T3b.1 implementada (validação de snapshot com CLI OpenSpec 2.1.1 real; 206/206 complementares PASS). Próximo: detalhar e aprovar [T3b.2](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#t3b2--conectar-descoberta-e-encaminhar-para-spec-pendente), que aguarda a skill original e a definição da inferência offline.
 
 ## Cuidados
 - `DOC`/`SKILL`/`DISC`/`TICKET`, `B2.4`, `B3.8`/`B3.9`, `UX-04`, Codex, Chromium/Chrome e WSL2 seguem `NOT_RUN`; ainda não declarar MVP liberável completo.
