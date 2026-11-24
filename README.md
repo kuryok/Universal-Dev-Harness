@@ -19,4 +19,4 @@ Os testes usam Python 3 (stdlib-only), Podman rootless e as 3 imagens OCI locais
 
 `DISCOVER`/`SPEC`/`PLAN`, multi-ticket DAG (`TICKET-01/02`), perfil `provision` (`B2.4`), execução persistente (`B3.8`), exportação (`B3.9`), `DOC`/`SKILL`/`UX-04`, terceiro agente (Codex), Chromium/Chrome e WSL2 continuam pendentes (`NOT_RUN`); o projeto ainda não é um MVP liberável completo.
 
-Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), a persistência do plano e o vínculo do executor ao contrato protegido já têm cobertura complementar. O início gerenciado depende de T2b.3.
+Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), a persistência do plano, o vínculo do executor ao contrato e o registro de aceite por ticket já têm cobertura complementar. O início gerenciado depende de T2b.3b.

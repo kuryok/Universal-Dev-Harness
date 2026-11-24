@@ -1,4 +1,4 @@
-"""Persistência transacional do Core em SQLite (v1–v7)."""
+"""Persistência transacional do Core em SQLite (v1–v8)."""
 
 from contextlib import contextmanager
 import json
@@ -23,7 +23,7 @@ from .transitions import ConflictError, EvidenceRequest
 
 
 _NONEMPTY = "length(trim({field}, char(9)||char(10)||char(11)||char(12)||char(13)||' ')) > 0"
-_LEDGER_VERSIONS = (4, 5, 6, 7)
+_LEDGER_VERSIONS = (4, 5, 6, 7, 8)
 _UTC = "length(created_at) >= 20 AND substr(created_at, -1) = 'Z' AND julianday(created_at) IS NOT NULL"
 _RUNS_SQL = f"""CREATE TABLE runs (
     id TEXT PRIMARY KEY NOT NULL,
@@ -97,6 +97,9 @@ class SQLiteStore:
         if version == 7 and not v1_only:
             migrations.validate_schema_v7(connection)
             return 7
+        if version == 8 and not v1_only:
+            migrations.validate_schema_v8(connection)
+            return 8
         if version in (2, 3) and not v1_only:
             migrations.validate_schema(connection, version)
             migrations.check_integrity(connection, SQLiteStore, version)
@@ -139,8 +142,14 @@ class SQLiteStore:
     def migrate_v7(self) -> dict:
         return migrations.migrate_v7(self)
 
+    def migrate_v8(self) -> dict:
+        return migrations.migrate_v8(self)
+
     _check_managed_integrity = staticmethod(check_managed_integrity)
     _check_contract_integrity = staticmethod(check_contract_integrity)
+
+    def _check_acceptance_integrity(self, connection):
+        TicketStore(self).check_acceptance_integrity(connection)
 
     def initialize(self, *, schema_version: int = 1) -> int:
         if type(schema_version) is not int or schema_version not in (1, 4):
@@ -483,9 +492,11 @@ class SQLiteStore:
                     self._validate_schema(connection)
                     runs_checked = migrations.check_integrity_v4(connection, SQLiteStore)
                     if version >= 6:
-                        self._check_managed_integrity(connection)
-                    if version == 7:
+                        self._check_managed_integrity(connection, allow_started=version >= 8)
+                    if version >= 7:
                         self._check_contract_integrity(connection)
+                    if version >= 8:
+                        self._check_acceptance_integrity(connection)
                 else:
                     raise CoreError('Banco não inicializado ou versão do esquema incompatível.')
                 connection.commit()
@@ -737,7 +748,8 @@ class SQLiteStore:
                 version = self._validate_schema(connection)
                 if version not in _LEDGER_VERSIONS:
                     raise CoreError('Registro de evidência exige banco SQLite v4.')
-                if (version >= 6 and (request.kind == 'AT_RESULT' or request.verdict == 'PASS')
+                if (version >= 6 and (request.kind == 'AT_RESULT' or request.verdict == 'PASS'
+                                      or (version >= 8 and request.kind == 'REVIEW_REPORT'))
                         and TicketStore._binding(connection, request.run_id) is not None):
                     raise ConflictError('Evidência gerenciada exige relatório protegido do executor.')
                 recorded = self._write_evidence(connection, request, evidence_id, created_at)

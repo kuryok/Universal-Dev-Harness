@@ -1,6 +1,6 @@
 # T2 — Persistência de planos e autorização de início
 
-- **Estado:** T2a, T2b.1 e T2b.2 implementadas. Próximo recorte: detalhar e aprovar [T2b.3](t2b-managed-ticket-start.md).
+- **Estado:** T2a, T2b.1, T2b.2 e T2b.3a implementadas. O próximo recorte aprovado é [T2b.3b](t2b-managed-ticket-start.md#t2b3b--autorizar-início-de-tickets-gerenciados).
 - **Base:** [proposta do Change 5](proposal.md), DELTA-05, B4.2 e F-03 do [baseline](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md).
 - **Fora de escopo de T2a:** criação e início de runs gerenciados, alteração de selos de AT e integração com agentes, UI ou CLI.
 

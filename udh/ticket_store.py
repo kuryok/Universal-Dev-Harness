@@ -11,7 +11,11 @@ from .ticket_plan import (
     _require_identifier, _require_list, _require_object, _topological_order,
     validate_ticket_plan,
 )
-from .transitions import ConflictError
+from .ticket_acceptance import (
+    acceptance_snapshot, completion_evidence, review_details, review_evidence, verified_snapshot, verify_review,
+)
+from .transitions import ConflictError, EvidenceRequest
+from .trust_store import TrustStore
 
 
 def _reference(ref):
@@ -56,7 +60,7 @@ def _checked_ticket_ids(text, digest, key):
     return ids
 
 
-def check_managed_integrity(db):
+def check_managed_integrity(db, *, allow_started=False):
     rows = db.execute('''SELECT m.*, r.spec_id AS run_spec, r.spec_version AS run_version,
                             r.ticket_id AS run_ticket, r.state, h.revision AS head_revision,
                             h.spec_version AS head_version, h.spec_sha256 AS head_sha256,
@@ -73,7 +77,8 @@ def check_managed_integrity(db):
                 or row['head_revision'] is None or row['approval_revision'] > row['head_revision']
                 or (row['approval_revision'] == row['head_revision']
                     and key[1:] != (row['head_version'], row['head_sha256']))
-                or row['state'] not in ('PENDING', 'BLOCKED') or row['started']
+                or (row['started'] and not allow_started)
+                or (not row['started'] and row['state'] not in ('PENDING', 'BLOCKED'))
                 or row['ticket_id'] not in _checked_ticket_ids(row['plan_json'], row['plan_sha256'], key)):
             raise CoreError('Vínculo de execução gerenciada incompatível com plano ou ledger.')
 
@@ -399,6 +404,99 @@ class TicketStore:
             if binding is None:
                 raise CoreError('Contrato sem vínculo gerenciado.')
             return _contract_result(saved, binding)
+
+    @staticmethod
+    def _acceptance_inputs(run_id, expected_revision, request_id, at_evidence_id, trust_store):
+        require_canonical_uuid(run_id, 'Identificador da execução')
+        require_canonical_uuid(at_evidence_id, 'Identificador da evidência F-04')
+        _revision(expected_revision)
+        require_text(request_id, 'Identificador da requisição')
+        if not isinstance(trust_store, TrustStore):
+            raise CoreError('TrustStore confiável é obrigatória.')
+
+    def _acceptance_at(self, db, run_id, expected_revision, at_evidence_id):
+        run = self.store._load_v4(db, run_id)
+        if run.revision != expected_revision:
+            raise ConflictError('A revisão da execução mudou antes do aceite.')
+        bound = self.bound_contract(db, 8, run, require_current=True)
+        if bound is None:
+            raise ConflictError('A execução não possui vínculo gerenciado.')
+        return run, bound, completion_evidence(run, bound['contract'], at_evidence_id)
+
+    def record_review(self, run_id, *, expected_revision, request_id, at_evidence_id, independent_context,
+                      review_context_ref, confirmation_ref, findings, trust_store, evidence_id, created_at):
+        self._acceptance_inputs(run_id, expected_revision, request_id, at_evidence_id, trust_store)
+        details = review_details(independent_context=independent_context, review_context_ref=review_context_ref,
+                                 confirmation_ref=confirmation_ref, findings=findings)
+        with self._transaction(write=True, minimum_version=8) as db:
+            run, bound, at = self._acceptance_at(db, run_id, expected_revision, at_evidence_id)
+            snapshot = verified_snapshot(run, bound, at, trust_store)
+            report = {**snapshot, **details, 'schema_version': 1, 'request_id': request_id,
+                      'kind': 'REVIEW_REPORT', 'verdict': 'PASS'}
+            existing = db.execute('SELECT * FROM evidence_refs WHERE request_id = ?', (request_id,)).fetchone()
+            if existing is not None:
+                review = review_evidence(run, at, existing['evidence_id'])
+                if trust_store.read_evidence(run_id, request_id, review.summary_ref, review.evidence_sha256) != report:
+                    raise ConflictError('Requisição de revisão já utilizada com outro conteúdo.')
+                return {**review.to_dict(), 'schema_version': 4}
+            path, digest = trust_store.save_evidence(run_id, request_id, report)
+            request = EvidenceRequest(
+                run_id=run_id, request_id=request_id, kind='REVIEW_REPORT', verdict='PASS',
+                artifact_digest=at.artifact_digest, evidence_sha256=digest, collector_route='OPERATOR_LOCAL',
+                summary_ref=str(path.relative_to(trust_store.root)), at_version=at.at_version, commit_sha=at.commit_sha,
+            )
+            return self.store._write_evidence(db, request, evidence_id, created_at)
+
+    @staticmethod
+    def _accepted(row):
+        raw = row['snapshot_json']
+        if _digest(raw) != row['snapshot_sha256']:
+            raise CoreError('Hash do registro de aceite incompatível.')
+        snapshot = strict_json_loads(raw, 'Snapshot de aceite')
+        if type(snapshot) is not dict or any(snapshot.get(key) != row[key] for key in (
+                'run_id', 'run_revision', 'at_evidence_id', 'review_evidence_id')):
+            raise CoreError('Snapshot de aceite diverge das referências persistidas.')
+        return {**snapshot, 'request_id': row['request_id'], 'created_at': row['created_at'],
+                'snapshot_sha256': row['snapshot_sha256']}
+
+    def accept(self, run_id, *, expected_revision, request_id, at_evidence_id, review_evidence_id,
+               trust_store, created_at):
+        self._acceptance_inputs(run_id, expected_revision, request_id, at_evidence_id, trust_store)
+        require_canonical_uuid(review_evidence_id, 'Identificador da evidência F-02')
+        with self._transaction(write=True, minimum_version=8) as db:
+            row = db.execute('SELECT * FROM managed_ticket_acceptances WHERE request_id = ?', (request_id,)).fetchone()
+            if row is not None:
+                if (row['run_id'], row['run_revision'], row['at_evidence_id'], row['review_evidence_id']) != (
+                        run_id, expected_revision, at_evidence_id, review_evidence_id):
+                    raise ConflictError('Requisição de aceite já utilizada com outro conteúdo.')
+                return self._accepted(row)
+            if db.execute('SELECT 1 FROM managed_ticket_acceptances WHERE run_id = ?', (run_id,)).fetchone():
+                raise ConflictError('A execução já possui aceite oficial imutável.')
+            run, bound, at = self._acceptance_at(db, run_id, expected_revision, at_evidence_id)
+            review = review_evidence(run, at, review_evidence_id)
+            snapshot = verified_snapshot(run, bound, at, trust_store)
+            verify_review(trust_store, review, snapshot)
+            snapshot.update(review_evidence_id=review.evidence_id, review_evidence_sha256=review.evidence_sha256)
+            raw, digest = _encode(snapshot)
+            db.execute('''INSERT INTO managed_ticket_acceptances (run_id, request_id, run_revision, at_evidence_id,
+                          review_evidence_id, snapshot_json, snapshot_sha256, created_at)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                       (run_id, request_id, expected_revision, at_evidence_id, review_evidence_id, raw, digest, created_at))
+            return {**snapshot, 'request_id': request_id, 'created_at': created_at, 'snapshot_sha256': digest}
+
+    def check_acceptance_integrity(self, db):
+        for row in db.execute('SELECT * FROM managed_ticket_acceptances'):
+            saved = self._accepted(row)
+            run = self.store._load_v4(db, row['run_id'])
+            bound = self.bound_contract(db, 8, run, require_current=False)
+            if bound is None:
+                raise CoreError('Aceite sem contrato gerenciado.')
+            at = completion_evidence(run, bound['contract'], saved['at_evidence_id'])
+            review = review_evidence(run, at, saved['review_evidence_id'])
+            snapshot = acceptance_snapshot(run, bound, at, saved.get('policy_sha256'))
+            snapshot.update(review_evidence_id=review.evidence_id, review_evidence_sha256=review.evidence_sha256)
+            if _encode(snapshot) != (row['snapshot_json'], row['snapshot_sha256']):
+                raise CoreError('Aceite incompatível com o contrato ou ledger.')
 
     def get_plan(self, ref):
         with self._transaction() as db:

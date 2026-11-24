@@ -285,6 +285,17 @@ _MANAGED_CONTRACTS_SQL = '''CREATE TABLE "managed_ticket_contracts" (
  contract_sha256 TEXT NOT NULL CHECK (length(contract_sha256) = 64 AND contract_sha256 NOT GLOB '*[^0-9a-f]*')
 )'''
 _EXPECTED_V7 = {**_EXPECTED_V6, ('table', 'managed_ticket_contracts'): _MANAGED_CONTRACTS_SQL}
+_MANAGED_ACCEPTANCES_SQL = '''CREATE TABLE "managed_ticket_acceptances" (
+ run_id TEXT PRIMARY KEY NOT NULL REFERENCES managed_ticket_contracts (run_id),
+ request_id TEXT NOT NULL UNIQUE,
+ run_revision INTEGER NOT NULL CHECK (typeof(run_revision) = 'integer' AND run_revision >= 1),
+ at_evidence_id TEXT NOT NULL REFERENCES evidence_refs (evidence_id),
+ review_evidence_id TEXT NOT NULL REFERENCES evidence_refs (evidence_id),
+ snapshot_json TEXT NOT NULL CHECK (length(CAST(snapshot_json AS BLOB)) BETWEEN 1 AND 65536),
+ snapshot_sha256 TEXT NOT NULL CHECK (length(snapshot_sha256) = 64 AND snapshot_sha256 NOT GLOB '*[^0-9a-f]*'),
+ created_at TEXT NOT NULL
+)'''
+_EXPECTED_V8 = {**_EXPECTED_V7, ('table', 'managed_ticket_acceptances'): _MANAGED_ACCEPTANCES_SQL}
 
 
 def init_v4(connection):
@@ -324,6 +335,34 @@ def validate_schema_v6(connection):
 
 def validate_schema_v7(connection):
     _validate_ledger_schema(connection, _EXPECTED_V7, 7)
+
+
+def validate_schema_v8(connection):
+    _validate_ledger_schema(connection, _EXPECTED_V8, 8)
+
+
+def migrate_v8(store):
+    with store._connection('rw') as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        try:
+            version = connection.execute('PRAGMA user_version').fetchone()[0]
+            if version not in (7, 8):
+                raise CoreError('Migração para v8 exige banco SQLite v7 válido.')
+            (validate_schema_v7 if version == 7 else validate_schema_v8)(connection)
+            check_integrity_v4(connection, store)
+            store._check_managed_integrity(connection, allow_started=version == 8)
+            store._check_contract_integrity(connection)
+            if version == 7:
+                connection.execute(_MANAGED_ACCEPTANCES_SQL)
+                connection.execute('PRAGMA user_version = 8')
+                validate_schema_v8(connection)
+            else:
+                store._check_acceptance_integrity(connection)
+            connection.commit()
+            return {'schema_version': 8, 'changed': version == 7}
+        except BaseException:
+            connection.rollback()
+            raise
 
 
 def migrate_v7(store):

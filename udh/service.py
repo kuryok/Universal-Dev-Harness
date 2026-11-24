@@ -401,6 +401,10 @@ class CoreService:
         )
 
     def migrate(self, target=2, *, context=None) -> dict:
+        if type(target) is int and target == 8:
+            if context is not None:
+                raise AuthorizationError('Contexto administrativo legado não autoriza migração para v8.')
+            return self.store.migrate_v8()
         if type(target) is int and target == 7:
             if context is not None:
                 raise AuthorizationError('Contexto administrativo legado não autoriza migração para v7.')
@@ -469,6 +473,25 @@ class CoreService:
         return self.store.record_managed_at_report(
             report, expected_revision=expected_revision, trust_store=trust_store,
             evidence_id=str(uuid4()), created_at=_utc_now(),
+        )
+
+    def record_managed_ticket_review(self, run_id, *, expected_revision, request_id, at_evidence_id,
+                                     independent_context, review_context_ref, confirmation_ref, findings,
+                                     trust_store: TrustStore) -> dict:
+        """Registra a confirmação de revisão recebida por um chamador local confiável."""
+        return self._tickets.record_review(
+            run_id, expected_revision=expected_revision, request_id=request_id, at_evidence_id=at_evidence_id,
+            independent_context=independent_context, review_context_ref=review_context_ref,
+            confirmation_ref=confirmation_ref, findings=findings, trust_store=trust_store,
+            evidence_id=str(uuid4()), created_at=_utc_now(),
+        )
+
+    def accept_managed_ticket(self, run_id, *, expected_revision, request_id, at_evidence_id, review_evidence_id,
+                              trust_store: TrustStore) -> dict:
+        """Registra o aceite oficial sem alterar o estado da execução."""
+        return self._tickets.accept(
+            run_id, expected_revision=expected_revision, request_id=request_id, at_evidence_id=at_evidence_id,
+            review_evidence_id=review_evidence_id, trust_store=trust_store, created_at=_utc_now(),
         )
 
     def block(self, run_id, expected_revision, request_id, reason, *, context):

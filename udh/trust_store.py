@@ -318,6 +318,43 @@ class TrustStore:
         os.replace(tmp, target)
         return target, digest
 
+    def read_evidence(self, run_id: str, request_id: str, summary_ref: str, evidence_sha256: str) -> dict:
+        require_canonical_uuid(run_id, 'Identificador da execução')
+        require_text(request_id, 'Identificador da requisição de evidência')
+        name = hashlib.sha256(request_id.encode('utf-8')).hexdigest()[:16] + '.json'
+        if summary_ref != f'evidence/{run_id}/{name}':
+            raise TrustStoreError('Referência de evidência fora do local protegido esperado.')
+        dir_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+        try:
+            root_fd = os.open(self.root, dir_flags)
+            try:
+                evidence_fd = os.open('evidence', dir_flags, dir_fd=root_fd)
+                try:
+                    run_fd = os.open(run_id, dir_flags, dir_fd=evidence_fd)
+                    try:
+                        file_fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=run_fd)
+                        with os.fdopen(file_fd, 'rb') as evidence:
+                            if not stat.S_ISREG(os.fstat(evidence.fileno()).st_mode):
+                                raise TrustStoreError('Evidência não é um arquivo regular.')
+                            raw = evidence.read(4 * 1024 * 1024 + 1)
+                    finally:
+                        os.close(run_fd)
+                finally:
+                    os.close(evidence_fd)
+            finally:
+                os.close(root_fd)
+        except OSError as error:
+            raise TrustStoreError('Evidência protegida ausente ou inacessível.') from error
+        if len(raw) > 4 * 1024 * 1024 or hashlib.sha256(raw).hexdigest() != evidence_sha256:
+            raise TrustStoreError('Hash ou tamanho da evidência protegida inválido.')
+        try:
+            parsed = strict_json_loads(raw.decode('utf-8'), 'Relatório de evidência')
+        except UnicodeDecodeError as error:
+            raise TrustStoreError('Evidência protegida não é UTF-8.') from error
+        if type(parsed) is not dict:
+            raise TrustStoreError('Relatório de evidência deve ser um objeto.')
+        return parsed
+
     def save_conformance(
         self,
         *,
