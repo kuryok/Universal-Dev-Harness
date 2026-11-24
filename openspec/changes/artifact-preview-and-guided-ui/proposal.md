@@ -1,6 +1,6 @@
 # Change 4 — Perfil `artifact` sem Agente (`B3.1`), Preview Web Local Isolado (`B3.6`), Smoke Test/Entrega (`B3.4`/`ADR-028`) e Interface Guiada Mínima (`B1.7`, `UX-01`, `UX-03`, `ADR-025`)
 
-**Estado:** APROVADO EM 24/11/2026 (auditoria independente `research` R2/F-02: `PASS`; autorização humana confirmada; implementação em andamento).  
+**Estado:** APROVADO, IMPLEMENTADO E VERIFICADO EM 24/11/2026 (`20150ac`; resumo em [verification-summary.json](verification-summary.json)).
 **Data:** 24/11/2026.  
 **Branch dedicada:** `feat/change4-artifact-preview-and-guided-ui` (a partir de `main` @ `e66ee91`, com Change 3 verificado em `5164e26`: 140/140 complementares PASS, 50/50 AT selados `v1–v6` PASS, 4/4 POCs fundacionais `POC-01`–`POC-04` PASS, revisão R2/F-02 PASS).  
 **Referências normativas:** [baseline normativo rastreado](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (`ADR-001`–`ADR-005`, `ADR-007`, `ADR-016`, `ADR-018`, `ADR-020`, `ADR-021`, `ADR-025`, `ADR-028`, `B1.3`, `B1.7`, `B3.1`–`B3.6`, `B3.10`, `UX-01`, `UX-03`, `F-02`, `F-04`) e ratificação registrada em [openspec/project.md](../../project.md).
