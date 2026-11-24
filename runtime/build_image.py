@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RUNTIME_DIR = ROOT / 'runtime'
 MANIFEST_PATH = RUNTIME_DIR / 'image-manifest.json'
 OPENCODE_MANIFEST_PATH = RUNTIME_DIR / 'opencode-image-manifest.json'
+ARTIFACT_MANIFEST_PATH = RUNTIME_DIR / 'artifact-image-manifest.json'
 DEFAULT_NODE = Path('/home/debian/.local/share/pi-node/current/bin/node')
 DEFAULT_PI_MODULES = Path('/home/debian/.pi/agent/install/releases/1.2.0/node_modules')
 DEFAULT_OPENCODE_BIN = Path('/home/debian/.opencode/bin/opencode')
@@ -32,6 +33,8 @@ DEFAULT_REPO = 'localhost/udh-runtime'
 DEFAULT_TAG = 'change2'
 DEFAULT_OPENCODE_REPO = 'localhost/udh-runtime-opencode'
 DEFAULT_OPENCODE_TAG = 'change3'
+DEFAULT_ARTIFACT_REPO = 'localhost/udh-runtime-artifact'
+DEFAULT_ARTIFACT_TAG = 'change4'
 EXCLUDED_STDLIB_DIRS = frozenset({
     '__pycache__', 'test', 'tests', 'idlelib', 'tkinter', 'turtledemo',
     'ensurepip', 'venv', 'pydoc_data', 'config-3.13-x86_64-linux-gnu',
@@ -447,9 +450,147 @@ def build_opencode_image(
     return manifest
 
 
+def _prepare_artifact_stage(stage: Path) -> dict:
+    python_real = Path(sys.executable).resolve(strict=True)
+    py_ver = f'python{sys.version_info.major}.{sys.version_info.minor}'
+    stdlib_dir = Path(f'/usr/lib/{py_ver}').resolve(strict=True)
+
+    # Apenas mountpoints do perfil artifact (zero /ipc, zero /udh/agent-config, zero /opt/pi, zero /opt/udh/bin)
+    for rel_dir in ('opt/udh', 'artifact', 'sealed-at', 'work', 'data', 'preview-ipc', 'usr/bin'):
+        (stage / rel_dir).mkdir(parents=True, exist_ok=True)
+
+    _stage_file(python_real, stage / f'usr/bin/{python_real.name}', mode=0o755)
+    py_link = stage / 'usr/bin/python3'
+    if py_link.exists() or py_link.is_symlink():
+        py_link.unlink()
+    py_link.symlink_to(python_real.name)
+    py_files = _copy_tree_safe(
+        stdlib_dir, stage / f'usr/lib/{py_ver}',
+        exclude_dirs=EXCLUDED_STDLIB_DIRS,
+        exclude_files=EXCLUDED_STDLIB_FILES,
+    )
+
+    binaries_to_scan = [python_real]
+    dynload = stdlib_dir / 'lib-dynload'
+    if dynload.is_dir():
+        binaries_to_scan.extend(sorted(dynload.glob('*.so')))
+    libs = _ldd_paths(binaries_to_scan)
+    for lib in sorted(libs):
+        _stage_library(lib, stage)
+
+    runner_src = RUNTIME_DIR / 'at_runner.py'
+    bridge_src = RUNTIME_DIR / 'preview_bridge.py'
+    _stage_file(runner_src, stage / 'opt/udh/at_runner.py', mode=0o444)
+    _stage_file(bridge_src, stage / 'opt/udh/preview_bridge.py', mode=0o444)
+
+    return {
+        'python_stdlib_files': py_files,
+        'shared_libs_count': len(libs),
+        'at_runner_sha256': _sha256_file(runner_src),
+        'preview_bridge_sha256': _sha256_file(bridge_src),
+    }
+
+
+def _smoke_check_artifact_image(image_ref: str) -> dict:
+    base_cmd = [
+        'podman', 'run', '--rm', '--pull=never', '--network=none',
+        '--read-only', '--read-only-tmpfs=false', '--cap-drop=ALL',
+        '--security-opt=no-new-privileges', '--userns=keep-id',
+        f'--user={os.getuid()}:{os.getgid()}',
+        '--pids-limit=64', '--memory=256m', '--memory-swap=256m',
+        image_ref,
+    ]
+    py_check = subprocess.run(
+        base_cmd + [
+            'python3', '-I', '-B', '-c',
+            'import ast, ctypes, hashlib, hmac, http.client, http.server, json, secrets, sqlite3, ssl, unittest; '
+            'print("PY_STDLIB_OK")',
+        ],
+        capture_output=True, text=True, timeout=20, check=False,
+    )
+    if py_check.returncode != 0 or 'PY_STDLIB_OK' not in py_check.stdout:
+        raise RuntimeError(f'Smoke check Python (artifact) falhou (rc={py_check.returncode}): {py_check.stderr}')
+
+    scripts_check = subprocess.run(
+        base_cmd + [
+            'python3', '-I', '-B', '-c',
+            'import ast, pathlib; '
+            'ast.parse(pathlib.Path("/opt/udh/at_runner.py").read_text()); '
+            'ast.parse(pathlib.Path("/opt/udh/preview_bridge.py").read_text()); '
+            'print("SCRIPTS_OK")',
+        ],
+        capture_output=True, text=True, timeout=20, check=False,
+    )
+    if scripts_check.returncode != 0 or 'SCRIPTS_OK' not in scripts_check.stdout:
+        raise RuntimeError(f'Smoke check scripts (artifact) falhou: {scripts_check.stderr}')
+
+    neg_check = subprocess.run(
+        base_cmd + [
+            'python3', '-I', '-B', '-c',
+            'import pathlib; '
+            'forbidden = ["/opt/pi", "/opt/udh/bin/node", "/opt/udh/bin/opencode", "/opt/udh/bridge.mjs", "/ipc", "/udh/agent-config"]; '
+            'present = [p for p in forbidden if pathlib.Path(p).exists()]; '
+            'assert not present, f"Presentes: {present}"; '
+            'print("ZERO_AGENTS_OK")',
+        ],
+        capture_output=True, text=True, timeout=20, check=False,
+    )
+    if neg_check.returncode != 0 or 'ZERO_AGENTS_OK' not in neg_check.stdout:
+        raise RuntimeError(f'Smoke check negativo B3.1 falhou: {neg_check.stdout} {neg_check.stderr}')
+
+    return {
+        'python_stdlib': 'PY_STDLIB_OK',
+        'scripts_syntax': 'SCRIPTS_OK',
+        'zero_agents': 'ZERO_AGENTS_OK',
+    }
+
+
+def build_artifact_image(
+    *,
+    repo: str = DEFAULT_ARTIFACT_REPO,
+    tag: str = DEFAULT_ARTIFACT_TAG,
+) -> dict:
+    tag_ref = f'{repo}:{tag}'
+    with tempfile.TemporaryDirectory(prefix='udh-oci-artifact-stage-') as tmpdir:
+        stage = Path(tmpdir)
+        stage_info = _prepare_artifact_stage(stage)
+        cmd = [
+            'podman', 'build', '--pull=never', '--network=none',
+            '--build-context', f'stage={stage}',
+            '-f', str(RUNTIME_DIR / 'Containerfile.artifact'),
+            '-t', tag_ref,
+            str(RUNTIME_DIR),
+        ]
+        completed = subprocess.run(cmd, capture_output=True, text=True, timeout=300, check=False)
+        if completed.returncode != 0:
+            raise RuntimeError(
+                f'podman build (artifact) falhou (rc={completed.returncode}):\n{completed.stdout}\n{completed.stderr}'
+            )
+
+    digest = _extract_digest(tag_ref, repo)
+    image_ref = f'{repo}@{digest}'
+    smoke = _smoke_check_artifact_image(image_ref)
+    manifest = {
+        'schema_version': 1,
+        'profile': 'artifact',
+        'stack_profile': 'python3-stdlib-web-v1',
+        'image_repository': repo,
+        'image_tag': tag,
+        'image_digest': digest,
+        'image_ref': image_ref,
+        'at_runner_path': '/opt/udh/at_runner.py',
+        'at_runner_sha256': stage_info['at_runner_sha256'],
+        'preview_bridge_path': '/opt/udh/preview_bridge.py',
+        'preview_bridge_sha256': stage_info['preview_bridge_sha256'],
+        'smoke_verified': smoke,
+    }
+    ARTIFACT_MANIFEST_PATH.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    return manifest
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='Construir imagem OCI local do UDH offline por digest.')
-    parser.add_argument('--target', choices=('pi', 'opencode', 'all'), default='pi')
+    parser.add_argument('--target', choices=('pi', 'opencode', 'artifact', 'all'), default='pi')
     parser.add_argument('--node', type=Path, default=DEFAULT_NODE)
     parser.add_argument('--pi-modules', type=Path, default=DEFAULT_PI_MODULES)
     parser.add_argument('--opencode-bin', type=Path, default=DEFAULT_OPENCODE_BIN)
@@ -457,6 +598,8 @@ def main(argv=None) -> int:
     parser.add_argument('--tag', default=DEFAULT_TAG)
     parser.add_argument('--opencode-repo', default=DEFAULT_OPENCODE_REPO)
     parser.add_argument('--opencode-tag', default=DEFAULT_OPENCODE_TAG)
+    parser.add_argument('--artifact-repo', default=DEFAULT_ARTIFACT_REPO)
+    parser.add_argument('--artifact-tag', default=DEFAULT_ARTIFACT_TAG)
     args = parser.parse_args(argv)
     if args.target == 'pi':
         result = build_image(node_path=args.node, pi_modules=args.pi_modules, repo=args.repo, tag=args.tag)
@@ -465,6 +608,8 @@ def main(argv=None) -> int:
             node_path=args.node, opencode_bin=args.opencode_bin,
             repo=args.opencode_repo, tag=args.opencode_tag,
         )
+    elif args.target == 'artifact':
+        result = build_artifact_image(repo=args.artifact_repo, tag=args.artifact_tag)
     else:
         result = {
             'pi': build_image(node_path=args.node, pi_modules=args.pi_modules, repo=args.repo, tag=args.tag),
@@ -472,6 +617,7 @@ def main(argv=None) -> int:
                 node_path=args.node, opencode_bin=args.opencode_bin,
                 repo=args.opencode_repo, tag=args.opencode_tag,
             ),
+            'artifact': build_artifact_image(repo=args.artifact_repo, tag=args.artifact_tag),
         }
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0

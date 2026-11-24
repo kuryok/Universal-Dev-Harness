@@ -73,6 +73,7 @@ class TrustedExecutor:
         commit_sha: str | None = None,
         kind: str = 'AT_RESULT',
         limits: ResourceLimits | None = None,
+        use_artifact_image: bool = False,
     ) -> dict:
         run = self.core_service.show(run_id)
         if run.schema_version != 4:
@@ -82,7 +83,11 @@ class TrustedExecutor:
         if run.has_unknown_pendencies:
             raise ConflictError('Pendência UNKNOWN ativa impede verificação oficial.')
 
-        manifest = self.runtime_manager.load_manifest()
+        manifest = (
+            self.runtime_manager.load_artifact_manifest()
+            if use_artifact_image
+            else self.runtime_manager.load_manifest()
+        )
         pol_sha = policy_v2_sha256()
 
         # 1. Validação fail-closed do selo de AT na TrustStore + inventário AST independente no Core

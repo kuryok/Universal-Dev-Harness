@@ -1,9 +1,21 @@
 """Casos de uso do Core (v1–v4); identidade e validação antes da persistência."""
 from datetime import datetime, timezone
+import hashlib
+from pathlib import Path
 from uuid import uuid4
 
 from .doctor import run_doctor
-from .domain import CoreError, Run, VALID_MODES, require_canonical_uuid, require_run_id, require_text
+from .domain import (
+    COMPLETION_EVIDENCE_KINDS,
+    CoreError,
+    EvidenceRef,
+    Run,
+    VALID_MODES,
+    require_canonical_uuid,
+    require_run_id,
+    require_text,
+    strict_json_loads,
+)
 from .policy import evaluate
 from .store import SQLiteStore
 from .transitions import (
@@ -12,12 +24,14 @@ from .transitions import (
     BlockV4Request,
     CheckpointRequest,
     CompleteRequest,
+    ConflictError,
     EvidenceRequest,
     StartRequest,
     UnblockRequest,
     UnblockV4Request,
     operator_context_valid,
 )
+from .trust_store import TrustStore, TrustStoreError, _read_regular_nofollow
 
 
 def _utc_now() -> str:
@@ -49,6 +63,259 @@ class CoreService:
 
     def show(self, run_id: str) -> Run:
         return self.store.get(require_run_id(run_id))
+
+    def list_runs(self, limit: int = 100) -> list[Run]:
+        return self.store.list_runs(limit=limit)
+
+    def count_runs_by_state(self) -> dict[str, int]:
+        return self.store.count_runs_by_state()
+
+    def promote_run_artifact(
+        self,
+        run_id: str,
+        request_id: str,
+        source_dir: Path | str,
+        *,
+        trust_store: TrustStore,
+        stack_profile: str = 'python3-stdlib-web-v1',
+        commit_sha: str | None = None,
+    ) -> dict:
+        """Promove artefato imutável na TrustStore e registra ARTIFACT_PROMOTION oficial no SQLite v4."""
+        run = self.show(run_id)
+        if run.schema_version != 4:
+            raise CoreError('Promoção oficial de artefato exige banco SQLite v4.')
+        if run.state != 'IN_PROGRESS':
+            raise ConflictError(f'Execução deve estar IN_PROGRESS para promover artefato (atual: {run.state}).')
+        if run.has_unknown_pendencies:
+            raise ConflictError('Pendência UNKNOWN ativa impede promoção oficial de artefato.')
+
+        art_manifest = trust_store.promote_artifact(
+            Path(source_dir),
+            stack_profile=stack_profile,
+            commit_sha=commit_sha,
+        )
+        report = {
+            'schema_version': 1,
+            'run_id': run.run_id,
+            'request_id': request_id,
+            'kind': 'ARTIFACT_PROMOTION',
+            'verdict': 'PASS',
+            'artifact_digest': art_manifest['artifact_digest'],
+            'stack_profile': art_manifest['stack_profile'],
+            'commit_sha': art_manifest.get('commit_sha'),
+            'files_count': len(art_manifest.get('files', {})),
+            'collected_at': _utc_now(),
+        }
+        evidence_path, evidence_sha256 = trust_store.save_evidence(run.run_id, request_id, report)
+        rel_ref = str(evidence_path.relative_to(trust_store.root))
+        recorded = self.record_evidence(
+            run.run_id,
+            request_id,
+            kind='ARTIFACT_PROMOTION',
+            verdict='PASS',
+            artifact_digest=art_manifest['artifact_digest'],
+            evidence_sha256=evidence_sha256,
+            collector_route='TRUSTED_EXECUTOR',
+            summary_ref=rel_ref,
+            commit_sha=commit_sha,
+        )
+        return {
+            'artifact_manifest': art_manifest,
+            'evidence': recorded,
+            'evidence_path': str(evidence_path),
+            'report': report,
+        }
+
+    @staticmethod
+    def _verify_trusted_evidence_file(trust_store: TrustStore, ev: EvidenceRef) -> dict | None:
+        if ev.collector_route != 'TRUSTED_EXECUTOR':
+            return None
+        ref = Path(ev.summary_ref)
+        if ref.is_absolute() or '..' in ref.parts:
+            return None
+        expected_dir = (trust_store.root / 'evidence' / ev.run_id).resolve()
+        candidate = trust_store.root / ref
+        try:
+            if candidate.is_symlink() or candidate.parent.resolve(strict=True) != expected_dir:
+                return None
+            raw = _read_regular_nofollow(candidate)
+        except (OSError, TrustStoreError):
+            return None
+        if hashlib.sha256(raw).hexdigest() != ev.evidence_sha256:
+            return None
+        try:
+            parsed = strict_json_loads(raw.decode('utf-8'), 'Relatório de evidência')
+        except (CoreError, UnicodeDecodeError):
+            return None
+        if not isinstance(parsed, dict):
+            return None
+        if (parsed.get('run_id') != ev.run_id
+                or parsed.get('kind') != ev.kind
+                or parsed.get('verdict') != ev.verdict
+                or parsed.get('artifact_digest') != ev.artifact_digest):
+            return None
+        return parsed
+
+    def delivery_summary(self, run_id: str, *, trust_store: TrustStore) -> dict:
+        """Deriva estágio ADR-028 exclusivamente do SQLite v4 + verificação física na TrustStore."""
+        run = self.show(run_id)
+        ordered = sorted(run.evidence_refs, key=lambda e: (e.created_at, e.evidence_id))
+        trusted_promos = [
+            ev for ev in ordered
+            if ev.kind == 'ARTIFACT_PROMOTION' and ev.collector_route == 'TRUSTED_EXECUTOR'
+        ]
+
+        current_promo: EvidenceRef | None = None
+        current_digest: str | None = None
+        artifact_intact = False
+        if trusted_promos:
+            candidate_promo = trusted_promos[-1]
+            promo_report = self._verify_trusted_evidence_file(trust_store, candidate_promo)
+            if promo_report is not None and candidate_promo.verdict == 'PASS':
+                try:
+                    trust_store.verify_artifact(candidate_promo.artifact_digest)
+                    artifact_intact = True
+                    current_promo = candidate_promo
+                    current_digest = candidate_promo.artifact_digest
+                except TrustStoreError:
+                    artifact_intact = False
+
+        stage = 'PENDING'
+        latest_at_info: dict | None = None
+        latest_smoke_info: dict | None = None
+        at_passed = False
+        smoke_passed = False
+        has_stale_evidences = False
+
+        if current_digest is not None and artifact_intact:
+            stage = 'IMPLEMENTED'
+            at_for_digest = [
+                ev for ev in ordered
+                if ev.kind == 'AT_RESULT'
+                and ev.collector_route == 'TRUSTED_EXECUTOR'
+                and ev.artifact_digest == current_digest
+            ]
+            smoke_for_digest = [
+                ev for ev in ordered
+                if ev.kind == 'SMOKE_RESULT'
+                and ev.collector_route == 'TRUSTED_EXECUTOR'
+                and ev.artifact_digest == current_digest
+            ]
+            older_evidences = [
+                ev for ev in ordered
+                if ev.kind in ('AT_RESULT', 'SMOKE_RESULT')
+                and ev.artifact_digest != current_digest
+            ]
+            has_stale_evidences = bool(older_evidences)
+
+            if at_for_digest:
+                latest_at = at_for_digest[-1]
+                at_report = self._verify_trusted_evidence_file(trust_store, latest_at)
+                at_verified = at_report is not None and latest_at.verdict == 'PASS'
+                latest_at_info = {
+                    'evidence_id': latest_at.evidence_id,
+                    'verdict': latest_at.verdict,
+                    'verified': at_report is not None,
+                    'at_version': latest_at.at_version,
+                    'artifact_digest': latest_at.artifact_digest,
+                    'created_at': latest_at.created_at,
+                }
+                if at_verified:
+                    at_passed = True
+                    stage = 'TESTED'
+
+            if smoke_for_digest:
+                latest_smoke = smoke_for_digest[-1]
+                smoke_report = self._verify_trusted_evidence_file(trust_store, latest_smoke)
+                smoke_verified = smoke_report is not None and latest_smoke.verdict == 'PASS'
+                latest_smoke_info = {
+                    'evidence_id': latest_smoke.evidence_id,
+                    'verdict': latest_smoke.verdict,
+                    'verified': smoke_report is not None,
+                    'restart_verified': bool(smoke_report.get('restart_verified')) if smoke_report else False,
+                    'artifact_digest': latest_smoke.artifact_digest,
+                    'created_at': latest_smoke.created_at,
+                }
+                if at_passed and smoke_verified:
+                    smoke_passed = True
+                    stage = 'ACCEPTED'
+
+            if stage == 'ACCEPTED' and run.state == 'DONE' and not run.has_unknown_pendencies:
+                complete_events = [
+                    ev for ev in run.events
+                    if getattr(ev, 'operation', None) == 'COMPLETE_RUN'
+                ]
+                if complete_events:
+                    comp_ev_id = getattr(complete_events[-1], 'evidence_id', None)
+                    ev_by_id = {ev.evidence_id: ev for ev in ordered}
+                    linked = ev_by_id.get(comp_ev_id) if comp_ev_id else None
+                    if (linked is not None
+                            and linked.kind in COMPLETION_EVIDENCE_KINDS
+                            and linked.artifact_digest == current_digest
+                            and linked.verdict == 'PASS'
+                            and self._verify_trusted_evidence_file(trust_store, linked) is not None):
+                        stage = 'DELIVERED'
+
+        can_deliver = (
+            stage == 'ACCEPTED'
+            and run.state == 'IN_PROGRESS'
+            and not run.has_unknown_pendencies
+            and latest_smoke_info is not None
+            and latest_smoke_info['verdict'] == 'PASS'
+            and latest_smoke_info['verified']
+        )
+
+        return {
+            'run_id': run.run_id,
+            'run_state': run.state,
+            'run_revision': run.revision,
+            'delivery_stage': stage,
+            'current_artifact_digest': current_digest,
+            'artifact_intact': artifact_intact,
+            'latest_promotion_evidence_id': current_promo.evidence_id if current_promo else None,
+            'latest_at': latest_at_info,
+            'latest_smoke': latest_smoke_info,
+            'at_passed': at_passed,
+            'smoke_passed': smoke_passed,
+            'has_stale_evidences': has_stale_evidences,
+            'has_unknown_pendencies': run.has_unknown_pendencies,
+            'can_deliver': can_deliver,
+            'environment_verified': 'linux-x86_64-podman-rootless-offline',
+            'delivery_mode': 'preview-protected-demo',
+            'unverified_targets': ['wsl2', 'external_services_b3_5'],
+        }
+
+    def deliver_run(
+        self,
+        run_id: str,
+        expected_revision: int,
+        request_id: str,
+        *,
+        trust_store: TrustStore,
+    ) -> dict:
+        """Conclui IN_PROGRESS -> DONE (DELIVERED) exigindo AT_RESULT=PASS + SMOKE_RESULT=PASS no mesmo digest."""
+        summary = self.delivery_summary(run_id, trust_store=trust_store)
+        if summary['run_state'] != 'IN_PROGRESS':
+            raise ConflictError(
+                f'Entrega exige execução IN_PROGRESS (estado atual: {summary["run_state"]}).'
+            )
+        if summary['has_unknown_pendencies']:
+            raise ConflictError('Pendência UNKNOWN ativa impede conclusão da entrega.')
+        if not summary['can_deliver']:
+            raise ConflictError(
+                f'DELIVERY_PRECONDITION_FAILED: entrega exige AT_RESULT=PASS e SMOKE_RESULT=PASS mais recentes '
+                f'no mesmo artifact_digest íntegro (estágio atual: {summary["delivery_stage"]}).'
+            )
+        smoke_ev_id = summary['latest_smoke']['evidence_id']
+        completion = self.complete(
+            run_id,
+            expected_revision,
+            request_id,
+            smoke_ev_id,
+            actor_route='TRUSTED_EXECUTOR',
+        )
+        updated = self.delivery_summary(run_id, trust_store=trust_store)
+        return {'completion': completion, 'delivery': updated}
 
     def policy(
         self,
