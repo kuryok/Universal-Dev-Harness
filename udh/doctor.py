@@ -289,6 +289,15 @@ def _evaluate_runtime_from_probe(
         )
         if not targets:
             targets = tuple(name for name in CANONICAL_ADAPTER_ORDER if name in raw_adapters)
+        if not targets:
+            return {
+                'id': 'runtime_components',
+                'status': 'NOT_READY' if run_conformance else 'LIMITED',
+                'reason_code': 'GATEWAY_AND_ADAPTER_NOT_CONFIGURED',
+                'message': 'Nenhum adaptador configurado no probe de runtime_components.',
+                'next_action': 'Execute python3 -m udh doctor --conformance em ambiente Linux/Podman rootless.',
+                'details': {'image_present': False, 'conformant_adapters': [], 'adapters': {}, 'policy_sha256': pol_sha},
+            }
         entries: dict[str, dict] = {}
         for name in targets:
             item = raw_adapters[name]

@@ -219,6 +219,13 @@ class GatewayConfig:
     openrouter_connection_factory: Callable[[], http.client.HTTPConnection] | None = None
     ipc_base_dir: Path | None = None
 
+    def __post_init__(self):
+        if not isinstance(self.allowed_tool_names, tuple):
+            raise GatewayError('allowed_tool_names deve ser uma tupla imutável de nomes de ferramentas.')
+        for tool_name in self.allowed_tool_names:
+            if not isinstance(tool_name, str) or not tool_name or tool_name.strip() != tool_name:
+                raise GatewayError('Nome inválido em allowed_tool_names.')
+
 
 def _send_json_response(conn: socket.socket, status: int, reason: str, payload: dict) -> None:
     body = json.dumps(payload, separators=(',', ':'), ensure_ascii=False).encode('utf-8')

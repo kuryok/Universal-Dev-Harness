@@ -108,7 +108,7 @@ class CoreService:
         opencode_manifest_path=None,
         adapters=None,
     ) -> dict:
-        from .handoff import select_adapter
+        from .handoff import HandoffError, select_adapter
 
         report = self.doctor(
             store_dir=store_dir,
@@ -117,6 +117,11 @@ class CoreService:
             opencode_manifest_path=opencode_manifest_path,
             adapters=adapters,
         )
+        if report['overall_status'] == 'NOT_READY':
+            raise HandoffError(
+                'Preflight retornou NOT_READY; seleção de adaptador bloqueada (fail-closed).',
+                reason_code='NO_CONFORMANT_ADAPTER',
+            )
         rt_check = next((c for c in report['checks'] if c['id'] == 'runtime_components'), {})
         conformant = tuple(rt_check.get('details', {}).get('conformant_adapters', ()))
         return select_adapter(

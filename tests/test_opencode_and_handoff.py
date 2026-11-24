@@ -10,6 +10,7 @@ import unittest
 from udh.adapters.opencode import (
     DEFAULT_OPENCODE_LIMITS,
     OpenCodeAdapter,
+    _build_opencode_config,
     parse_opencode_jsonl,
 )
 from udh.domain import CoreError
@@ -32,6 +33,7 @@ from udh.handoff import (
 )
 from udh.policy import policy_v2_sha256
 from udh.runtime import (
+    BindMount,
     DEFAULT_OPENCODE_MANIFEST_PATH,
     ResourceLimits,
     RuntimeIsolationError,
@@ -149,6 +151,13 @@ class TestGatewayToolAllowlistAndStubTurns(unittest.TestCase):
         self.assertTrue(any(rec.get('tool_names') == ['read'] and rec.get('status') == 200 for rec in lines))
 
     def test_allow_tools_true_with_empty_allowlist_fails_closed(self):
+        with self.assertRaises(GatewayError):
+            GatewayConfig(
+                run_id='run-gw-bad-type',
+                policy_sha256='a' * 64,
+                audit_path=self.audit,
+                allowed_tool_names='read',  # type: ignore[arg-type]
+            )
         cfg = GatewayConfig(
             run_id='run-gw-empty-allow',
             policy_sha256='a' * 64,
@@ -286,6 +295,16 @@ class TestOpenCodeManifestAndParser(unittest.TestCase):
         parsed_err = parse_opencode_jsonl(err_stream)
         self.assertTrue(parsed_err['has_error_event'])
         self.assertIsNone(parsed_err['last_stop_reason'])
+
+    def test_build_opencode_config_rejects_wildcard_case_and_str(self):
+        for bad_tools in ('read', ('*',), ('WEBFETCH',), ('web*',), ('mcp_github',), ('webfetch',), ('task',)):
+            with self.assertRaises(CoreError):
+                _build_opencode_config(
+                    profile='developer_python_stdlib',
+                    model=DEFAULT_STUB_MODEL,
+                    capability_token='tok',
+                    allowed_tools=bad_tools,  # type: ignore[arg-type]
+                )
 
 
 class TestAdapterSelectorAndHandoffUnit(unittest.TestCase):
@@ -478,6 +497,35 @@ class TestOpenCodeAdapterPodmanIntegration(unittest.TestCase):
             self.assertEqual(inspected['config']['share'], 'disabled')
             self.assertEqual(inspected['config']['plugin'], [])
             self.assertFalse(inspected['config']['tools']['webfetch'])
+
+            # 2b. Controle ativo E4 dentro da imagem OpenCode: escrita/remoção/rename em /udh/agent-config bloqueados
+            oc_manifest = mgr.load_opencode_manifest()
+            e4_cfg_dir = root / 'e4-cfg-ro'
+            e4_cfg_dir.mkdir()
+            e4_cfg_file = e4_cfg_dir / 'opencode.json'
+            e4_cfg_file.write_text('{"autoupdate":false,"share":"disabled","plugin":[]}\n', encoding='utf-8')
+            os.chmod(e4_cfg_file, 0o444)
+            e4_before = e4_cfg_file.read_bytes()
+            e4_probe = mgr.run_developer(
+                command=[
+                    'sh', '-c',
+                    'w=0; r=0; m=0; '
+                    '(echo evil > /udh/agent-config/opencode.json) 2>/dev/null || w=1; '
+                    '(rm -f /udh/agent-config/opencode.json) 2>/dev/null || r=1; '
+                    '(mv /udh/agent-config /udh/agent-config-moved) 2>/dev/null || m=1; '
+                    'echo "E4:$w:$r:$m"',
+                ],
+                mounts=(
+                    BindMount(ws, '/workspace', readonly=False),
+                    BindMount(e4_cfg_dir, '/udh/agent-config', readonly=True),
+                ),
+                workdir='/workspace',
+                limits=ResourceLimits(memory_mb=256, pids_limit=64, cpus=1.0, timeout_seconds=15.0),
+                image_ref=oc_manifest.image_ref,
+            )
+            self.assertEqual(e4_probe.returncode, 0)
+            self.assertIn('E4:1:1:1', e4_probe.stdout)
+            self.assertEqual(e4_cfg_file.read_bytes(), e4_before)
 
             # 3. Corte abrupto do gateway detectado fail-closed (ok=False mesmo sem erro explícito de processo)
             gw_cut_cfg = GatewayConfig(

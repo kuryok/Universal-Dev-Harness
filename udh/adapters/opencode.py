@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import tempfile
 import uuid
@@ -50,7 +51,7 @@ OPENCODE_ALL_BUILTINS = (
 
 OPENCODE_DEFAULT_DEVELOPER_TOOLS = ('read', 'write', 'edit', 'glob', 'grep', 'list')
 OPENCODE_FORBIDDEN_TOOLS = frozenset({'webfetch', 'websearch', 'task', 'skill'})
-OPENCODE_READONLY_CONFORMANCE_CEILING = frozenset({'read', 'glob', 'grep', 'list', 'ls', 'todoread', 'question'})
+OPENCODE_TOOL_NAME_RE = re.compile(r'^[a-z][a-z0-9_-]{0,63}$')
 
 _BRIDGE_BOOTSTRAP_SCRIPT = '''
 set -eu
@@ -150,11 +151,16 @@ def _build_opencode_config(
         perm_cfg = {'*': 'deny'}
         effective_tools: tuple[str, ...] = ()
     elif profile == 'developer_python_stdlib':
-        requested = tuple(allowed_tools) if allowed_tools is not None else OPENCODE_DEFAULT_DEVELOPER_TOOLS
+        if allowed_tools is None:
+            requested = OPENCODE_DEFAULT_DEVELOPER_TOOLS
+        else:
+            if not isinstance(allowed_tools, (tuple, list)):
+                raise CoreError('allowed_tools deve ser uma tupla ou lista de nomes de ferramentas.')
+            requested = tuple(allowed_tools)
         for tool in requested:
-            if not isinstance(tool, str) or not tool or tool.strip() != tool:
+            if not isinstance(tool, str) or not OPENCODE_TOOL_NAME_RE.fullmatch(tool):
                 raise CoreError(f'Ferramenta inválida solicitada para OpenCode: {tool!r}.')
-            if tool in OPENCODE_FORBIDDEN_TOOLS or tool.startswith('mcp_'):
+            if tool in OPENCODE_FORBIDDEN_TOOLS or tool.startswith('mcp'):
                 raise CoreError(f'Ferramenta proibida no perfil developer do OpenCode: {tool}.')
         requested_set = set(requested)
         tools_cfg = {'*': False, **{name: (name in requested_set) for name in OPENCODE_ALL_BUILTINS}}
@@ -337,12 +343,15 @@ class OpenCodeAdapter:
             before_hash = _sha256_file(cfg_file)
 
             combined_prompt = f'{system_prompt}\n\n{prompt}' if system_prompt else prompt
+            if combined_prompt.startswith('-'):
+                combined_prompt = f'Tarefa:\n{combined_prompt}'
             oc_cmd = [
                 manifest.opencode_bin,
                 '--pure',
                 'run',
                 '--format', 'json',
                 '--model', f'udh/{model}',
+                '--',
                 combined_prompt,
             ]
 

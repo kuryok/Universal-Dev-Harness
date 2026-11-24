@@ -148,6 +148,7 @@ def _run_git_core(
     ]
     completed = subprocess.run(
         cmd,
+        cwd=str(ws_resolved),
         env=_sanitized_git_env(),
         capture_output=True,
         text=True,
@@ -235,28 +236,28 @@ def _compute_snapshot_sha256(file_hashes: dict[str, str]) -> str:
 
 
 def _verify_git_index_and_tree_modes(git_dir: Path, workspace: Path) -> set[str]:
-    stage = _run_git_core(git_dir, workspace, ['ls-files', '--stage'])
+    stage = _run_git_core(git_dir, workspace, ['ls-files', '--stage', '--full-name'])
     tracked: set[str] = set()
     for line in stage.stdout.splitlines():
         if not line.strip():
             continue
         meta, rel = line.split('\t', 1)
         mode = meta.split(' ', 1)[0]
-        if mode in ('120000', '160000'):
+        if mode not in ('100644', '100755'):
             raise HandoffError(
                 f'HANDOFF_INTEGRITY_VIOLATION: modo Git proibido ({mode}) no índice para {rel}.',
                 reason_code='HANDOFF_INTEGRITY_VIOLATION',
             )
         tracked.add(rel)
 
-    tree = _run_git_core(git_dir, workspace, ['ls-tree', '-r', 'HEAD'])
+    tree = _run_git_core(git_dir, workspace, ['ls-tree', '-r', '--full-name', 'HEAD'])
     tree_paths: set[str] = set()
     for line in tree.stdout.splitlines():
         if not line.strip():
             continue
         meta, rel = line.split('\t', 1)
         mode = meta.split(' ', 1)[0]
-        if mode in ('120000', '160000'):
+        if mode not in ('100644', '100755'):
             raise HandoffError(
                 f'HANDOFF_INTEGRITY_VIOLATION: modo Git proibido ({mode}) em HEAD para {rel}.',
                 reason_code='HANDOFF_INTEGRITY_VIOLATION',
@@ -446,7 +447,7 @@ def verify_handoff_packet(packet: dict) -> dict:
     """Valida integridade estrutural, packet_sha256 e ausência programática de chaves conversacionais."""
     if not isinstance(packet, dict):
         raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: HandoffPacket deve ser objeto JSON.')
-    if packet.get('schema_version') != HANDOFF_SCHEMA_VERSION:
+    if type(packet.get('schema_version')) is not int or packet.get('schema_version') != HANDOFF_SCHEMA_VERSION:
         raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: schema_version do HandoffPacket inválido.')
     _assert_no_conversational_keys(packet)
 
@@ -458,37 +459,44 @@ def verify_handoff_packet(packet: dict) -> dict:
     if set(packet.keys()) != required_keys:
         raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: conjunto de chaves do HandoffPacket fora do contrato.')
 
-    require_canonical_uuid(packet['run_id'], 'run_id no HandoffPacket')
-    require_canonical_uuid(packet['checkpoint_id'], 'checkpoint_id no HandoffPacket')
-    if type(packet['run_revision']) is not int or packet['run_revision'] < 0:
-        raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: run_revision inválido no HandoffPacket.')
-    require_text(packet['spec_id'], 'spec_id no HandoffPacket')
-    require_text(packet['spec_version'], 'spec_version no HandoffPacket')
-    require_text(packet['last_confirmed_step'], 'last_confirmed_step no HandoffPacket')
-    require_text(packet['from_adapter'], 'from_adapter no HandoffPacket')
-    require_text(packet['to_adapter'], 'to_adapter no HandoffPacket')
+    try:
+        require_canonical_uuid(packet['run_id'], 'run_id no HandoffPacket')
+        require_canonical_uuid(packet['checkpoint_id'], 'checkpoint_id no HandoffPacket')
+        if type(packet['run_revision']) is not int or packet['run_revision'] < 0:
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: run_revision inválido no HandoffPacket.')
+        require_text(packet['spec_id'], 'spec_id no HandoffPacket')
+        require_text(packet['spec_version'], 'spec_version no HandoffPacket')
+        if packet['ticket_id'] is not None:
+            require_text(packet['ticket_id'], 'ticket_id no HandoffPacket')
+        require_text(packet['last_confirmed_step'], 'last_confirmed_step no HandoffPacket')
+        require_text(packet['from_adapter'], 'from_adapter no HandoffPacket')
+        require_text(packet['to_adapter'], 'to_adapter no HandoffPacket')
 
-    git_info = packet['git']
-    if not isinstance(git_info, dict):
-        raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: bloco git inválido no HandoffPacket.')
-    require_sha1(git_info.get('base_commit_sha'), 'base_commit_sha')
-    require_sha1(git_info.get('head_commit_sha'), 'head_commit_sha')
-    require_sha256(git_info.get('worktree_snapshot_sha256'), 'worktree_snapshot_sha256')
-    if not isinstance(git_info.get('changed_files'), list):
-        raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: changed_files inválido no HandoffPacket.')
+        git_info = packet['git']
+        if not isinstance(git_info, dict):
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: bloco git inválido no HandoffPacket.')
+        require_sha1(git_info.get('base_commit_sha'), 'base_commit_sha')
+        require_sha1(git_info.get('head_commit_sha'), 'head_commit_sha')
+        require_sha256(git_info.get('worktree_snapshot_sha256'), 'worktree_snapshot_sha256')
+        if not isinstance(git_info.get('changed_files'), list):
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: changed_files inválido no HandoffPacket.')
 
-    if not isinstance(packet['evidence'], list):
-        raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: evidence inválido no HandoffPacket.')
-    task_contract = packet['task_contract']
-    if not isinstance(task_contract, dict):
-        raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: task_contract inválido no HandoffPacket.')
-    require_text(task_contract.get('objective'), 'task_contract.objective')
-    if not isinstance(task_contract.get('acceptance_criteria'), list) or not task_contract['acceptance_criteria']:
-        raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: acceptance_criteria obrigatório no HandoffPacket.')
-    if not isinstance(task_contract.get('allowed_tools'), list):
-        raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: allowed_tools inválido no HandoffPacket.')
+        if not isinstance(packet['evidence'], list):
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: evidence inválido no HandoffPacket.')
+        task_contract = packet['task_contract']
+        if not isinstance(task_contract, dict):
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: task_contract inválido no HandoffPacket.')
+        require_text(task_contract.get('objective'), 'task_contract.objective')
+        if not isinstance(task_contract.get('acceptance_criteria'), list) or not task_contract['acceptance_criteria']:
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: acceptance_criteria obrigatório no HandoffPacket.')
+        if not isinstance(task_contract.get('allowed_tools'), list):
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: allowed_tools inválido no HandoffPacket.')
 
-    expected_sha = require_sha256(packet['packet_sha256'], 'packet_sha256')
+        expected_sha = require_sha256(packet['packet_sha256'], 'packet_sha256')
+    except HandoffError:
+        raise
+    except CoreError as error:
+        raise HandoffError(f'HANDOFF_INTEGRITY_VIOLATION: {error}', reason_code='HANDOFF_INTEGRITY_VIOLATION') from error
     without_hash = {k: v for k, v in packet.items() if k != 'packet_sha256'}
     recomputed = hashlib.sha256(_canonical_json_bytes(without_hash)).hexdigest()
     if recomputed != expected_sha:

@@ -291,6 +291,12 @@ class PolicyV2AndDoctorTests(unittest.TestCase):
         self.assertEqual(sel['selected_adapter'], 'opencode')
         self.assertTrue(sel['fallback_used'])
 
+        # CLI parser aceita --adapter pi|opencode|all em doctor
+        from udh.__main__ import parser as cli_parser
+        for choice in ('pi', 'opencode', 'all'):
+            parsed_args = cli_parser().parse_args(['doctor', '--adapter', choice])
+            self.assertEqual(parsed_args.adapter, choice)
+
 
 if __name__ == '__main__':
     unittest.main()

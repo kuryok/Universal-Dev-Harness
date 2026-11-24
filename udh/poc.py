@@ -1,4 +1,4 @@
-"""Orquestrador verificável das POCs fundacionais (POC-01, POC-02, POC-04) sobre o Core real."""
+"""Orquestrador verificável das POCs fundacionais (POC-01, POC-02, POC-03, POC-04) sobre o Core real."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -982,14 +982,37 @@ def run_poc_03(
         finally:
             hostile_cfg.unlink(missing_ok=True)
 
+        # 5d. Controle negativo F-03: evidência adulterada fisicamente na TrustStore -> HANDOFF_EVIDENCE_MISMATCH
+        ev_file = store.root / partial_ev['evidence']['summary_ref']
+        ev_orig_bytes = ev_file.read_bytes()
+        ev_tamper_code = None
+        try:
+            os.chmod(ev_file, 0o644)
+            ev_file.write_bytes(b'{"verdict":"PASS","tampered":true}\n')
+            build_handoff_packet(
+                core_service=svc, trust_store=store, run_id=run.run_id,
+                git_dir=git_dir, workspace=ws, from_adapter='pi', to_adapter='opencode',
+                objective='Corrigir calc.py.', acceptance_criteria=('ATs verdes',),
+                allowed_tools=('read', 'write', 'edit'),
+                manifest_path=manifest_path, opencode_manifest_path=opencode_manifest_path,
+            )
+        except HandoffError as err:
+            ev_tamper_code = err.reason_code
+        finally:
+            os.chmod(ev_file, 0o644)
+            ev_file.write_bytes(ev_orig_bytes)
+            os.chmod(ev_file, 0o444)
+
         checks['f03_and_e4_negative_controls'] = {
             'ok': (
                 dirty_code == 'HANDOFF_INTEGRITY_VIOLATION'
                 and crash_code == 'HANDOFF_INTEGRITY_VIOLATION'
+                and ev_tamper_code == 'HANDOFF_EVIDENCE_MISMATCH'
                 and e4_hostile_ignored
             ),
             'dirty_or_gitignore_code': dirty_code,
             'crash_head_mismatch_code': crash_code,
+            'evidence_tamper_code': ev_tamper_code,
             'e4_hostile_workspace_config_ignored': e4_hostile_ignored,
         }
 

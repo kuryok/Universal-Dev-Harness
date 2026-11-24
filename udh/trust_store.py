@@ -368,9 +368,9 @@ class TrustStore:
         if not ADAPTER_NAME_RE.fullmatch(adapter_name):
             raise TrustStoreError('Nome de adaptador inválido para cache de conformance.')
         target = self.root / f'conformance-{adapter_name}.json'
-        if not target.exists() and adapter_name == 'pi':
+        if not target.exists() and not target.is_symlink() and adapter_name == 'pi':
             target = self.root / 'conformance.json'
-        if not target.exists():
+        if not target.exists() and not target.is_symlink():
             return None
         try:
             raw = _read_regular_nofollow(target)
