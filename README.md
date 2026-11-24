@@ -18,3 +18,5 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m udh.web --db /tmp/udh-demo.db --store /tmp/
 Os testes usam Python 3 (stdlib-only), Podman rootless e as 3 imagens OCI locais construídas offline por `python3 runtime/build_image.py --target all` (digests fixados em `runtime/image-manifest.json`, `runtime/opencode-image-manifest.json` e `runtime/artifact-image-manifest.json`). Todo o fluxo padrão roda 100% offline com o backend `stub` do Gateway, sem credenciais reais de LLM.
 
 `DISCOVER`/`SPEC`/`PLAN`, multi-ticket DAG (`TICKET-01/02`), perfil `provision` (`B2.4`), execução persistente (`B3.8`), exportação (`B3.9`), `DOC`/`SKILL`/`UX-04`, terceiro agente (Codex), Chromium/Chrome e WSL2 continuam pendentes (`NOT_RUN`); o projeto ainda não é um MVP liberável completo.
+
+Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), a persistência do plano e o vínculo do executor ao contrato protegido já têm cobertura complementar. O início gerenciado depende de T2b.3.

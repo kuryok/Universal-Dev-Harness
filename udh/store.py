@@ -1,4 +1,4 @@
-"""Persistência transacional do Core em SQLite (v1–v4)."""
+"""Persistência transacional do Core em SQLite (v1–v7)."""
 
 from contextlib import contextmanager
 import json
@@ -18,10 +18,12 @@ from .domain import (
     strict_json_loads,
 )
 from . import migrations
-from .transitions import ConflictError
+from .ticket_store import TicketStore, check_contract_integrity, check_managed_integrity
+from .transitions import ConflictError, EvidenceRequest
 
 
 _NONEMPTY = "length(trim({field}, char(9)||char(10)||char(11)||char(12)||char(13)||' ')) > 0"
+_LEDGER_VERSIONS = (4, 5, 6, 7)
 _UTC = "length(created_at) >= 20 AND substr(created_at, -1) = 'Z' AND julianday(created_at) IS NOT NULL"
 _RUNS_SQL = f"""CREATE TABLE runs (
     id TEXT PRIMARY KEY NOT NULL,
@@ -86,6 +88,15 @@ class SQLiteStore:
         if version == 4 and not v1_only:
             migrations.validate_schema_v4(connection)
             return 4
+        if version == 5 and not v1_only:
+            migrations.validate_schema_v5(connection)
+            return 5
+        if version == 6 and not v1_only:
+            migrations.validate_schema_v6(connection)
+            return 6
+        if version == 7 and not v1_only:
+            migrations.validate_schema_v7(connection)
+            return 7
         if version in (2, 3) and not v1_only:
             migrations.validate_schema(connection, version)
             migrations.check_integrity(connection, SQLiteStore, version)
@@ -119,6 +130,18 @@ class SQLiteStore:
     def migrate_v4(self) -> dict:
         return migrations.migrate_v4(self)
 
+    def migrate_v5(self) -> dict:
+        return migrations.migrate_v5(self)
+
+    def migrate_v6(self) -> dict:
+        return migrations.migrate_v6(self)
+
+    def migrate_v7(self) -> dict:
+        return migrations.migrate_v7(self)
+
+    _check_managed_integrity = staticmethod(check_managed_integrity)
+    _check_contract_integrity = staticmethod(check_contract_integrity)
+
     def initialize(self, *, schema_version: int = 1) -> int:
         if type(schema_version) is not int or schema_version not in (1, 4):
             raise CoreError('Versão de inicialização inválida; use 1 ou 4.')
@@ -137,9 +160,9 @@ class SQLiteStore:
                 elif schema_version == 1:
                     self._validate_schema(connection, v1_only=True)
                 else:
-                    if version != 4:
-                        raise CoreError('Banco existente não está na versão v4.')
-                    migrations.validate_schema_v4(connection)
+                    if version not in _LEDGER_VERSIONS:
+                        raise CoreError('Banco existente não tem um esquema de ledger compatível.')
+                    self._validate_schema(connection)
                 connection.commit()
             except BaseException:
                 connection.rollback()
@@ -265,7 +288,7 @@ class SQLiteStore:
     def _load(connection: sqlite3.Connection, run_id: str, *, version=None) -> Run:
         if version is None:
             version = connection.execute('PRAGMA user_version').fetchone()[0]
-        if version == 4:
+        if version in _LEDGER_VERSIONS:
             return SQLiteStore._load_v4(connection, run_id)
         row = connection.execute('SELECT * FROM runs WHERE id = ?', (run_id,)).fetchone()
         if row is None:
@@ -324,6 +347,20 @@ class SQLiteStore:
             revision=row['revision'] if version in (2, 3) else None,
         )
 
+    @staticmethod
+    def _insert_ledger_run(connection, *, run_id, request_id, spec_id, spec_version,
+                           created_at, ticket_id, mode):
+        connection.execute(
+            'INSERT INTO "runs" (id, request_id, spec_id, spec_version, ticket_id, mode, state, created_at, updated_at, revision) '
+            "VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, 0)",
+            (run_id, request_id, spec_id, spec_version, ticket_id, mode, created_at, created_at),
+        )
+        connection.execute(
+            'INSERT INTO "transitions" (run_id, revision, operation, kind, from_state, to_state, request_id, created_at, actor_route) '
+            "VALUES (?, 0, 'CREATE_RUN', 'RUN_CREATED', NULL, 'PENDING', ?, ?, 'CORE_LOCAL')",
+            (run_id, request_id, created_at),
+        )
+
     def create(self, *, run_id: str, request_id: str, spec_id: str,
                spec_version: str, created_at: str,
                ticket_id: str | None = None, mode: str | None = None) -> Run:
@@ -361,21 +398,19 @@ class SQLiteStore:
                         (request_id,),
                     ).fetchone()
                     if existing is not None:
+                        if version >= 6 and connection.execute(
+                            'SELECT 1 FROM managed_ticket_runs WHERE run_id = ?', (existing['id'],),
+                        ).fetchone() is not None:
+                            raise ConflictError('Requisição já utilizada para criar uma execução gerenciada.')
                         if (existing['spec_id'], existing['spec_version'], existing['ticket_id'], existing['mode']) != (
                             spec_id, spec_version, ticket_id, effective_mode,
                         ):
                             raise ConflictError('Requisição já utilizada com outra referência de especificação ou metadados.')
                         result = self._load_v4(connection, existing['id'])
                     else:
-                        connection.execute(
-                            'INSERT INTO "runs" (id, request_id, spec_id, spec_version, ticket_id, mode, state, created_at, updated_at, revision) '
-                            "VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, 0)",
-                            (run_id, request_id, spec_id, spec_version, ticket_id, effective_mode, created_at, created_at),
-                        )
-                        connection.execute(
-                            'INSERT INTO "transitions" (run_id, revision, operation, kind, from_state, to_state, request_id, created_at, actor_route) '
-                            "VALUES (?, 0, 'CREATE_RUN', 'RUN_CREATED', NULL, 'PENDING', ?, ?, 'CORE_LOCAL')",
-                            (run_id, request_id, created_at),
+                        self._insert_ledger_run(
+                            connection, run_id=run_id, request_id=request_id, spec_id=spec_id,
+                            spec_version=spec_version, created_at=created_at, ticket_id=ticket_id, mode=effective_mode,
                         )
                         result = self._load_v4(connection, run_id)
                 connection.commit()
@@ -444,9 +479,13 @@ class SQLiteStore:
                     migrations.validate_schema(connection, version)
                     migrations.check_integrity(connection, SQLiteStore, version)
                     runs_checked = connection.execute('SELECT count(*) FROM "runs"').fetchone()[0]
-                elif version == 4:
-                    migrations.validate_schema_v4(connection)
+                elif version in _LEDGER_VERSIONS:
+                    self._validate_schema(connection)
                     runs_checked = migrations.check_integrity_v4(connection, SQLiteStore)
+                    if version >= 6:
+                        self._check_managed_integrity(connection)
+                    if version == 7:
+                        self._check_contract_integrity(connection)
                 else:
                     raise CoreError('Banco não inicializado ou versão do esquema incompatível.')
                 connection.commit()
@@ -564,7 +603,8 @@ class SQLiteStore:
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
-                if self._validate_schema(connection) != 4:
+                version = self._validate_schema(connection)
+                if version not in _LEDGER_VERSIONS:
                     raise CoreError('Operação start exige banco SQLite v4.')
                 existing = connection.execute(
                     'SELECT * FROM "transitions" WHERE operation = ? AND request_id = ?',
@@ -576,6 +616,10 @@ class SQLiteStore:
                     self._load_v4(connection, existing['run_id'])
                     stored = self._row_to_transition(existing)
                 else:
+                    if version >= 6 and connection.execute(
+                        'SELECT 1 FROM managed_ticket_runs WHERE run_id = ?', (request.run_id,),
+                    ).fetchone() is not None:
+                        raise ConflictError('Gate de início gerenciado ainda indisponível.')
                     current = self._load_v4(connection, request.run_id)
                     request.check_state(current)
                     next_rev = current.revision + 1
@@ -603,7 +647,7 @@ class SQLiteStore:
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
-                if self._validate_schema(connection) != 4:
+                if self._validate_schema(connection) not in _LEDGER_VERSIONS:
                     raise CoreError('Operação block v4 exige banco SQLite v4.')
                 existing = connection.execute(
                     'SELECT * FROM "transitions" WHERE operation = ? AND request_id = ?',
@@ -648,7 +692,7 @@ class SQLiteStore:
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
-                if self._validate_schema(connection) != 4:
+                if self._validate_schema(connection) not in _LEDGER_VERSIONS:
                     raise CoreError('Operação unblock v4 exige banco SQLite v4.')
                 existing = connection.execute(
                     'SELECT * FROM "transitions" WHERE operation = ? AND request_id = ?',
@@ -690,34 +734,66 @@ class SQLiteStore:
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
-                if self._validate_schema(connection) != 4:
+                version = self._validate_schema(connection)
+                if version not in _LEDGER_VERSIONS:
                     raise CoreError('Registro de evidência exige banco SQLite v4.')
-                existing = connection.execute(
-                    'SELECT * FROM "evidence_refs" WHERE request_id = ?',
-                    (request.request_id,),
-                ).fetchone()
-                if existing is not None:
-                    request.check_replay(existing)
-                    self._load_v4(connection, existing['run_id'])
-                    stored = self._row_to_evidence(existing)
-                else:
-                    self._load_v4(connection, request.run_id)
-                    connection.execute(
-                        'INSERT INTO "evidence_refs" (evidence_id, run_id, request_id, kind, verdict, '
-                        'artifact_digest, evidence_sha256, at_version, commit_sha, collector_route, summary_ref, created_at) '
-                        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                        (evidence_id, request.run_id, request.request_id, request.kind, request.verdict,
-                         request.artifact_digest, request.evidence_sha256, request.at_version,
-                         request.commit_sha, request.collector_route, request.summary_ref, created_at),
-                    )
-                    self._load_v4(connection, request.run_id)
-                    row = connection.execute(
-                        'SELECT * FROM "evidence_refs" WHERE evidence_id = ?',
-                        (evidence_id,),
-                    ).fetchone()
-                    stored = self._row_to_evidence(row)
+                if (version >= 6 and (request.kind == 'AT_RESULT' or request.verdict == 'PASS')
+                        and TicketStore._binding(connection, request.run_id) is not None):
+                    raise ConflictError('Evidência gerenciada exige relatório protegido do executor.')
+                recorded = self._write_evidence(connection, request, evidence_id, created_at)
                 connection.commit()
-                return {**stored.to_dict(), 'schema_version': 4}
+                return recorded
+            except BaseException:
+                connection.rollback()
+                raise
+
+    def _write_evidence(self, connection, request, evidence_id, created_at) -> dict:
+        row = connection.execute('SELECT * FROM "evidence_refs" WHERE request_id = ?',
+                                 (request.request_id,)).fetchone()
+        if row is not None:
+            request.check_replay(row)
+        else:
+            self._load_v4(connection, request.run_id)
+            connection.execute(
+                'INSERT INTO "evidence_refs" (evidence_id, run_id, request_id, kind, verdict, '
+                'artifact_digest, evidence_sha256, at_version, commit_sha, collector_route, summary_ref, created_at) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (evidence_id, request.run_id, request.request_id, request.kind, request.verdict,
+                 request.artifact_digest, request.evidence_sha256, request.at_version,
+                 request.commit_sha, request.collector_route, request.summary_ref, created_at),
+            )
+            row = connection.execute('SELECT * FROM "evidence_refs" WHERE evidence_id = ?',
+                                     (evidence_id,)).fetchone()
+        self._load_v4(connection, request.run_id)
+        return {**self._row_to_evidence(row).to_dict(), 'schema_version': 4}
+
+    def record_managed_at_report(self, report, *, expected_revision, trust_store, evidence_id, created_at):
+        with self._connection('rw') as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            try:
+                version = self._validate_schema(connection)
+                if version < 7:
+                    raise CoreError('Relatório gerenciado exige banco SQLite v7.')
+                run = self._load_v4(connection, report['run_id'])
+                passed = report['verdict'] == 'PASS'
+                if passed and (run.state != 'IN_PROGRESS' or run.revision != expected_revision
+                               or run.has_unknown_pendencies):
+                    raise ConflictError('Execução mudou antes do registro de PASS.')
+                bound = TicketStore.bound_contract(connection, version, run, require_current=passed)
+                if (bound is None or report['kind'] != 'AT_RESULT'
+                        or report['contract_sha256'] != bound['contract_sha256']
+                        or report['at_version'] != bound['contract']['at_version']):
+                    raise ConflictError('Relatório não corresponde ao contrato protegido.')
+                path, digest = trust_store.save_evidence(run.run_id, report['request_id'], report)
+                request = EvidenceRequest(
+                    run_id=run.run_id, request_id=report['request_id'], kind='AT_RESULT', verdict=report['verdict'],
+                    artifact_digest=report['artifact_digest'], evidence_sha256=digest, collector_route='TRUSTED_EXECUTOR',
+                    summary_ref=str(path.relative_to(trust_store.root)), at_version=report['at_version'],
+                    commit_sha=report['commit_sha'],
+                )
+                recorded = self._write_evidence(connection, request, evidence_id, created_at)
+                connection.commit()
+                return recorded, str(path)
             except BaseException:
                 connection.rollback()
                 raise
@@ -726,7 +802,7 @@ class SQLiteStore:
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
-                if self._validate_schema(connection) != 4:
+                if self._validate_schema(connection) not in _LEDGER_VERSIONS:
                     raise CoreError('Operação complete exige banco SQLite v4.')
                 existing = connection.execute(
                     'SELECT * FROM "transitions" WHERE operation = ? AND request_id = ?',
@@ -777,7 +853,7 @@ class SQLiteStore:
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
-                if self._validate_schema(connection) != 4:
+                if self._validate_schema(connection) not in _LEDGER_VERSIONS:
                     raise CoreError('Registro de checkpoint exige banco SQLite v4.')
                 existing = connection.execute(
                     'SELECT * FROM "checkpoints" WHERE request_id = ?',

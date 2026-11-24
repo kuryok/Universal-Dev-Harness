@@ -188,7 +188,7 @@ class TrustStore:
             shutil.rmtree(tmp_root, ignore_errors=True)
             raise
 
-    def verify_sealed_at(self, at_version: str) -> tuple[Path, dict]:
+    def verify_sealed_at(self, at_version: str, *, expected_manifest_sha256: str | None = None) -> tuple[Path, dict]:
         if not isinstance(at_version, str) or not AT_VERSION_RE.fullmatch(at_version):
             raise TrustStoreError('at_version inválido; esperado sha256:<64-hex>.')
         at_digest = at_version.split(':', 1)[1]
@@ -198,6 +198,10 @@ class TrustStore:
         if not manifest_file.is_file() or not tests_dir.is_dir():
             raise TrustStoreError(f'AT_INTEGRITY_VIOLATION: selo {at_version} não encontrado na TrustStore.')
         raw = _read_regular_nofollow(manifest_file)
+        if expected_manifest_sha256 is not None:
+            require_sha256(expected_manifest_sha256, 'Hash do manifesto de AT aprovado')
+            if hashlib.sha256(raw).hexdigest() != expected_manifest_sha256:
+                raise TrustStoreError('AT_INTEGRITY_VIOLATION: hash do manifesto de AT diverge da aprovação.')
         manifest = strict_json_loads(raw.decode('utf-8'), 'Manifesto de AT selado')
         if not isinstance(manifest, dict) or manifest.get('at_version') != at_version:
             raise TrustStoreError('AT_INTEGRITY_VIOLATION: manifesto divergente do at_version.')

@@ -1,4 +1,4 @@
-"""Casos de uso do Core (v1–v4); identidade e validação antes da persistência."""
+"""Casos de uso do Core; identidade e validação antes da persistência."""
 from datetime import datetime, timezone
 import hashlib
 from pathlib import Path
@@ -18,6 +18,7 @@ from .domain import (
 )
 from .policy import evaluate
 from .store import SQLiteStore
+from .ticket_store import TicketStore
 from .transitions import (
     AuthorizationError,
     BlockRequest,
@@ -41,6 +42,7 @@ def _utc_now() -> str:
 class CoreService:
     def __init__(self, store: SQLiteStore):
         self.store = store
+        self._tickets = TicketStore(store)
 
     def initialize(self, *, schema_version: int = 1) -> int:
         return self.store.initialize(schema_version=schema_version)
@@ -399,6 +401,18 @@ class CoreService:
         )
 
     def migrate(self, target=2, *, context=None) -> dict:
+        if type(target) is int and target == 7:
+            if context is not None:
+                raise AuthorizationError('Contexto administrativo legado não autoriza migração para v7.')
+            return self.store.migrate_v7()
+        if type(target) is int and target == 6:
+            if context is not None:
+                raise AuthorizationError('Contexto administrativo legado não autoriza migração para v6.')
+            return self.store.migrate_v6()
+        if type(target) is int and target == 5:
+            if context is not None:
+                raise AuthorizationError('Contexto administrativo legado não autoriza migração para v5.')
+            return self.store.migrate_v5()
         if type(target) is int and target == 4:
             if context is not None:
                 raise AuthorizationError('Contexto administrativo legado não autoriza migração para v4.')
@@ -413,6 +427,49 @@ class CoreService:
                 raise AuthorizationError('Operação exige a entrada administrativa protegida.')
             return self.store.migrate()
         raise CoreError('Versão de migração inválida.')
+
+    def approve_ticket_input(self, spec, *, expected=None):
+        """Fixa a entrada aprovada fornecida pelo chamador confiável."""
+        return self._tickets.approve(spec, expected=expected)
+
+    def materialize_ticket_plan(self, ref, *, expected_revision, proposal=None):
+        return self._tickets.materialize(ref, expected_revision=expected_revision, proposal=proposal)
+
+    def reconcile_ticket_plan(self, ref, *, expected_revision, plan_sha256):
+        return self._tickets.reconcile(ref, expected_revision=expected_revision, plan_sha256=plan_sha256)
+
+    def get_ticket_plan(self, ref):
+        return self._tickets.get_plan(ref)
+
+    def get_ticket_plan_head(self, change_id):
+        return self._tickets.get_head(change_id)
+
+    def create_managed_ticket_run(self, ref, *, approval_revision, plan_sha256, ticket_id, request_id, mode) -> Run:
+        """Cria a execução vinculada por solicitação do chamador confiável do Core."""
+        return self._tickets.create_managed_run(
+            ref, approval_revision=approval_revision, plan_sha256=plan_sha256, ticket_id=ticket_id,
+            request_id=request_id, mode=mode, run_id=str(uuid4()), created_at=_utc_now(),
+        )
+
+    def register_managed_ticket_contract(self, run_id, *, expected_revision, contract, trust_store: TrustStore) -> dict:
+        """Registra a cobertura fornecida pelo chamador confiável após aprovação humana."""
+        return self._tickets.register_contract(
+            run_id, expected_revision=expected_revision, contract=contract, trust_store=trust_store,
+        )
+
+    def get_managed_ticket_contract(self, run_id) -> dict | None:
+        """Consulta o registro histórico sem autorizar a execução."""
+        return self._tickets.get_contract(run_id)
+
+    def managed_verification_contract(self, run_id, *, expected_revision) -> dict | None:
+        return self._tickets.verification_contract(run_id, expected_revision=expected_revision)
+
+    def record_managed_at_report(self, report, *, expected_revision, trust_store: TrustStore) -> tuple[dict, str]:
+        """Entrada local do executor; o escritor normal não registra AT gerenciado."""
+        return self.store.record_managed_at_report(
+            report, expected_revision=expected_revision, trust_store=trust_store,
+            evidence_id=str(uuid4()), created_at=_utc_now(),
+        )
 
     def block(self, run_id, expected_revision, request_id, reason, *, context):
         if not operator_context_valid(context) or 'BLOCK_PENDING' not in context['allowed_operations']:

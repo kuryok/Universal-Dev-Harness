@@ -15,6 +15,8 @@ O uso de OpenSpec neste repositório é **documental adaptado**: requisitos e pl
 
 Antes de implementar: confirmar escopo/arquivos/critério de pronto no change, registrar aprovação humana e verificar o incremento. Mudança de requisito exige delta explícito. Não duplicar requisitos em README, STATE, MEMORY ou diagnósticos externos.
 
+O [Change 5](changes/discover-plan-tickets/tasks.md) segue em branch dedicada. T2b.2 passou nos testes complementares; o aceite oficial e a integração em `main` continuam sujeitos aos gates de fechamento.
+
 ## Engenharia, bootstrap e política de evidências
 
 Um Core determinístico decide o estado; SQLite guarda operação; Git guarda código; evidências e testes oficiais têm requisitos próprios de proteção. Componentes permanecem separados por responsabilidade.

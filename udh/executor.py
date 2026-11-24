@@ -1,52 +1,23 @@
 """Executor Confiável F-04: orquestra runner isolado no perfil artifact sem importar código do projeto."""
-import ast
 from datetime import datetime, timezone
 import hashlib
 import hmac
 import json
-import os
 from pathlib import Path
 import secrets
-import stat
 import tempfile
 
-from .domain import COMPLETION_EVIDENCE_KINDS, CoreError, strict_json_loads
+from .domain import COMPLETION_EVIDENCE_KINDS, CoreError, require_sha1, require_sha256, strict_json_loads
 from .policy import policy_v2_sha256
 from .runtime import DEFAULT_ARTIFACT_LIMITS, ResourceLimits, RuntimeIsolationError, RuntimeManager
 from .service import CoreService
+from .ticket_contract import discover_at_tests as _discover_at_tests_core, verify_contract_seal
 from .transitions import ConflictError
 from .trust_store import TamperingError, TrustStore, TrustStoreError
 
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec='microseconds').replace('+00:00', 'Z')
-
-
-def _is_testcase_base(node: ast.expr) -> bool:
-    if isinstance(node, ast.Name):
-        return node.id == 'TestCase' or node.id.endswith('TestCase')
-    if isinstance(node, ast.Attribute):
-        return node.attr == 'TestCase' or node.attr.endswith('TestCase')
-    return False
-
-
-def _discover_at_tests_core(at_dir: Path) -> list[str]:
-    """Inventário AST independente no Core dos testes selados em TrustStore."""
-    root = at_dir.resolve()
-    expected: list[str] = []
-    for path in sorted(root.rglob('test_*.py')):
-        st = os.lstat(path)
-        if not stat.S_ISREG(st.st_mode) or stat.S_ISLNK(st.st_mode):
-            continue
-        rel = path.relative_to(root)
-        module = '.'.join(rel.with_suffix('').parts)
-        tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(rel))
-        for item in tree.body:
-            if isinstance(item, ast.ClassDef) and any(_is_testcase_base(base) for base in item.bases):
-                for member in item.body:
-                    if isinstance(member, ast.FunctionDef) and member.name.startswith('test'):
-                        expected.append(f'{module}.{item.name}.{member.name}')
-    return sorted(set(expected))
 
 
 class TrustedExecutor:
@@ -83,6 +54,15 @@ class TrustedExecutor:
         if run.has_unknown_pendencies:
             raise ConflictError('Pendência UNKNOWN ativa impede verificação oficial.')
 
+        binding = self.core_service.managed_verification_contract(run_id, expected_revision=run.revision)
+        report_binding = {}
+        if binding is not None:
+            if kind != 'AT_RESULT' or at_version != binding['contract']['at_version']:
+                raise ConflictError('Verificação gerenciada exige AT_RESULT com a versão fixada no contrato.')
+            require_sha1(commit_sha, 'Commit SHA do candidato')
+            require_sha256(artifact_digest, 'Digest do artefato candidato')
+            report_binding = {'contract_sha256': binding['contract_sha256'], 'expected_revision': run.revision}
+
         manifest = (
             self.runtime_manager.load_artifact_manifest()
             if use_artifact_image
@@ -92,8 +72,11 @@ class TrustedExecutor:
 
         # 1. Validação fail-closed do selo de AT na TrustStore + inventário AST independente no Core
         try:
-            at_dir, _at_manifest = self.trust_store.verify_sealed_at(at_version)
-            core_expected_tests = _discover_at_tests_core(at_dir)
+            if binding is None:
+                at_dir, _ = self.trust_store.verify_sealed_at(at_version)
+                core_expected_tests = _discover_at_tests_core(at_dir)
+            else:
+                at_dir, core_expected_tests = verify_contract_seal(binding['contract'], self.trust_store)
             if not core_expected_tests:
                 raise TrustStoreError('AT_INTEGRITY_VIOLATION: nenhum caso TestCase.test_* encontrado no selo.')
         except (TrustStoreError, SyntaxError, UnicodeDecodeError, OSError) as error:
@@ -102,19 +85,19 @@ class TrustedExecutor:
                 reason_code='AT_INTEGRITY_VIOLATION', detail=str(error),
                 artifact_digest=artifact_digest, at_version=at_version, commit_sha=commit_sha,
                 runner_sha256=manifest.at_runner_sha256, image_digest=manifest.image_digest,
-                policy_sha256=pol_sha,
+                policy_sha256=pol_sha, **report_binding,
             )
 
         # 2. Validação fail-closed do artefato promovido na TrustStore
         try:
-            artifact_dir, _art_manifest = self.trust_store.verify_artifact(artifact_digest)
+            artifact_dir, art_manifest = self.trust_store.verify_artifact(artifact_digest)
         except TamperingError as error:
             return self._record_failure(
                 run_id=run_id, request_id=request_id, kind=kind, verdict='FAIL',
                 reason_code='RUNNER_TAMPERING_DETECTED', detail=str(error),
                 artifact_digest=artifact_digest, at_version=at_version, commit_sha=commit_sha,
                 runner_sha256=manifest.at_runner_sha256, image_digest=manifest.image_digest,
-                policy_sha256=pol_sha,
+                policy_sha256=pol_sha, **report_binding,
             )
         except TrustStoreError as error:
             return self._record_failure(
@@ -122,8 +105,10 @@ class TrustedExecutor:
                 reason_code='ARTIFACT_INTEGRITY_VIOLATION', detail=str(error),
                 artifact_digest=artifact_digest, at_version=at_version, commit_sha=commit_sha,
                 runner_sha256=manifest.at_runner_sha256, image_digest=manifest.image_digest,
-                policy_sha256=pol_sha,
+                policy_sha256=pol_sha, **report_binding,
             )
+        if binding is not None and art_manifest.get('commit_sha') != commit_sha:
+            raise ConflictError('Commit do candidato diverge do artefato promovido.')
 
         # 3. Execução isolada no perfil artifact com nonce exclusivo via stdin
         nonce = secrets.token_hex(32)
@@ -147,7 +132,7 @@ class TrustedExecutor:
                     reason_code='RUNTIME_EXECUTION_ERROR', detail=str(error),
                     artifact_digest=artifact_digest, at_version=at_version, commit_sha=commit_sha,
                     runner_sha256=manifest.at_runner_sha256, image_digest=manifest.image_digest,
-                    policy_sha256=pol_sha,
+                    policy_sha256=pol_sha, **report_binding,
                 )
 
         # 4. Avaliação determinística no Core (nunca confia em saída livre nem arquivos do workspace)
@@ -252,7 +237,7 @@ class TrustedExecutor:
             'stderr_sha256': hashlib.sha256(container.stderr.encode('utf-8')).hexdigest(),
             'collected_at': _utc_now(),
         }
-        return self._persist_report(report)
+        return self._persist_report(report, **report_binding)
 
     def _record_failure(
         self,
@@ -269,6 +254,8 @@ class TrustedExecutor:
         runner_sha256: str,
         image_digest: str,
         policy_sha256: str,
+        contract_sha256: str | None = None,
+        expected_revision: int | None = None,
     ) -> dict:
         report = {
             'schema_version': 1,
@@ -296,9 +283,16 @@ class TrustedExecutor:
             'passed_tests': [],
             'collected_at': _utc_now(),
         }
-        return self._persist_report(report)
+        return self._persist_report(report, contract_sha256=contract_sha256, expected_revision=expected_revision)
 
-    def _persist_report(self, report: dict) -> dict:
+    def _persist_report(self, report: dict, *, contract_sha256=None, expected_revision=None) -> dict:
+        if contract_sha256 is not None:
+            report['contract_sha256'] = contract_sha256
+            recorded, evidence_path = self.core_service.record_managed_at_report(
+                report, expected_revision=expected_revision, trust_store=self.trust_store,
+            )
+            return {'evidence': recorded, 'evidence_path': evidence_path, 'report': report}
+
         evidence_path, evidence_sha256 = self.trust_store.save_evidence(
             report['run_id'], report['request_id'], report,
         )

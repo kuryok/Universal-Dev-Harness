@@ -14,15 +14,15 @@ Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte no
 
 ## Pendente
 
-- **Próximo marco (Change 5):** `DISCOVER`/`SPEC`/`PLAN` + multi-ticket DAG (`DISC-01`, `TICKET-01/02`) ou outra prioridade aprovada em OpenSpec.
+- **Change 5 em andamento:** planos e vínculos persistidos; T2b.2 vincula cobertura B4.2 e candidato ao relatório F-04 e só registra `PASS` com contrato vigente. Início gerenciado bloqueado; `DISC-01` e `TICKET-01/02` pendentes.
 - **Restante do produto:** perfil `provision` (`B2.4`), execução protegida persistente (`B3.8`) e exportação (`B3.9`), `DOC-01/02`, `SKILL-01/02`, `UX-04`, terceiro agente (Codex), WSL2 (`B1.1b`), Chromium/Chrome, Memorix, Judge consultivo e instalador. Ainda não é MVP liberável completo.
 
 ## Próxima tarefa
 
-Abrir branch dedicada e especificar o OpenSpec do **Change 5** (prioridade sugerida: `DISCOVER`/`SPEC`/`PLAN` + multi-ticket DAG, ou `B3.8` "Abrir meu app" persistente / perfil `provision` `B2.4`) antes de implementar.
+Na branch `feat/change5-discover-plan-tickets`, detalhar e aprovar [T2b.3](openspec/changes/discover-plan-tickets/t2b-managed-ticket-start.md#t2b3--aceite-oficial-e-autorização-de-início): aceite oficial e autorização atômica de início. T3 requer CLI OpenSpec compatível, ausente do `PATH`.
 
 ## Verificação
 
-- `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests` (157 PASS).
+- `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests` (188 PASS na branch do Change 5, incluindo 6 novos de T2b.2b; AT selados e R2/F-02 pendentes para o fechamento).
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m udh doctor --conformance` (`READY`: `['pi', 'opencode']`), `PYTHONDONTWRITEBYTECODE=1 python3 -m udh.poc` (4/4 PASS) e `python3 -m udh.web --db <path> --store <path>`.
 - [README](README.md) para entrada. Não abrir credenciais nem limpar `spike/slice0/workspace/` sem autorização.

@@ -244,6 +244,48 @@ _EXPECTED_V4 = {
     ('index', 'idx_checkpoints_run_id'): IDX_CHECKPOINTS_V4_SQL.strip(),
 }
 
+_V5_TABLES = {
+    'ticket_plan_inputs': '''CREATE TABLE "ticket_plan_inputs" (
+ change_id TEXT NOT NULL, spec_version TEXT NOT NULL, spec_sha256 TEXT NOT NULL,
+ input_json TEXT NOT NULL, input_sha256 TEXT NOT NULL,
+ PRIMARY KEY (change_id, spec_version, spec_sha256)
+)''',
+    'ticket_plans': '''CREATE TABLE "ticket_plans" (
+ change_id TEXT NOT NULL, spec_version TEXT NOT NULL, spec_sha256 TEXT NOT NULL,
+ plan_json TEXT NOT NULL, plan_sha256 TEXT NOT NULL,
+ PRIMARY KEY (change_id, spec_version, spec_sha256),
+ UNIQUE (change_id, spec_version, spec_sha256, plan_sha256),
+ FOREIGN KEY (change_id, spec_version, spec_sha256)
+ REFERENCES ticket_plan_inputs (change_id, spec_version, spec_sha256)
+)''',
+    'ticket_plan_heads': '''CREATE TABLE "ticket_plan_heads" (
+ change_id TEXT PRIMARY KEY NOT NULL, spec_version TEXT NOT NULL, spec_sha256 TEXT NOT NULL,
+ revision INTEGER NOT NULL CHECK (typeof(revision) = 'integer' AND revision >= 1),
+ active_plan_sha256 TEXT,
+ FOREIGN KEY (change_id, spec_version, spec_sha256)
+ REFERENCES ticket_plan_inputs (change_id, spec_version, spec_sha256),
+ FOREIGN KEY (change_id, spec_version, spec_sha256, active_plan_sha256)
+ REFERENCES ticket_plans (change_id, spec_version, spec_sha256, plan_sha256)
+)''',
+}
+_EXPECTED_V5 = {**_EXPECTED_V4, **{('table', name): sql for name, sql in _V5_TABLES.items()}}
+_MANAGED_RUNS_SQL = '''CREATE TABLE "managed_ticket_runs" (
+ change_id TEXT NOT NULL, spec_version TEXT NOT NULL, spec_sha256 TEXT NOT NULL,
+ approval_revision INTEGER NOT NULL CHECK (typeof(approval_revision) = 'integer' AND approval_revision >= 1),
+ ticket_id TEXT NOT NULL, plan_sha256 TEXT NOT NULL,
+ run_id TEXT NOT NULL UNIQUE REFERENCES runs (id),
+ PRIMARY KEY (change_id, spec_version, spec_sha256, approval_revision, ticket_id),
+ FOREIGN KEY (change_id, spec_version, spec_sha256, plan_sha256)
+ REFERENCES ticket_plans (change_id, spec_version, spec_sha256, plan_sha256)
+)'''
+_EXPECTED_V6 = {**_EXPECTED_V5, ('table', 'managed_ticket_runs'): _MANAGED_RUNS_SQL}
+_MANAGED_CONTRACTS_SQL = '''CREATE TABLE "managed_ticket_contracts" (
+ run_id TEXT PRIMARY KEY NOT NULL REFERENCES managed_ticket_runs (run_id),
+ contract_json TEXT NOT NULL CHECK (length(CAST(contract_json AS BLOB)) BETWEEN 1 AND 65536),
+ contract_sha256 TEXT NOT NULL CHECK (length(contract_sha256) = 64 AND contract_sha256 NOT GLOB '*[^0-9a-f]*')
+)'''
+_EXPECTED_V7 = {**_EXPECTED_V6, ('table', 'managed_ticket_contracts'): _MANAGED_CONTRACTS_SQL}
+
 
 def init_v4(connection):
     for sql in (
@@ -258,14 +300,104 @@ def init_v4(connection):
     connection.execute('PRAGMA user_version = 4')
 
 
-def validate_schema_v4(connection):
-    """Validação O(1) do esquema v4 em sqlite_master, sem scan de dados."""
+def _validate_ledger_schema(connection, expected, version):
     objects = connection.execute(
         "SELECT type, name, sql FROM sqlite_master WHERE name NOT GLOB 'sqlite_*'"
     ).fetchall()
     actual = {(row['type'], row['name']): (row['sql'] or '').strip() for row in objects}
-    if len(objects) != len(_EXPECTED_V4) or actual != _EXPECTED_V4:
-        raise CoreError('Esquema SQLite v4 incompatível.')
+    if len(objects) != len(expected) or actual != expected:
+        raise CoreError(f'Esquema SQLite v{version} incompatível.')
+
+
+def validate_schema_v4(connection):
+    """Valida o esquema exato sem varrer dados do ledger."""
+    _validate_ledger_schema(connection, _EXPECTED_V4, 4)
+
+
+def validate_schema_v5(connection):
+    _validate_ledger_schema(connection, _EXPECTED_V5, 5)
+
+
+def validate_schema_v6(connection):
+    _validate_ledger_schema(connection, _EXPECTED_V6, 6)
+
+
+def validate_schema_v7(connection):
+    _validate_ledger_schema(connection, _EXPECTED_V7, 7)
+
+
+def migrate_v7(store):
+    """Acrescenta os contratos de execução sem modificar vínculos existentes."""
+    with store._connection('rw') as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        try:
+            version = connection.execute('PRAGMA user_version').fetchone()[0]
+            if version not in (6, 7):
+                raise CoreError('Migração para v7 exige banco SQLite v6 válido.')
+            (validate_schema_v6 if version == 6 else validate_schema_v7)(connection)
+            check_integrity_v4(connection, store)
+            store._check_managed_integrity(connection)
+            if version == 6:
+                connection.execute(_MANAGED_CONTRACTS_SQL)
+                connection.execute('PRAGMA user_version = 7')
+                validate_schema_v7(connection)
+            else:
+                store._check_contract_integrity(connection)
+            connection.commit()
+            return {'schema_version': 7, 'changed': version == 6}
+        except BaseException:
+            connection.rollback()
+            raise
+
+
+def migrate_v6(store):
+    """Acrescenta vínculos de tickets, sem reescrever o ledger nem os planos."""
+    with store._connection('rw') as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        try:
+            version = connection.execute('PRAGMA user_version').fetchone()[0]
+            if version == 5:
+                validate_schema_v5(connection)
+                check_integrity_v4(connection, store)
+                connection.execute(_MANAGED_RUNS_SQL)
+                connection.execute('PRAGMA user_version = 6')
+                validate_schema_v6(connection)
+            elif version == 6:
+                validate_schema_v6(connection)
+                check_integrity_v4(connection, store)
+                store._check_managed_integrity(connection)
+            else:
+                raise CoreError('Migração para v6 exige banco SQLite v5 válido.')
+            connection.commit()
+            return {'schema_version': 6, 'changed': version == 5}
+        except BaseException:
+            connection.rollback()
+            raise
+
+
+def migrate_v5(store):
+    """Acrescenta a persistência do PLAN, sem reescrever o ledger v4."""
+    with store._connection('rw') as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        try:
+            version = connection.execute('PRAGMA user_version').fetchone()[0]
+            if version == 4:
+                validate_schema_v4(connection)
+                check_integrity_v4(connection, store)
+                for sql in _V5_TABLES.values():
+                    connection.execute(sql)
+                connection.execute('PRAGMA user_version = 5')
+                validate_schema_v5(connection)
+            elif version == 5:
+                validate_schema_v5(connection)
+                check_integrity_v4(connection, store)
+            else:
+                raise CoreError('Migração para v5 exige banco SQLite v4 válido.')
+            connection.commit()
+            return {'schema_version': 5, 'changed': version == 4}
+        except BaseException:
+            connection.rollback()
+            raise
 
 
 def check_integrity_v4(connection, store) -> int:

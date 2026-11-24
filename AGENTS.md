@@ -44,11 +44,11 @@ Um sistema local-first que leva uma pessoa que não sabe programar de uma ideia 
 - Se não conseguiu executar algo, escreva "não executado" e explique o motivo.
 - Resultado parcial é resultado válido. Resultado inventado não é.
 
-## Fase atual: Change 4 concluído (`B3.1`/`B3.4`/`B3.6`/`B1.7` PASS) e preparo do Change 5
+## Fase atual: Change 4 integrado e Change 5 em andamento
 
 A Slice 0 foi encerrada no perfil experimental Linux/API testado. Foram concluídos e verificados: Change 1 (Core SQLite v1–v4, leitura `O(1)`, checkpoints F-03, política v2 e `doctor`), Change 2 (Runtime Manager rootless, imagem OCI dedicada do Pi 1.2.0, Gateway stdlib, TrustStore + Executor F-04 e `POC-01`/`02`/`04` PASS), Change 3 (imagem OCI separada do OpenCode 1.18.35, Gateway `allowed_tool_names` fail-closed, handoff F-03 com `git_dir` externo + seleção ADR-026, `doctor --conformance` multi-agente `READY` e `POC-03` PASS) e **Change 4** (imagem OCI dedicada `artifact-only` sem agentes, transporte `/preview-ipc/preview.sock` anti-TOCTOU + `SO_PEERCRED`/netns, proxy isolado `p-<24hex>.localhost` + CSP restritiva + grant one-time/cookie host-only, smoke test `B3.4` com reinício real + entrega `ADR-028`, interface guiada mínima `B1.7` em `127.0.0.1` com `X-UDH-Token`/cartões `ADR-025` e checagem offline em Firefox 153.7.0esr, preservando 50/50 AT selados `v1–v6` e 4/4 POCs PASS); consulte [STATE.md](STATE.md), [MEMORY.md](MEMORY.md) e [openspec/project.md](openspec/project.md) para o estado verificado e próximo passo.
 
-Novos recortes seguem OpenSpec documental em branch dedicada e aprovação humana antes de implementar. O `bootstrap/slice1/` permanece congelado (sem novos gates ou selo v7); evidências pesadas não entram em JSON cru no Git (`<= 32 KiB`). As próximas prioridades são `DISCOVER`/`SPEC`/`PLAN` + multi-ticket DAG (`DISC-01`, `TICKET-01/02`), execução persistente `B3.8` ou perfil `provision` `B2.4`, conforme aprovação no próximo OpenSpec.
+O [Change 5](openspec/changes/discover-plan-tickets/tasks.md) chegou a T2b.2 na branch dedicada. T2b.3 ainda requer detalhamento e aprovação humana no OpenSpec antes de implementar. O `bootstrap/slice1/` permanece congelado (sem novos gates ou selo v7); evidências pesadas não entram em JSON cru no Git (`<= 32 KiB`).
 
 O código da Slice 0 permanece **descartável**, com os limites registrados no relatório. Um Core só significa autoridade única, com módulos separados por responsabilidade (somente arquivos `.py` sob `udh/`); não concentrar todo o sistema em um arquivo.
 
