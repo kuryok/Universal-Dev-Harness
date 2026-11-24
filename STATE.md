@@ -19,7 +19,7 @@ Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte no
 
 ## Próxima tarefa
 
-Na branch `feat/change5-discover-plan-tickets`, detalhar e aprovar [T3b.2b](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#t3b2b--integrar-o-agente-e-executar-o-encaminhamento-real). Faltam a skill original e a inferência offline. T3-org adiada.
+Na branch `feat/change5-discover-plan-tickets`, qualificar a inferência offline e aprovar [T3b.2b](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#t3b2b--integrar-o-agente-e-executar-o-encaminhamento-real). A adaptação `grill-with-docs-udh` foi conferida. T3-org adiada.
 
 ## Verificação
 
