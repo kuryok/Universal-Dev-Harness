@@ -1,6 +1,6 @@
 # Change 5 — Da descoberta ao plano de tickets
 
-- **Estado:** T1, T2, T3a e T3b.1 implementadas e verificadas com testes complementares. T3b.2 e T4 requerem detalhamento e aprovação. O aceite oficial do change segue pendente.
+- **Estado:** T1, T2, T3a, T3b.1 e T3b.2a implementadas e verificadas com testes complementares. T3b.2b e T4 requerem detalhamento e aprovação. O aceite oficial do change segue pendente.
 - **Branch:** `feat/change5-discover-plan-tickets`, a partir de `main` em `ef9c15d`.
 - **Base normativa:** [baseline rastreado](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (DELTA-03–05, ADR-023/024/026/027, B4.2, F-03) e [governança do projeto](../../project.md).
 
@@ -40,4 +40,4 @@ O validador recebe duas estruturas Python já decodificadas: `approved_spec`, do
 
 - Persistência: o [delta de T2](t2-persistence-and-start.md) registra a materialização e o gate de início já implementados; falta evidência oficial no fechamento.
 - PLAN completo (DELTA-05): T1 cobre apenas a validação estrutural. O delta de T2 deve especificar as dependências e referências de contexto permitidas na entrada e a representação de lacunas na proposta, sem transformar lacuna em autorização. T4 deve verificar o uso desse contexto no handoff.
-- Descoberta: o [delta de T3](t3-discovery-and-spec-handoff.md) registra o filtro de T3a, a validação de snapshot de T3b.1 e os pré-requisitos da integração com o agente em T3b.2.
+- Descoberta: o [delta de T3](t3-discovery-and-spec-handoff.md) registra o filtro, a validação de snapshots, o acompanhamento de lacunas e os pré-requisitos da integração com o agente em T3b.2b.

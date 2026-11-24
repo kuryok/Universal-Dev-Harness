@@ -1,6 +1,6 @@
 # Tarefas — Change 5 (`discover-plan-tickets`)
 
-**Branch:** `feat/change5-discover-plan-tickets`. **Retomada:** confirmar skill original e rota de inferência offline para detalhar e aprovar [T3b.2](t3-discovery-and-spec-handoff.md#t3b2--conectar-descoberta-e-encaminhar-para-spec-pendente).
+**Branch:** `feat/change5-discover-plan-tickets`. **Retomada:** confirmar os pré-requisitos e aprovar [T3b.2b](t3-discovery-and-spec-handoff.md#t3b2b--integrar-o-agente-e-executar-o-encaminhamento-real).
 
 - [x] **T1 — Validação determinística de propostas do PLAN.** `udh/ticket_plan.py` e `tests/test_ticket_plan.py` cobrem C5-01–04 com Python stdlib, sem persistência ou integração à execução. Em 24/11/2026: 6/6 testes focados (`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_ticket_plan.py'`) e 163/163 complementares PASS. Isso verifica T1, não o aceite oficial do change.
 - [x] **T2 — Materialização persistente e gate de dependências (`TICKET-01`).** [Delta](t2-persistence-and-start.md): T2a e T2b implementadas com verificação complementar. Aceite oficial no fechamento.
@@ -17,6 +17,9 @@
   - [x] **T3a:** seleção de perguntas no Core, sem dependência nova. 3 testes focados e 200 complementares PASS em 24/11/2026.
   - [ ] **T3b:** skill autorizada, resolução de lacunas e handoff do snapshot OpenSpec aprovado.
     - [x] **T3b.1:** validação local do snapshot com OpenSpec 2.1.1. 6 testes focados (incluindo CLI real) e 206 complementares PASS em 24/11/2026.
-    - [ ] **T3b.2:** fluxo real com o agente. Falta conferir a skill original e definir a inferência offline.
+    - [ ] **T3b.2:** conectar as rodadas de descoberta ao encaminhamento para SPEC.
+      - [x] **T3b.2a:** acompanhar lacunas, respostas e confirmações no Core. 4 testes novos; 210 complementares PASS em 24/11/2026.
+      - [ ] **T3b.2b:** integração com o agente. Falta conferir a skill original e definir a inferência offline.
+  - [ ] **T3-org:** agrupar os módulos de descoberta e SPEC preservando imports. Adiada, sem aprovação.
 - [ ] **T4 — Troca de agente através do plano persistido (`TICKET-02`).** Antes de codificar, aprovar delta com arquivos permitidos, cenário offline, pré-condições de aceite e coleta confiável de evidências.
 - [ ] **Fechamento** — Rodar a suíte complementar, `doctor --conformance`, as quatro POCs e a regressão dos 50 AT selados. Executar as verificações oficiais do novo recorte via executor confiável, sem criar ou editar ATs protegidos. Registrar limites e resultados em resumo compacto (`<= 32 KiB`), obter revisão independente R2/F-02 `PASS` e sincronizar os documentos ativos antes de integrar em `main`.

@@ -1,6 +1,6 @@
 # T3 — Descoberta proporcional e handoff para SPEC (`DISC-01`)
 
-**Estado:** T3a e T3b.1 implementadas e verificadas. T3b.1 foi aprovada pelo usuário em 24/11/2026 (6 testes focados, incluindo a CLI real; 206 complementares PASS). T3b.2 depende da skill original e de uma rota de inferência offline verificável.
+**Estado:** T3a, T3b.1 e T3b.2a implementadas e verificadas. T3b.2a foi aprovada pelo usuário em 24/11/2026 (4 testes novos; 210 complementares PASS). T3b.2b depende da skill original e de uma rota de inferência offline verificável.
 
 **Base:** [proposta do Change 5](proposal.md#condições-para-fechar-o-change) e [baseline](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md), DELTA-03/04. A descoberta levanta decisões que mudam o comportamento observável e encaminha uma especificação para revisão humana. Não aprova requisitos, cria tickets, executa comandos propostos nem escreve código de produção.
 
@@ -52,5 +52,32 @@
 
 ### T3b.2 — Conectar descoberta e encaminhar para SPEC (pendente)
 
+#### T3b.2a — Acompanhar lacunas e respostas no Core
+
+**Objetivo:** implementar o contrato determinístico entre o filtro de T3a e a revisão humana. A função de rodada usa `select_discovery_questions`; as operações devolvem um novo estado em memória, sem acoplar o processamento ao runtime ou à CLI. A futura rota de T3b.2b será responsável pelo estado operacional, invocações do agente e encaminhamento.
+
+- Começar sem rodadas e sem lacunas. Cada rodada válida incorpora as perguntas não cosméticas por ID; limitar a 3 rodadas registradas e 16 lacunas materiais distintas na sessão. Uma proposta inválida, acima dos limites ou que altere o conteúdo de um ID material conhecido falha sem avanço parcial. Uma pergunta material reapresentada com os mesmos campos é preservada; omitir uma lacuna numa rodada posterior, inclusive enviando `{'gaps': []}`, não a remove nem muda sua resolução. Para reformular, usar novo ID e ainda tratar a lacuna anterior.
+- Somente o chamador humano confiável registra e confirma respostas por ID. Aceitar resposta `str` de 1–1024 caracteres, sem espaços nas pontas, para ID material conhecido. Resposta registrada permanece **não confirmada** até confirmação explícita da resolução, vinculada ao ID e aos bytes UTF-8 da resposta (SHA-256). Trocar a resposta invalida a confirmação anterior; repetir exatamente a mesma preserva a confirmação. Confirmar sem resposta ou com digest antigo falha. O Core não infere se a resposta é semanticamente suficiente; a pessoa da rota confiável decide se confirma ou se mantém a lacuna em aberto. Respostas e confirmações podem ocorrer após a terceira rodada; atingir o limite não resolve nenhuma lacuna.
+- A consulta devolve as lacunas abertas em ordem ASCII de ID e se a sessão está pronta **para revisão documental**: pelo menos uma rodada válida e nenhuma lacuna aberta. Uma primeira rodada vazia pode permitir revisão, mas nunca equivale a aprovação da especificação. A aprovação do snapshot e a validação real de T3b.1 continuam obrigatórias para encaminhar. Nenhum modelo, subprocesso, arquivo, SQLite, UI ou configuração de rede é acionado por este recorte.
+- **Arquivos permitidos:** novo `udh/discovery_session.py`, novo `tests/test_discovery_session.py` e documentação ativa. Python stdlib. Verificar com `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_discovery_session.py'` e a suíte complementar de `STATE.md`.
+
+| ID | Critério de T3b.2a | Teste complementar proposto |
+|---|---|---|
+| C5-T3b.2a-01 | Omissão ou reapresentação não apaga lacunas. Revisão documental exige rodada válida e nenhuma lacuna aberta; uma proposta só cosmética não cria lacunas. | `test_accumulates_material_gaps_without_silent_removal`; `test_empty_proposal_only_allows_document_review` |
+| C5-T3b.2a-02 | Resposta sem confirmação não fecha lacuna; confirmação vincula o conteúdo exato e se perde quando ele muda. Identidade desconhecida ou confirmação obsoleta falham. | `test_resolution_requires_confirmation_for_current_answer` |
+| C5-T3b.2a-03 | Exceder limite ou contradizer ID conhecido não muda o estado recebido; respostas continuam possíveis após o limite de rodadas. | `test_round_limits_and_conflicting_ids_are_atomic` |
+
+#### T3b.2b — Integrar o agente e executar o encaminhamento real
+
 - Candidato de execução: Pi com `allowed_tools=()`, Gateway sem ferramentas, `network=none` no runtime e workspace temporário descartável sem montagem da árvore do projeto ou da TrustStore. O adaptador hoje monta o workspace fornecido como gravável; portanto só pode receber o diretório descartável, não a árvore real. A skill conferida é entregue como contexto de dados selecionado pelo Core, sem acionar o carregador de skills do Pi. O Core interpreta apenas a saída estruturada, aplica T3a a cada rodada e recebe as respostas humanas por ID. O complemento de T3b.2 ainda deve fixar os limites de rodada, contrato da proposta documental, ponto de revalidação da aprovação e arquivos permitidos antes de codificar.
 - **Bloqueios observados:** o checkout não apresentou cópia de `grill-me-with-docs` para conferir contra o SHA-256 do DELTA-03. Solicitar a cópia original ou um caminho local autorizado. O Gateway atual só oferece `stub` e `openrouter_free`: o primeiro exercita o protocolo, mas não mede materialidade das perguntas; o segundo depende de rede e não satisfaz a jornada offline. Identificar e aprovar uma fonte local de inferência antes de prometer o ensaio positivo de `DISC-01`.
+
+### T3-org — Agrupar os módulos de descoberta e SPEC
+
+**Estado:** proposta sem aprovação, adiada em favor de T3b.2. Agrupar somente os módulos já entregues em T3a e T3b.1. O mapa do `README.md` cobre as demais áreas. Não há mudança de requisitos de `DISC-01` ou de estado operacional.
+
+- Mover a implementação do filtro para `udh/specification/discovery.py` e a do validador para `udh/specification/handoff.py`, em um pacote Python `udh/specification/`. Mover a lógica antes de qualquer ajuste funcional; não alterar algoritmos, mensagens, limites ou CLI.
+- Preservar `udh.discovery` e `udh.spec_handoff` como módulos pequenos de compatibilidade, exportando os mesmos símbolos públicos. Os dois módulos antigos devem devolver os mesmos objetos de função, classes de erro e resultado que os caminhos novos. Os testes complementares existentes podem atualizar referências a detalhes privados do validador para o módulo de implementação, sem relaxar cenários nem asserções.
+- **Arquivos permitidos:** os dois módulos existentes e os três novos arquivos Python sob `udh/specification/` (`__init__.py`, `discovery.py`, `handoff.py`), `tests/test_discovery.py`, `tests/test_spec_handoff.py` e a documentação ativa. Sem dependências novas, migração SQLite ou mudanças em `runtime/`, testes de aceite, selos, histórico e baseline.
+
+**Critério de conclusão:** verificar igualdade dos símbolos públicos pelos dois caminhos de importação, `python3 -m udh --help` e `python3 -m udh.web --help`, os testes focados de descoberta e validação (com OpenSpec real) e toda a suíte complementar de `STATE.md`, sem regressão. Registrar em um commit dedicado na branch do Change 5.

@@ -15,7 +15,7 @@ O uso de OpenSpec neste repositório é **documental adaptado**: requisitos e pl
 
 Antes de implementar: confirmar escopo/arquivos/critério de pronto no change, registrar aprovação humana e verificar o incremento. Mudança de requisito exige delta explícito. Não duplicar requisitos em README, STATE, MEMORY ou diagnósticos externos.
 
-O [Change 5](changes/discover-plan-tickets/tasks.md) segue em branch dedicada. T3b.1 passou nos testes complementares; o aceite oficial do change e a integração em `main` continuam sujeitos aos gates de fechamento.
+O [Change 5](changes/discover-plan-tickets/tasks.md) segue em branch dedicada. T3b.2a passou nos testes complementares; o aceite oficial do change e a integração em `main` continuam sujeitos aos gates de fechamento.
 
 ## Engenharia, bootstrap e política de evidências
 

@@ -14,15 +14,15 @@ Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte no
 
 ## Pendente
 
-- **Change 5 em andamento:** T2 valida contrato e aceite de predecessoras (SQLite v8 opt-in). T3a filtra perguntas; T3b.1 valida snapshots aprovados com OpenSpec 2.1.1. Aceite oficial de `TICKET-01`, `DISC-01` e `TICKET-02` pendentes.
+- **Change 5 em andamento:** T2 valida contratos e dependências (SQLite v8 opt-in). T3 filtra perguntas, acompanha lacunas com confirmação humana em memória e valida snapshots com OpenSpec 2.1.1. Aceite oficial de `TICKET-01`, `DISC-01` e `TICKET-02` pendentes.
 - **Restante do produto:** perfil `provision` (`B2.4`), execução protegida persistente (`B3.8`) e exportação (`B3.9`), `DOC-01/02`, `SKILL-01/02`, `UX-04`, terceiro agente (Codex), WSL2 (`B1.1b`), Chromium/Chrome, Memorix, Judge consultivo e instalador. Ainda não é MVP liberável completo.
 
 ## Próxima tarefa
 
-Na branch `feat/change5-discover-plan-tickets`, detalhar e aprovar [T3b.2](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#t3b2--conectar-descoberta-e-encaminhar-para-spec-pendente). Faltam a skill original e uma rota de inferência offline.
+Na branch `feat/change5-discover-plan-tickets`, detalhar e aprovar [T3b.2b](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#t3b2b--integrar-o-agente-e-executar-o-encaminhamento-real). Faltam a skill original e a inferência offline. T3-org adiada.
 
 ## Verificação
 
-- `UDH_TEST_OPENSPEC="$(command -v openspec)" PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests` (206 PASS, incluindo CLI real; AT selados e R2/F-02 pendentes para o fechamento).
+- `UDH_TEST_OPENSPEC="$(command -v openspec)" PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests` (210 PASS, incluindo CLI real; AT selados e R2/F-02 pendentes para o fechamento).
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m udh doctor --conformance` (`READY`: `['pi', 'opencode']`), `PYTHONDONTWRITEBYTECODE=1 python3 -m udh.poc` (4/4 PASS) e `python3 -m udh.web --db <path> --store <path>`.
 - [README](README.md) para entrada. Não abrir credenciais nem limpar `spike/slice0/workspace/` sem autorização.
