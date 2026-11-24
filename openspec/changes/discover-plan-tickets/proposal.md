@@ -1,6 +1,6 @@
 # Change 5 — Da descoberta ao plano de tickets
 
-- **Estado:** T1 e T2 implementadas e verificadas com testes complementares. T3 e T4 aguardam detalhamento e aprovação; o aceite oficial do change segue pendente.
+- **Estado:** T1, T2 e T3a implementadas e verificadas com testes complementares. T3b e T4 requerem detalhamento e aprovação. O aceite oficial do change segue pendente.
 - **Branch:** `feat/change5-discover-plan-tickets`, a partir de `main` em `ef9c15d`.
 - **Base normativa:** [baseline rastreado](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (DELTA-03–05, ADR-023/024/026/027, B4.2, F-03) e [governança do projeto](../../project.md).
 
@@ -31,13 +31,13 @@ O validador recebe duas estruturas Python já decodificadas: `approved_spec`, do
 
 ## Condições para fechar o change
 
-- **DISC-01:** em uma jornada offline, uma ideia sem lacuna material não gera perguntas; uma ideia com lacuna que afeta o comportamento gera pergunta sobre essa lacuna, sem perguntas cosméticas. Descoberta não escreve código de produção nem cria plano paralelo. O handoff exige aprovação humana e validação real dos artefatos OpenSpec. Confirmar suporte via `openspec --help`; se a CLI ou `validate <change> --strict` não estiver disponível, bloquear o handoff e registrar o motivo. A CLI não está no `PATH` deste checkout. O processo documental do repositório e dublês não comprovam o caminho positivo real. Versão, proveniência e forma de disponibilização da CLI precisam de aprovação antes de integrar a dependência.
+- **DISC-01:** em uma jornada offline, uma ideia sem lacuna material não gera perguntas; uma ideia com lacuna que afeta o comportamento gera pergunta sobre essa lacuna, sem perguntas cosméticas. Descoberta não escreve código de produção nem cria plano paralelo. O handoff exige aprovação humana e validação real dos artefatos OpenSpec. Confirmar suporte via `openspec --help`; se a CLI ou `validate <change> --strict` não estiver disponível, bloquear o handoff e registrar o motivo. A [sondagem do host](t3-discovery-and-spec-handoff.md#t3b--skill-autorizada-e-handoff-real) confirma disponibilidade do comando, não o caminho positivo. A integração no executor requer aprovação própria.
 - **TICKET-01:** o Core materializa tarefas pequenas aprovadas diretamente; decomposição, quando necessária, entra como proposta e passa pelos mesmos gates. Repetir a materialização, inclusive após reabrir o SQLite, conserva IDs e não duplica registros. Um ticket com predecessora ainda não aceita não pode iniciar. Troca de versão ou hash torna o plano anterior obsoleto para novos inícios até reconciliação explícita, preservando histórico e evidências.
 - **Gate B4.2 (T2):** na mesma operação de autorização de início, o Core verifica o vínculo de cada cenário aprovado com seu AT protegido. Mesmo com todas as predecessoras aceitas, um critério sem AT impede início, salvo exceção explícita para protótipo ou spike rotulado. As verificações propostas por um agente não suprem esse gate.
 - **TICKET-02:** em um cenário offline com duas tarefas dependentes, o segundo ticket começa somente após evidência confiável e aceite do primeiro; a troca `Pi → OpenCode` recupera o contexto autorizado a partir do estado persistido, do checkpoint F-03 e das referências verificadas, sem transcrição da sessão. A POC-03 existente é regressão, não evidência do novo cenário.
 
 ## Decisões pendentes após T1
 
-- Persistência: o [delta de T2](t2-persistence-and-start.md) registra T2a implementada; o gate de início ainda precisa de detalhamento em T2b.3.
+- Persistência: o [delta de T2](t2-persistence-and-start.md) registra a materialização e o gate de início já implementados; falta evidência oficial no fechamento.
 - PLAN completo (DELTA-05): T1 cobre apenas a validação estrutural. O delta de T2 deve especificar as dependências e referências de contexto permitidas na entrada e a representação de lacunas na proposta, sem transformar lacuna em autorização. T4 deve verificar o uso desse contexto no handoff.
-- Descoberta: confirmar proveniência e carregamento autorizado da skill prevista no DELTA-03, a CLI compatível e as regras de classificação/roteamento aplicáveis. A avaliação futura deve usar entradas offline fixas e rubricar materialidade, ausência de escrita e handoff; um dublê cobre o contrato determinístico, não a qualidade da descoberta nem o handoff real.
+- Descoberta: o [delta de T3](t3-discovery-and-spec-handoff.md) registra o filtro implementado em T3a e os pré-requisitos da integração real em T3b.

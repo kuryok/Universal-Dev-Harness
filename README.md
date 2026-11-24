@@ -19,4 +19,4 @@ Os testes usam Python 3 (stdlib-only), Podman rootless e as 3 imagens OCI locais
 
 `DISCOVER`/`SPEC`/`PLAN`, multi-ticket DAG (`TICKET-01/02`), perfil `provision` (`B2.4`), execução persistente (`B3.8`), exportação (`B3.9`), `DOC`/`SKILL`/`UX-04`, terceiro agente (Codex), Chromium/Chrome e WSL2 continuam pendentes (`NOT_RUN`); o projeto ainda não é um MVP liberável completo.
 
-Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), o plano persistido e o início condicionado ao aceite das predecessoras (T2) passaram nos testes complementares. A descoberta e a troca de agente sobre esse plano ainda estão pendentes.
+Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), o plano persistido, o início condicionado ao aceite das predecessoras e o filtro de perguntas de descoberta passaram nos testes complementares. O encaminhamento para SPEC e a troca de agente sobre esse plano ainda estão pendentes.
