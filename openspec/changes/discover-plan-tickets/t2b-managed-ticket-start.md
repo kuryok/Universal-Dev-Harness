@@ -1,6 +1,6 @@
 # T2b — Início de tickets gerenciados
 
-- **Estado:** T2b.1 e T2b.2 implementadas. O usuário aprovou T2b.3 em 24/11/2026. T2b.3a implementada e verificada (4 novos testes; 192 complementares PASS); T2b.3b pendente.
+- **Estado:** T2b implementada. O usuário aprovou T2b.3 em 24/11/2026. T2b.3b verificada com 5 testes novos (27 focados e 197 complementares PASS); aceite oficial fica para o fechamento.
 - **Base:** [delta de T2](t2-persistence-and-start.md) e [baseline](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md), DELTA-05, B4.2, F-02 e ADR-028.
 
 ## T2b.1 — Vincular ticket a run, mantendo o início bloqueado
@@ -67,7 +67,7 @@ Migrar explicitamente SQLite v5 → v6, em `BEGIN IMMEDIATE`, acrescentando apen
 |---|---|---|
 | C5-T2b.3a-01 | Migração preserva histórico, reaplicação é no-op e falha após DDL reverte esquema e versão. | `test_v8_acceptance_migration_preserves_runs_and_rolls_back` |
 | C5-T2b.3a-02 | Aceita `DONE` com F-04 e F-02 válidos; replay é histórico e não sobrescreve. Recusa `DONE` sozinho, revisão sem confirmação, autoavaliação, achado não resolvido, relatório adulterado e identidade de candidato divergente. | `test_records_official_acceptance_and_replays`; `test_requires_bound_trusted_at_and_independent_review`; `test_rejects_new_acceptance_after_approval_changes` |
-| C5-T2b.3b-01 | Raiz só inicia com contrato válido; sucessora só inicia após aceite da predecessora da mesma geração. Evidência ausente/adulterada, selo divergente ou `DONE` sem aceite deixam estado e journal intocados. | `test_starts_successor_only_after_official_acceptance`; `test_refuses_stale_or_tampered_gate_inputs` |
+| C5-T2b.3b-01 | Raiz só inicia com contrato válido; sucessora só inicia após aceite da predecessora da mesma geração. Evidência ausente/adulterada, selo divergente ou `DONE` sem aceite deixam estado e journal intocados. | `test_starts_successor_only_after_official_acceptance`; `test_refuses_stale_or_tampered_gate_inputs`; `test_successor_cannot_reuse_acceptance_after_approval_cycle` |
 | C5-T2b.3b-02 | Aprovação concorrente e início são serializados; replay exato retorna o início já registrado. O caminho legado continua funcionando. | `test_start_and_approval_are_serialized`; `test_managed_start_replay_and_legacy_start` |
 
 **Arquivos propostos:** T2b.3a: `udh/migrations.py`, `udh/store.py`, `udh/ticket_store.py`, `udh/service.py`, `udh/trust_store.py`, novo `udh/ticket_acceptance.py` e `tests/test_managed_ticket_acceptance.py`. T2b.3b: `udh/store.py`, `udh/ticket_store.py`, `udh/service.py` e `tests/test_managed_ticket_runs.py`. Ambos atualizam a documentação ativa. Rodar os testes focados desses dois módulos via `unittest discover -s tests -p '<arquivo>'`, depois a suíte complementar indicada em `STATE.md`. O fechamento do change exige evidência oficial do executor confiável e os demais gates de `tasks.md`.

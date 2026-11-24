@@ -1,6 +1,6 @@
 # Change 5 — Da descoberta ao plano de tickets
 
-- **Estado:** T1, T2a, T2b.1, T2b.2 e T2b.3a implementadas. T2b.3b está aprovada e pendente; T3 e T4 aguardam detalhamento e aprovação.
+- **Estado:** T1 e T2 implementadas e verificadas com testes complementares. T3 e T4 aguardam detalhamento e aprovação; o aceite oficial do change segue pendente.
 - **Branch:** `feat/change5-discover-plan-tickets`, a partir de `main` em `ef9c15d`.
 - **Base normativa:** [baseline rastreado](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (DELTA-03–05, ADR-023/024/026/027, B4.2, F-03) e [governança do projeto](../../project.md).
 

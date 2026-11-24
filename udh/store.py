@@ -610,7 +610,7 @@ class SQLiteStore:
                 connection.rollback()
                 raise
 
-    def start_v4(self, request, *, created_at: str) -> dict:
+    def start_v4(self, request, *, created_at: str, trust_store=None) -> dict:
         with self._connection('rw') as connection:
             connection.execute('BEGIN IMMEDIATE')
             try:
@@ -627,12 +627,13 @@ class SQLiteStore:
                     self._load_v4(connection, existing['run_id'])
                     stored = self._row_to_transition(existing)
                 else:
-                    if version >= 6 and connection.execute(
-                        'SELECT 1 FROM managed_ticket_runs WHERE run_id = ?', (request.run_id,),
-                    ).fetchone() is not None:
-                        raise ConflictError('Gate de início gerenciado ainda indisponível.')
+                    binding = TicketStore._binding(connection, request.run_id) if version >= 6 else None
+                    if binding is not None:
+                        TicketStore.require_start_context(version, trust_store)
                     current = self._load_v4(connection, request.run_id)
                     request.check_state(current)
+                    if binding is not None:
+                        TicketStore(self).authorize_start(connection, current, trust_store)
                     next_rev = current.revision + 1
                     connection.execute(
                         'INSERT INTO "transitions" (run_id, revision, operation, kind, from_state, to_state, '

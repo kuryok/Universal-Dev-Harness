@@ -326,6 +326,56 @@ class TicketStore:
         return db.execute('SELECT * FROM managed_ticket_runs WHERE run_id = ?', (run_id,)).fetchone()
 
     @classmethod
+    def _plan_ticket(cls, db, key, digest, ticket_id):
+        row, source = cls._plan(db, key), cls._input(db, key)
+        if row is None or row['plan_sha256'] != digest or source is None:
+            raise CoreError('Plano ou entrada aprovada inválidos para o contrato.')
+        spec = _decode(source['input_json'], source['input_sha256'], key)
+        plan = _decode(row['plan_json'], row['plan_sha256'], key)
+        try:
+            validated = validate_ticket_plan({**dict(zip(_IDENTITY_FIELDS, key)), 'tasks': spec.get('tasks')}, plan)
+        except TicketPlanError as error:
+            raise CoreError(str(error)) from error
+        ticket = next((item for item in validated['tickets'] if item['id'] == ticket_id), None)
+        if ticket is None:
+            raise CoreError('Ticket ausente do plano aprovado.')
+        return ticket
+
+    @staticmethod
+    def require_start_context(version, trust_store):
+        if version < 8 or not isinstance(trust_store, TrustStore):
+            raise ConflictError('Gate de início gerenciado exige SQLite v8 e TrustStore do Core.')
+
+    def authorize_start(self, db, run, trust_store):
+        """Exige contrato e aceites vigentes dentro da transação de START_RUN."""
+        bound = self.bound_contract(db, 8, run, require_current=True)
+        if bound is None:
+            raise ConflictError('A execução não possui vínculo gerenciado.')
+        contract = bound['contract']
+        key = tuple(contract[field] for field in _IDENTITY_FIELDS)
+        ticket = self._plan_ticket(db, key, contract['plan_sha256'], contract['ticket_id'])
+        payload = {field: value for field, value in contract.items() if field not in _BINDING_FIELDS}
+        pairs = {(item['task_id'], item['criterion_id']) for item in ticket['coverage']}
+        if normalize_contract(payload, pairs) != payload:
+            raise CoreError('Contrato de início diverge da cobertura aprovada.')
+        verify_contract_seal(contract, trust_store)
+
+        for prior in ticket['depends_on']:
+            accepted = db.execute('''SELECT a.* FROM managed_ticket_runs AS m
+                                    JOIN managed_ticket_acceptances AS a ON a.run_id = m.run_id
+                                    WHERE m.change_id = ? AND m.spec_version = ? AND m.spec_sha256 = ?
+                                    AND m.approval_revision = ? AND m.plan_sha256 = ? AND m.ticket_id = ?''',
+                                  (*key, contract['approval_revision'], contract['plan_sha256'], prior)).fetchone()
+            if accepted is None:
+                raise ConflictError(f'Predecessora {prior} sem aceite oficial nesta geração.')
+            snapshot = self._verified_acceptance_snapshot(
+                db, accepted['run_id'], accepted['run_revision'], accepted['at_evidence_id'],
+                accepted['review_evidence_id'], trust_store,
+            )
+            if _encode(snapshot) != (accepted['snapshot_json'], accepted['snapshot_sha256']):
+                raise CoreError(f'Aceite oficial da predecessora {prior} diverge das evidências verificadas.')
+
+    @classmethod
     def bound_contract(cls, db, version, run, *, require_current):
         """Lê e confere o contrato dentro da transação do chamador."""
         binding = cls._binding(db, run.run_id) if version >= 6 else None
@@ -369,17 +419,9 @@ class TicketStore:
             if head['active_plan_sha256'] != binding['plan_sha256']:
                 raise ConflictError('O contrato exige o plano ativo da revisão aprovada.')
 
-            row = self._plan(db, key)
-            source = self._input(db, key)
-            if (row is None or row['plan_sha256'] != binding['plan_sha256'] or source is None
-                    or (run.spec_id, run.spec_version, run.ticket_id) != (*key[:2], binding['ticket_id'])):
-                raise CoreError('Plano, entrada aprovada ou vínculo inválido para o contrato.')
-            spec = _decode(source['input_json'], source['input_sha256'], key)
-            plan = _decode(row['plan_json'], row['plan_sha256'], key)
-            validated = validate_ticket_plan({**dict(zip(_IDENTITY_FIELDS, key)), 'tasks': spec.get('tasks')}, plan)
-            ticket = next((item for item in validated['tickets'] if item['id'] == binding['ticket_id']), None)
-            if ticket is None:
-                raise CoreError('Ticket ausente do plano aprovado.')
+            if (run.spec_id, run.spec_version, run.ticket_id) != (*key[:2], binding['ticket_id']):
+                raise CoreError('Vínculo inválido para o contrato.')
+            ticket = self._plan_ticket(db, key, binding['plan_sha256'], binding['ticket_id'])
             pairs = {(item['task_id'], item['criterion_id']) for item in ticket['coverage']}
             content = {**{field: binding[field] for field in _BINDING_FIELDS}, **normalize_contract(contract, pairs)}
             text, digest = _encode(content)
@@ -459,6 +501,14 @@ class TicketStore:
         return {**snapshot, 'request_id': row['request_id'], 'created_at': row['created_at'],
                 'snapshot_sha256': row['snapshot_sha256']}
 
+    def _verified_acceptance_snapshot(self, db, run_id, expected_revision, at_evidence_id, review_evidence_id,
+                                      trust_store):
+        run, bound, at = self._acceptance_at(db, run_id, expected_revision, at_evidence_id)
+        review = review_evidence(run, at, review_evidence_id)
+        snapshot = verified_snapshot(run, bound, at, trust_store)
+        verify_review(trust_store, review, snapshot)
+        return {**snapshot, 'review_evidence_id': review.evidence_id, 'review_evidence_sha256': review.evidence_sha256}
+
     def accept(self, run_id, *, expected_revision, request_id, at_evidence_id, review_evidence_id,
                trust_store, created_at):
         self._acceptance_inputs(run_id, expected_revision, request_id, at_evidence_id, trust_store)
@@ -472,11 +522,9 @@ class TicketStore:
                 return self._accepted(row)
             if db.execute('SELECT 1 FROM managed_ticket_acceptances WHERE run_id = ?', (run_id,)).fetchone():
                 raise ConflictError('A execução já possui aceite oficial imutável.')
-            run, bound, at = self._acceptance_at(db, run_id, expected_revision, at_evidence_id)
-            review = review_evidence(run, at, review_evidence_id)
-            snapshot = verified_snapshot(run, bound, at, trust_store)
-            verify_review(trust_store, review, snapshot)
-            snapshot.update(review_evidence_id=review.evidence_id, review_evidence_sha256=review.evidence_sha256)
+            snapshot = self._verified_acceptance_snapshot(
+                db, run_id, expected_revision, at_evidence_id, review_evidence_id, trust_store,
+            )
             raw, digest = _encode(snapshot)
             db.execute('''INSERT INTO managed_ticket_acceptances (run_id, request_id, run_revision, at_evidence_id,
                           review_evidence_id, snapshot_json, snapshot_sha256, created_at)

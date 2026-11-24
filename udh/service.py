@@ -509,10 +509,11 @@ class CoreService:
                                   authorization_id=str(uuid4()), context=context)
 
     def start(self, run_id: str, expected_revision: int, request_id: str,
-              *, actor_route: str = 'CORE_LOCAL') -> dict:
+              *, actor_route: str = 'CORE_LOCAL', trust_store: TrustStore | None = None) -> dict:
+        """A TrustStore para início gerenciado vem apenas do chamador local confiável."""
         request = StartRequest(require_canonical_uuid(run_id, 'Identificador da execução'),
                                expected_revision, request_id, actor_route=actor_route)
-        return self.store.start_v4(request, created_at=_utc_now())
+        return self.store.start_v4(request, created_at=_utc_now(), trust_store=trust_store)
 
     def block_v4(self, run_id: str, expected_revision: int, request_id: str,
                  *, category: str, reason_code: str, reason: str, next_action: str,
