@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "adapter_name": "opencode",
+  "stack_profile": "python3-stdlib-v1",
+  "image_repository": "localhost/udh-runtime-opencode",
+  "image_tag": "change3",
+  "image_digest": "sha256:7af7a5d4922697c3fa8fca54a40d971b2b8f6e5bf2d625b34a26f3a6a773e770",
+  "image_ref": "localhost/udh-runtime-opencode@sha256:7af7a5d4922697c3fa8fca54a40d971b2b8f6e5bf2d625b34a26f3a6a773e770",
+  "opencode_version": "1.18.35",
+  "opencode_bin": "/opt/udh/bin/opencode",
+  "node_bin": "/opt/udh/bin/node",
+  "bridge_path": "/opt/udh/bridge.mjs",
+  "bridge_sha256": "af541261db23e22ad0ad49ca52335b2b12d2770672ea99f480c38d407f37cd74",
+  "smoke_verified": {
+    "python_stdlib": "PY_STDLIB_OK",
+    "opencode_version": "1.18.35",
+    "bridge_syntax": "BRIDGE_OK"
+  }
+}

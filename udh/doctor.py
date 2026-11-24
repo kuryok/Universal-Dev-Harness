@@ -8,12 +8,20 @@ import pwd
 import shutil
 import subprocess
 
+from .adapters.opencode import OpenCodeAdapter
 from .adapters.pi import PiAdapter
 from .domain import CoreError, strict_json_loads
 from .policy import policy_v2_sha256
-from .runtime import DEFAULT_MANIFEST_PATH, RuntimeIsolationError, RuntimeManager
+from .runtime import (
+    DEFAULT_MANIFEST_PATH,
+    DEFAULT_OPENCODE_MANIFEST_PATH,
+    RuntimeIsolationError,
+    RuntimeManager,
+)
 from .store import SQLiteStore
-from .trust_store import TrustStore, _read_regular_nofollow, default_store_dir
+from .trust_store import ADAPTER_NAME_RE, TrustStore, _read_regular_nofollow, default_store_dir
+
+CANONICAL_ADAPTER_ORDER = ('pi', 'opencode')
 
 
 def _read_text(path: Path) -> str | None:
@@ -105,8 +113,18 @@ def _collect_probes(env_probes: Mapping | None) -> dict:
     }
 
 
-def _read_conformance_readonly(store_path: Path, *, policy_sha256: str, image_digest: str) -> dict | None:
-    target = store_path / 'conformance.json'
+def _read_conformance_readonly(
+    store_path: Path,
+    *,
+    policy_sha256: str,
+    image_digest: str,
+    adapter_name: str = 'pi',
+) -> dict | None:
+    if not isinstance(adapter_name, str) or not ADAPTER_NAME_RE.fullmatch(adapter_name):
+        return {'status': 'STALE', 'reason': 'invalid_adapter_name'}
+    target = store_path / f'conformance-{adapter_name}.json'
+    if not target.exists() and not target.is_symlink() and adapter_name == 'pi':
+        target = store_path / 'conformance.json'
     if not target.exists() and not target.is_symlink():
         return None
     try:
@@ -116,6 +134,12 @@ def _read_conformance_readonly(store_path: Path, *, policy_sha256: str, image_di
         return {'status': 'STALE', 'reason': 'corrupt_conformance_cache'}
     if not isinstance(parsed, dict):
         return {'status': 'STALE', 'reason': 'invalid_conformance_cache'}
+    if parsed.get('adapter_name') != adapter_name:
+        return {
+            'status': 'STALE',
+            'reason': 'adapter_name_mismatch',
+            'cached_adapter_name': parsed.get('adapter_name'),
+        }
     if parsed.get('policy_sha256') != policy_sha256 or parsed.get('image_digest') != image_digest:
         return {
             'status': 'STALE',
@@ -126,10 +150,183 @@ def _read_conformance_readonly(store_path: Path, *, policy_sha256: str, image_di
     return parsed
 
 
-def _evaluate_runtime_from_probe(rt_probe: Mapping, *, run_conformance: bool) -> dict:
+def _normalize_requested_adapters(
+    adapters: tuple[str, ...] | list[str] | None,
+    *,
+    manifest_path: Path | None,
+    opencode_manifest_path: Path | None,
+) -> tuple[str, ...]:
+    if adapters is None:
+        if manifest_path is not None and opencode_manifest_path is None:
+            return ('pi',)
+        return CANONICAL_ADAPTER_ORDER
+    seen: set[str] = set()
+    for name in adapters:
+        if name not in CANONICAL_ADAPTER_ORDER:
+            raise CoreError(f'Adaptador não suportado em doctor: {name!r}.')
+        seen.add(name)
+    if not seen:
+        raise CoreError('Lista de adaptadores para doctor não pode ser vazia.')
+    return tuple(name for name in CANONICAL_ADAPTER_ORDER if name in seen)
+
+
+def _aggregate_runtime_entries(
+    adapter_entries: dict[str, dict],
+    *,
+    requested_adapters: tuple[str, ...],
+    pol_sha: str,
+    run_conformance: bool,
+    store_dir: str | None = None,
+) -> dict:
+    conformant = [
+        name for name in requested_adapters
+        if adapter_entries[name].get('conformance_status') == 'PASS'
+    ]
+    all_pass = bool(requested_adapters) and len(conformant) == len(requested_adapters)
+    any_fail = any(adapter_entries[name].get('conformance_status') == 'FAIL' for name in requested_adapters)
+    all_missing_img = all(not adapter_entries[name].get('image_present') for name in requested_adapters)
+    any_missing_img = any(not adapter_entries[name].get('image_present') for name in requested_adapters)
+    any_stale = any(adapter_entries[name].get('conformance_status') == 'STALE' for name in requested_adapters)
+
+    primary = adapter_entries.get('pi') or adapter_entries[requested_adapters[0]]
+    details: dict = {
+        'image_present': any(adapter_entries[n].get('image_present') for n in requested_adapters),
+        'image_digest': primary.get('image_digest'),
+        'policy_sha256': pol_sha,
+        'conformant_adapters': conformant,
+        'adapters': adapter_entries,
+    }
+    if store_dir is not None:
+        details['store_dir'] = store_dir
+
+    if all_pass:
+        details['conformance_status'] = 'PASS'
+        return {
+            'id': 'runtime_components',
+            'status': 'READY',
+            'reason_code': 'RUNTIME_PI_CONFORMANT' if requested_adapters == ('pi',) else 'RUNTIME_ADAPTERS_CONFORMANT',
+            'message': f"Imagens OCI por digest verificadas e adaptadores {', '.join(conformant)} conformes para a política vigente.",
+            'next_action': 'Nenhuma ação necessária.',
+            'details': details,
+        }
+
+    if run_conformance:
+        if all_missing_img or (any_missing_img and not any_fail):
+            details['conformance_status'] = 'MISSING'
+            return {
+                'id': 'runtime_components',
+                'status': 'NOT_READY',
+                'reason_code': 'AGENT_IMAGE_NOT_BUILT',
+                'message': 'Uma ou mais imagens OCI dedicadas por digest estão ausentes no storage local do Podman.',
+                'next_action': 'Construa as imagens com python3 runtime/build_image.py --target all e reexecute python3 -m udh doctor --conformance.',
+                'details': details,
+            }
+        details['conformance_status'] = 'FAIL'
+        return {
+            'id': 'runtime_components',
+            'status': 'NOT_READY',
+            'reason_code': 'ADAPTER_CONFORMANCE_FAILED',
+            'message': 'A prova de conformance de um ou mais adaptadores falhou.',
+            'next_action': 'Inspecione details.adapters, corrija o runtime e reexecute python3 -m udh doctor --conformance.',
+            'details': details,
+        }
+
+    # Consulta passiva (run_conformance=False) alinhada à B1.3
+    if conformant:
+        details['conformance_status'] = 'PARTIAL'
+        return {
+            'id': 'runtime_components',
+            'status': 'LIMITED',
+            'reason_code': 'RUNTIME_PARTIAL_CONFORMANT',
+            'message': f"Conformidade parcial: {', '.join(conformant)} conforme(s); demais adaptadores pendentes ou indisponíveis.",
+            'next_action': 'Execute python3 -m udh doctor --conformance para validar todos os adaptadores.',
+            'details': details,
+        }
+    if any_fail:
+        details['conformance_status'] = 'FAIL'
+        return {
+            'id': 'runtime_components',
+            'status': 'NOT_READY',
+            'reason_code': 'ADAPTER_CONFORMANCE_FAILED',
+            'message': 'A prova de conformance do adaptador falhou.',
+            'next_action': 'Inspecione o relatório de conformance, corrija o runtime e reexecute python3 -m udh doctor --conformance.',
+            'details': details,
+        }
+    if all_missing_img:
+        details['conformance_status'] = 'MISSING'
+        return {
+            'id': 'runtime_components',
+            'status': 'LIMITED',
+            'reason_code': 'AGENT_IMAGE_NOT_BUILT',
+            'message': 'Imagem OCI dedicada por digest não está disponível no storage local do Podman.',
+            'next_action': 'Execute python3 runtime/build_image.py --target all e depois rode python3 -m udh doctor --conformance.',
+            'details': details,
+        }
+    details['conformance_status'] = 'STALE' if any_stale else 'MISSING'
+    return {
+        'id': 'runtime_components',
+        'status': 'LIMITED',
+        'reason_code': 'CONFORMANCE_STALE_OR_MISSING',
+        'message': 'Imagem OCI presente, mas a conformance do adaptador está ausente ou desatualizada (STALE) para a política/digest atuais.',
+        'next_action': 'Execute python3 -m udh doctor --conformance para validar os adaptadores configurados.',
+        'details': details,
+    }
+
+
+def _evaluate_runtime_from_probe(
+    rt_probe: Mapping,
+    *,
+    run_conformance: bool,
+    requested_adapters: tuple[str, ...] | None = None,
+) -> dict:
+    pol_sha = rt_probe.get('policy_sha256') or policy_v2_sha256()
+
+    if isinstance(rt_probe.get('adapters'), Mapping):
+        raw_adapters = rt_probe['adapters']
+        targets = tuple(
+            name for name in (requested_adapters or CANONICAL_ADAPTER_ORDER)
+            if name in raw_adapters
+        )
+        if not targets:
+            targets = tuple(name for name in CANONICAL_ADAPTER_ORDER if name in raw_adapters)
+        if not targets:
+            return {
+                'id': 'runtime_components',
+                'status': 'NOT_READY' if run_conformance else 'LIMITED',
+                'reason_code': 'GATEWAY_AND_ADAPTER_NOT_CONFIGURED',
+                'message': 'Nenhum adaptador configurado no probe de runtime_components.',
+                'next_action': 'Execute python3 -m udh doctor --conformance em ambiente Linux/Podman rootless.',
+                'details': {'image_present': False, 'conformant_adapters': [], 'adapters': {}, 'policy_sha256': pol_sha},
+            }
+        entries: dict[str, dict] = {}
+        for name in targets:
+            item = raw_adapters[name]
+            img_present = bool(item.get('image_present'))
+            cache = item.get('conformance')
+            if not img_present:
+                c_status = 'MISSING'
+            elif isinstance(cache, Mapping) and cache.get('status') in ('PASS', 'FAIL', 'STALE'):
+                c_status = str(cache['status'])
+            else:
+                c_status = 'MISSING'
+            entries[name] = {
+                'image_present': img_present,
+                'image_digest': item.get('image_digest'),
+                'conformance_status': c_status,
+                'conformance_tool_mode': (cache.get('details', {}).get('conformance_tool_mode')
+                                          if isinstance(cache, Mapping) and isinstance(cache.get('details'), Mapping)
+                                          else item.get('conformance_tool_mode')),
+            }
+        return _aggregate_runtime_entries(
+            entries,
+            requested_adapters=targets,
+            pol_sha=pol_sha,
+            run_conformance=run_conformance,
+        )
+
+    # Formato legado single-adapter em env_probes
     image_present = bool(rt_probe.get('image_present'))
     image_digest = rt_probe.get('image_digest')
-    pol_sha = rt_probe.get('policy_sha256') or policy_v2_sha256()
     cache = rt_probe.get('conformance')
 
     if not image_present:
@@ -188,55 +385,44 @@ def _evaluate_runtime_from_probe(rt_probe: Mapping, *, run_conformance: bool) ->
     }
 
 
-def _evaluate_runtime_live(
+def _evaluate_single_adapter_live(
     *,
+    adapter_name: str,
+    manager: RuntimeManager,
     host_ready: bool,
-    store_dir: str | Path | None,
+    resolved_store: Path,
+    pol_sha: str,
     run_conformance: bool,
-    manifest_path: Path | None,
 ) -> dict:
-    pol_sha = policy_v2_sha256()
-    resolved_store = Path(store_dir) if store_dir is not None else default_store_dir()
-    manager = RuntimeManager(manifest_path=manifest_path or DEFAULT_MANIFEST_PATH)
-
     try:
-        manifest = manager.load_manifest()
+        if adapter_name == 'pi':
+            manifest = manager.load_manifest()
+        else:
+            manifest = manager.load_opencode_manifest()
         manager.verify_image_present(manifest.image_ref)
     except (RuntimeIsolationError, CoreError, OSError) as error:
         return {
-            'id': 'runtime_components',
-            'status': 'NOT_READY' if run_conformance else 'LIMITED',
+            'image_present': False,
+            'image_digest': None,
+            'conformance_status': 'MISSING',
             'reason_code': 'AGENT_IMAGE_NOT_BUILT',
-            'message': f'Imagem OCI dedicada por digest indisponível: {error}',
-            'next_action': 'Execute python3 runtime/build_image.py e em seguida python3 -m udh doctor --conformance.',
-            'details': {
-                'image_present': False,
-                'conformant_adapters': [],
-                'policy_sha256': pol_sha,
-                'store_dir': str(resolved_store),
-            },
+            'error': str(error),
         }
 
     if run_conformance:
         if not host_ready:
             return {
-                'id': 'runtime_components',
-                'status': 'NOT_READY',
+                'image_present': True,
+                'image_digest': manifest.image_digest,
+                'conformance_status': 'FAIL',
                 'reason_code': 'CONFORMANCE_PREREQUISITES_NOT_READY',
-                'message': 'Pré-requisitos de host Linux/Podman rootless não estão prontos para executar conformance.',
-                'next_action': 'Resolva os itens NOT_READY do host e reexecute python3 -m udh doctor --conformance.',
-                'details': {
-                    'image_present': True,
-                    'image_digest': manifest.image_digest,
-                    'policy_sha256': pol_sha,
-                    'conformant_adapters': [],
-                },
             }
         try:
             store = TrustStore(resolved_store)
-            adapter = PiAdapter(runtime_manager=manager)
+            adapter = PiAdapter(runtime_manager=manager) if adapter_name == 'pi' else OpenCodeAdapter(runtime_manager=manager)
             res = adapter.run_conformance(trust_store=store, policy_sha256=pol_sha)
             status_val = 'PASS' if res.ok else 'FAIL'
+            tool_mode = res.details.get('conformance_tool_mode', 'zero_tools')
             store.save_conformance(
                 policy_sha256=pol_sha,
                 image_digest=manifest.image_digest,
@@ -248,64 +434,82 @@ def _evaluate_runtime_live(
                     'stop_reason': res.stop_reason,
                     'events_count': res.events_count,
                     'config_integrity_ok': res.config_integrity_ok,
+                    'conformance_tool_mode': tool_mode,
+                    'observed_tool_names': res.details.get('observed_tool_names', []),
                 },
             )
-            if res.ok:
-                return {
-                    'id': 'runtime_components',
-                    'status': 'READY',
-                    'reason_code': 'RUNTIME_PI_CONFORMANT',
-                    'message': f'Conformance do adaptador {res.adapter_name} {res.adapter_version} aprovada atrás do gateway UDS.',
-                    'next_action': 'Nenhuma ação necessária.',
-                    'details': {
-                        'image_present': True,
-                        'image_digest': manifest.image_digest,
-                        'policy_sha256': pol_sha,
-                        'conformant_adapters': [res.adapter_name],
-                        'conformance_status': 'PASS',
-                        'store_dir': str(store.root),
-                    },
-                }
             return {
-                'id': 'runtime_components',
-                'status': 'NOT_READY',
-                'reason_code': 'ADAPTER_CONFORMANCE_FAILED',
-                'message': f'Conformance do adaptador {res.adapter_name} falhou ({res.reason_code}).',
-                'next_action': 'Corrija a configuração de runtime/adaptador e reexecute python3 -m udh doctor --conformance.',
-                'details': {
-                    'image_present': True,
-                    'image_digest': manifest.image_digest,
-                    'policy_sha256': pol_sha,
-                    'conformant_adapters': [],
-                    'conformance_status': 'FAIL',
-                    'adapter_reason_code': res.reason_code,
-                    'store_dir': str(store.root),
-                },
+                'image_present': True,
+                'image_digest': manifest.image_digest,
+                'adapter_version': res.adapter_version,
+                'conformance_status': status_val,
+                'reason_code': res.reason_code,
+                'conformance_tool_mode': tool_mode,
             }
         except (CoreError, OSError) as error:
             return {
-                'id': 'runtime_components',
-                'status': 'NOT_READY',
+                'image_present': True,
+                'image_digest': manifest.image_digest,
+                'conformance_status': 'FAIL',
                 'reason_code': 'ADAPTER_CONFORMANCE_FAILED',
-                'message': f'Erro ao executar conformance do adaptador: {error}',
-                'next_action': 'Verifique permissões do Podman rootless e da TrustStore e tente novamente.',
-                'details': {
-                    'image_present': True,
-                    'image_digest': manifest.image_digest,
-                    'policy_sha256': pol_sha,
-                    'conformant_adapters': [],
-                },
+                'error': str(error),
             }
 
-    cached = _read_conformance_readonly(resolved_store, policy_sha256=pol_sha, image_digest=manifest.image_digest)
-    return _evaluate_runtime_from_probe(
-        {
+    cached = _read_conformance_readonly(
+        resolved_store,
+        policy_sha256=pol_sha,
+        image_digest=manifest.image_digest,
+        adapter_name=adapter_name,
+    )
+    if isinstance(cached, Mapping) and cached.get('status') in ('PASS', 'FAIL', 'STALE'):
+        c_details = cached.get('details') if isinstance(cached.get('details'), Mapping) else {}
+        return {
             'image_present': True,
             'image_digest': manifest.image_digest,
-            'policy_sha256': pol_sha,
-            'conformance': cached,
-        },
-        run_conformance=False,
+            'adapter_version': cached.get('adapter_version'),
+            'conformance_status': str(cached['status']),
+            'conformance_tool_mode': c_details.get('conformance_tool_mode'),
+        }
+    return {
+        'image_present': True,
+        'image_digest': manifest.image_digest,
+        'conformance_status': 'MISSING',
+    }
+
+
+def _evaluate_runtime_live(
+    *,
+    host_ready: bool,
+    store_dir: str | Path | None,
+    run_conformance: bool,
+    manifest_path: Path | None,
+    opencode_manifest_path: Path | None,
+    requested_adapters: tuple[str, ...],
+) -> dict:
+    pol_sha = policy_v2_sha256()
+    resolved_store = Path(store_dir) if store_dir is not None else default_store_dir()
+    manager = RuntimeManager(
+        manifest_path=manifest_path or DEFAULT_MANIFEST_PATH,
+        opencode_manifest_path=opencode_manifest_path or DEFAULT_OPENCODE_MANIFEST_PATH,
+    )
+
+    entries: dict[str, dict] = {}
+    for adapter_name in requested_adapters:
+        entries[adapter_name] = _evaluate_single_adapter_live(
+            adapter_name=adapter_name,
+            manager=manager,
+            host_ready=host_ready,
+            resolved_store=resolved_store,
+            pol_sha=pol_sha,
+            run_conformance=run_conformance,
+        )
+
+    return _aggregate_runtime_entries(
+        entries,
+        requested_adapters=requested_adapters,
+        pol_sha=pol_sha,
+        run_conformance=run_conformance,
+        store_dir=str(resolved_store),
     )
 
 
@@ -316,8 +520,15 @@ def run_doctor(
     store_dir: str | Path | None = None,
     run_conformance: bool = False,
     manifest_path: Path | None = None,
+    opencode_manifest_path: Path | None = None,
+    adapters: tuple[str, ...] | list[str] | None = None,
 ) -> dict:
-    """Executa preflight Linux/Podman rootless, runtime/conformance e verificação profunda opcional do banco."""
+    """Executa preflight Linux/Podman rootless, runtime/conformance multi-agente e verificação profunda opcional do banco."""
+    requested_adapters = _normalize_requested_adapters(
+        adapters,
+        manifest_path=manifest_path,
+        opencode_manifest_path=opencode_manifest_path,
+    )
     probes = _collect_probes(env_probes)
     checks: list[dict] = []
 
@@ -444,13 +655,19 @@ def run_doctor(
 
     if env_probes is not None:
         if 'runtime_components' in probes and isinstance(probes['runtime_components'], Mapping):
-            checks.append(_evaluate_runtime_from_probe(probes['runtime_components'], run_conformance=run_conformance))
+            checks.append(
+                _evaluate_runtime_from_probe(
+                    probes['runtime_components'],
+                    run_conformance=run_conformance,
+                    requested_adapters=requested_adapters,
+                )
+            )
         else:
             checks.append({
                 'id': 'runtime_components',
                 'status': 'NOT_READY' if run_conformance else 'LIMITED',
                 'reason_code': 'GATEWAY_AND_ADAPTER_NOT_CONFIGURED',
-                'message': 'Runtime Manager, Gateway de inferência e adaptador Pi 1.2.0 não foram verificados neste probe.',
+                'message': 'Runtime Manager, Gateway de inferência e adaptadores não foram verificados neste probe.',
                 'next_action': 'Execute python3 -m udh doctor --conformance em ambiente Linux/Podman rootless.',
                 'details': {'gateway': 'NOT_CONFIGURED', 'agent_adapters': 'NOT_CONFIGURED', 'conformant_adapters': []},
             })
@@ -461,6 +678,8 @@ def run_doctor(
                 store_dir=store_dir,
                 run_conformance=run_conformance,
                 manifest_path=manifest_path,
+                opencode_manifest_path=opencode_manifest_path,
+                requested_adapters=requested_adapters,
             )
         )
 

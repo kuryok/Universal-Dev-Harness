@@ -126,6 +126,7 @@ class PiAdapter:
         model: str = DEFAULT_STUB_MODEL,
         limits: ResourceLimits | None = None,
         forbidden_rw_roots: tuple[Path, ...] = (),
+        allowed_tools: tuple[str, ...] | None = None,
         on_started=None,
     ) -> AgentExecutionResult:
         if profile not in self.capabilities.profiles:
@@ -198,7 +199,11 @@ class PiAdapter:
             if profile == 'conformance':
                 pi_cmd.append('--no-tools')
             else:
-                pi_cmd.extend(['--tools', 'read,write,edit,bash'])
+                tools_list = allowed_tools if allowed_tools is not None else ('read', 'write', 'edit', 'bash')
+                if not tools_list:
+                    pi_cmd.append('--no-tools')
+                else:
+                    pi_cmd.extend(['--tools', ','.join(tools_list)])
             pi_cmd.extend(['--system-prompt', system_prompt, prompt])
 
             mounts = (
@@ -330,7 +335,12 @@ class PiAdapter:
                 events_count=result.events_count,
                 config_integrity_ok=result.config_integrity_ok,
                 container_result=result.container_result,
-                details={**result.details, 'expected_marker': expected_marker, 'audit_path': str(audit_path)},
+                details={
+                    **result.details,
+                    'expected_marker': expected_marker,
+                    'audit_path': str(audit_path),
+                    'conformance_tool_mode': 'zero_tools',
+                },
             )
         return AgentExecutionResult(
             adapter_name=result.adapter_name,
@@ -343,5 +353,10 @@ class PiAdapter:
             events_count=result.events_count,
             config_integrity_ok=result.config_integrity_ok,
             container_result=result.container_result,
-            details={**result.details, 'expected_marker': expected_marker, 'audit_path': str(audit_path)},
+            details={
+                **result.details,
+                'expected_marker': expected_marker,
+                'audit_path': str(audit_path),
+                'conformance_tool_mode': 'zero_tools',
+            },
         )

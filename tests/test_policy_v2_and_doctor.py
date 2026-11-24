@@ -244,6 +244,59 @@ class PolicyV2AndDoctorTests(unittest.TestCase):
         auth_stale = svc_v4.authorize_agent_execution(run_v4.run_id, env_probes=probes_stale)
         self.assertEqual((auth_stale['decision'], auth_stale['reason_code']), ('DENY', 'GATEWAY_AND_ADAPTER_NOT_READY'))
 
+    def test_doctor_multi_agent_partial_conformance_canonical_order_and_selector(self):
+        svc_v4 = CoreService(SQLiteStore(self.db_v4))
+        svc_v4.initialize(schema_version=4)
+        run_v4 = svc_v4.create('spec-multi', '1', 'r-multi-auth')
+        svc_v4.start(run_v4.run_id, 0, 'st-multi-auth')
+
+        # 1/2 conforme (pi PASS, opencode FAIL) em consulta passiva -> READY_WITH_LIMITS (B1.3)
+        probes_partial = _healthy_probes()
+        probes_partial['runtime_components'] = {
+            'adapters': {
+                'pi': {'image_present': True, 'image_digest': 'sha256:' + 'a' * 64, 'conformance': {'status': 'PASS'}},
+                'opencode': {'image_present': True, 'image_digest': 'sha256:' + 'b' * 64, 'conformance': {'status': 'FAIL'}},
+            },
+        }
+        rep_partial = run_doctor(env_probes=probes_partial, run_conformance=False)
+        self.assertEqual(rep_partial['overall_status'], 'READY_WITH_LIMITS')
+        rt_p = next(c for c in rep_partial['checks'] if c['id'] == 'runtime_components')
+        self.assertEqual(rt_p['details']['conformant_adapters'], ['pi'])
+        self.assertEqual(
+            svc_v4.authorize_agent_execution(run_v4.run_id, env_probes=probes_partial, adapter='pi')['decision'],
+            'ALLOW',
+        )
+        self.assertEqual(
+            svc_v4.authorize_agent_execution(run_v4.run_id, env_probes=probes_partial, adapter='opencode')['decision'],
+            'DENY',
+        )
+
+        # 2/2 conformes -> READY com ordem canônica ['pi', 'opencode']
+        probes_both = _healthy_probes()
+        probes_both['runtime_components'] = {
+            'adapters': {
+                'opencode': {'image_present': True, 'image_digest': 'sha256:' + 'b' * 64, 'conformance': {'status': 'PASS'}},
+                'pi': {'image_present': True, 'image_digest': 'sha256:' + 'a' * 64, 'conformance': {'status': 'PASS'}},
+            },
+        }
+        rep_both = run_doctor(env_probes=probes_both)
+        self.assertEqual(rep_both['overall_status'], 'READY')
+        rt_b = next(c for c in rep_both['checks'] if c['id'] == 'runtime_components')
+        self.assertEqual(rt_b['details']['conformant_adapters'], ['pi', 'opencode'])
+        self.assertEqual(
+            svc_v4.authorize_agent_execution(run_v4.run_id, env_probes=probes_both, adapter='opencode')['decision'],
+            'ALLOW',
+        )
+        sel = svc_v4.select_conformant_adapter(env_probes=probes_both, exclude=('pi',))
+        self.assertEqual(sel['selected_adapter'], 'opencode')
+        self.assertTrue(sel['fallback_used'])
+
+        # CLI parser aceita --adapter pi|opencode|all em doctor
+        from udh.__main__ import parser as cli_parser
+        for choice in ('pi', 'opencode', 'all'):
+            parsed_args = cli_parser().parse_args(['doctor', '--adapter', choice])
+            self.assertEqual(parsed_args.adapter, choice)
+
 
 if __name__ == '__main__':
     unittest.main()

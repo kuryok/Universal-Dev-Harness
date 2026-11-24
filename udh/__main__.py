@@ -40,7 +40,13 @@ def parser() -> Parser:
         if command == 'doctor':
             group.add_argument('--db', required=False, default=None, help='caminho opcional do banco SQLite para auditoria profunda')
             group.add_argument('--store', required=False, default=None, help='caminho opcional da TrustStore para cache/conformance')
-            group.add_argument('--conformance', action='store_true', help='executar prova real de conformance do adaptador Pi 1.2.0')
+            group.add_argument('--conformance', action='store_true', help='executar prova real de conformance dos adaptadores suportados')
+            group.add_argument(
+                '--adapter',
+                choices=('pi', 'opencode', 'all'),
+                default='all',
+                help='adaptador alvo da verificação de runtime/conformance (padrão: all)',
+            )
         else:
             group.add_argument('--db', required=True, help='caminho do banco SQLite')
         if command == 'init':
@@ -67,10 +73,12 @@ def main(argv=None) -> int:
         arguments.error('Ação da política vazia')
     try:
         if args.command == 'doctor':
+            selected_adapters = ('pi', 'opencode') if args.adapter == 'all' else (args.adapter,)
             payload = CoreService.doctor(
                 db_path=args.db,
                 store_dir=args.store,
                 run_conformance=args.conformance,
+                adapters=selected_adapters,
             )
             print(json.dumps(payload, ensure_ascii=False))
             return 3 if payload['overall_status'] == 'NOT_READY' else 0

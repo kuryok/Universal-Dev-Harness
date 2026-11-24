@@ -76,20 +76,59 @@ class CoreService:
         adapter: str = 'pi',
         env_probes=None,
         manifest_path=None,
+        opencode_manifest_path=None,
+        adapters=None,
     ) -> dict:
         report = self.doctor(
             store_dir=store_dir,
             env_probes=env_probes,
             manifest_path=manifest_path,
+            opencode_manifest_path=opencode_manifest_path,
+            adapters=adapters,
         )
         rt_check = next((c for c in report['checks'] if c['id'] == 'runtime_components'), {})
-        adapters = tuple(rt_check.get('details', {}).get('conformant_adapters', ()))
+        conformant = tuple(rt_check.get('details', {}).get('conformant_adapters', ()))
         return self.policy(
             run_id,
             'EXECUTE_AGENT',
             preflight_status=report['overall_status'],
-            conformant_adapters=adapters,
+            conformant_adapters=conformant,
             adapter=adapter,
+        )
+
+    def select_conformant_adapter(
+        self,
+        *,
+        store_dir=None,
+        preference_order=('pi', 'opencode'),
+        requested: str | None = None,
+        exclude=(),
+        env_probes=None,
+        manifest_path=None,
+        opencode_manifest_path=None,
+        adapters=None,
+    ) -> dict:
+        from .handoff import HandoffError, select_adapter
+
+        report = self.doctor(
+            store_dir=store_dir,
+            env_probes=env_probes,
+            manifest_path=manifest_path,
+            opencode_manifest_path=opencode_manifest_path,
+            adapters=adapters,
+        )
+        if report['overall_status'] == 'NOT_READY':
+            raise HandoffError(
+                'Preflight retornou NOT_READY; seleção de adaptador bloqueada (fail-closed).',
+                reason_code='NO_CONFORMANT_ADAPTER',
+            )
+        rt_check = next((c for c in report['checks'] if c['id'] == 'runtime_components'), {})
+        conformant = tuple(rt_check.get('details', {}).get('conformant_adapters', ()))
+        return select_adapter(
+            conformant,
+            preference_order=preference_order,
+            requested=requested,
+            exclude=exclude,
         )
 
     def migrate(self, target=2, *, context=None) -> dict:
@@ -197,11 +236,22 @@ class CoreService:
         return self.store.record_checkpoint_v4(request, checkpoint_id=str(uuid4()), created_at=_utc_now())
 
     @staticmethod
-    def doctor(*, db_path=None, env_probes=None, store_dir=None, run_conformance: bool = False, manifest_path=None) -> dict:
+    def doctor(
+        *,
+        db_path=None,
+        env_probes=None,
+        store_dir=None,
+        run_conformance: bool = False,
+        manifest_path=None,
+        opencode_manifest_path=None,
+        adapters=None,
+    ) -> dict:
         return run_doctor(
             db_path=db_path,
             env_probes=env_probes,
             store_dir=store_dir,
             run_conformance=run_conformance,
             manifest_path=manifest_path,
+            opencode_manifest_path=opencode_manifest_path,
+            adapters=adapters,
         )

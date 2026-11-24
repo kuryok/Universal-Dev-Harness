@@ -22,6 +22,7 @@ FORBIDDEN_SHADOW_NAMES = frozenset({
     'udh',
 })
 AT_VERSION_RE = re.compile(r'^sha256:[0-9a-f]{64}$')
+ADAPTER_NAME_RE = re.compile(r'^[a-z0-9][a-z0-9_-]{0,31}$')
 
 
 class TrustStoreError(CoreError):
@@ -327,6 +328,8 @@ class TrustStore:
         if not AT_VERSION_RE.fullmatch(image_digest):
             raise TrustStoreError('image_digest inválido para cache de conformance.')
         require_text(adapter_name, 'Nome do adaptador')
+        if not ADAPTER_NAME_RE.fullmatch(adapter_name):
+            raise TrustStoreError('Nome de adaptador inválido para cache de conformance.')
         require_text(adapter_version, 'Versão do adaptador')
         if status not in ('PASS', 'FAIL'):
             raise TrustStoreError('Status de conformance inválido.')
@@ -340,16 +343,34 @@ class TrustStore:
             'verified_at': _utc_now(),
             'details': details or {},
         }
-        target = self.root / 'conformance.json'
-        tmp = self.root / f'.tmp-conformance-{os.getpid()}.json'
-        tmp.write_bytes(_canonical_json_bytes(record) + b'\n')
+        payload = _canonical_json_bytes(record) + b'\n'
+        target = self.root / f'conformance-{adapter_name}.json'
+        tmp = self.root / f'.tmp-conformance-{adapter_name}-{os.getpid()}.json'
+        tmp.write_bytes(payload)
         os.chmod(tmp, 0o644)
         os.replace(tmp, target)
+        if adapter_name == 'pi':
+            legacy_target = self.root / 'conformance.json'
+            legacy_tmp = self.root / f'.tmp-conformance-legacy-{os.getpid()}.json'
+            legacy_tmp.write_bytes(payload)
+            os.chmod(legacy_tmp, 0o644)
+            os.replace(legacy_tmp, legacy_target)
         return record
 
-    def load_conformance(self, *, policy_sha256: str, image_digest: str) -> dict | None:
-        target = self.root / 'conformance.json'
-        if not target.exists():
+    def load_conformance(
+        self,
+        *,
+        policy_sha256: str,
+        image_digest: str,
+        adapter_name: str = 'pi',
+    ) -> dict | None:
+        require_text(adapter_name, 'Nome do adaptador')
+        if not ADAPTER_NAME_RE.fullmatch(adapter_name):
+            raise TrustStoreError('Nome de adaptador inválido para cache de conformance.')
+        target = self.root / f'conformance-{adapter_name}.json'
+        if not target.exists() and not target.is_symlink() and adapter_name == 'pi':
+            target = self.root / 'conformance.json'
+        if not target.exists() and not target.is_symlink():
             return None
         try:
             raw = _read_regular_nofollow(target)
@@ -358,6 +379,12 @@ class TrustStore:
             return {'status': 'STALE', 'reason': 'corrupt_conformance_cache'}
         if not isinstance(parsed, dict):
             return {'status': 'STALE', 'reason': 'invalid_conformance_cache'}
+        if parsed.get('adapter_name') != adapter_name:
+            return {
+                'status': 'STALE',
+                'reason': 'adapter_name_mismatch',
+                'cached_adapter_name': parsed.get('adapter_name'),
+            }
         if parsed.get('policy_sha256') != policy_sha256 or parsed.get('image_digest') != image_digest:
             return {
                 'status': 'STALE',
