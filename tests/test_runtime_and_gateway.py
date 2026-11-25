@@ -319,6 +319,10 @@ class RuntimeAndGatewayTests(unittest.TestCase):
             connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(200, catalog)]),
         ))
         self.assertFalse(verify_opencode_zen_free_model(
+            'absent-model-free',
+            connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(200, catalog)]),
+        ))
+        self.assertFalse(verify_opencode_zen_free_model(
             'deepseek-v4.1-flash-free',
             connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(302, b'')]),
         ))
@@ -452,6 +456,139 @@ class RuntimeAndGatewayTests(unittest.TestCase):
             status, _ = _raw_uds(gw.socket_path, req)
             self.assertEqual(status, 502)
         self.assertIn('nonzero_cost_blocked', audit_paid.read_text(encoding='utf-8'))
+
+        # 6. Falhas upstream em /zen/v1/chat/completions: HTTP 302/429, tool_calls, finish_reason=length
+        for label, resp_obj, expected_verdict in (
+            ('http302', _FakeHTTPResponse(302, b''), 'provider_http_302'),
+            ('http429', _FakeHTTPResponse(429, b'{"error":"rate_limit"}'), 'provider_http_429'),
+            ('tools', _FakeHTTPResponse(200, json.dumps({
+                'choices': [{'finish_reason': 'stop', 'message': {
+                    'role': 'assistant', 'content': '{}', 'tool_calls': [{'id': '1'}],
+                }}],
+            }).encode('utf-8')), 'zen_tools_present'),
+            ('length', _FakeHTTPResponse(200, json.dumps({
+                'choices': [{'finish_reason': 'length', 'message': {'role': 'assistant', 'content': '{}'}}],
+            }).encode('utf-8')), 'zen_finish_length'),
+        ):
+            with self.subTest(case=label):
+                seq = [_FakeHTTPResponse(200, catalog), resp_obj]
+                aud = self.root / f'zen-{label}.jsonl'
+                cfg_case = GatewayConfig(
+                    run_id=f'zen-{label}', policy_sha256=policy_v2_sha256(), audit_path=aud,
+                    backend='opencode_zen_free', allowed_models=('deepseek-v4.1-flash-free',),
+                    secret_resolver=lambda: OPENCODE_ZEN_PUBLIC_TOKEN,
+                    opencode_zen_connection_factory=lambda s=seq: _FakeHTTPSConnection([s.pop(0)]),
+                )
+                with InferenceGateway(cfg_case) as gw:
+                    assert gw.socket_path is not None
+                    body = json.dumps({
+                        'model': 'deepseek-v4.1-flash-free', 'stream': True,
+                        'messages': [{'role': 'user', 'content': 'hi'}],
+                    }).encode('utf-8')
+                    req = (
+                        f'POST /v1/chat/completions HTTP/1.1\r\n'
+                        f'Authorization: Bearer {gw.capability_token}\r\n'
+                        f'X-UDH-Purpose: inference\r\n'
+                        f'Content-Length: {len(body)}\r\n\r\n'
+                    ).encode('utf-8') + body
+                    status, _ = _raw_uds(gw.socket_path, req)
+                    self.assertEqual(status, 502)
+                self.assertIn(expected_verdict, aud.read_text(encoding='utf-8'))
+
+        # 7. Segredo pessoal fatiado em bytes brutos entre chunks read1 -> bloqueado na leitura
+        class _ChunkedResp:
+            status = 200
+
+            def __init__(self, chunks):
+                self._chunks = list(chunks)
+
+            def read1(self, _n=-1):
+                return self._chunks.pop(0) if self._chunks else b''
+
+        raw_secret = 'RAW_CHUNK_SECRET_7777'
+        chunked_responses = [
+            _FakeHTTPResponse(200, catalog),
+            _ChunkedResp([
+                b'{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"a RAW_CHUNK_',
+                b'SECRET_7777 b"}}]}',
+            ]),
+        ]
+        audit_raw_leak = self.root / 'zen-raw-leak.jsonl'
+        cfg_raw_leak = GatewayConfig(
+            run_id='zen-raw-leak', policy_sha256=policy_v2_sha256(), audit_path=audit_raw_leak,
+            backend='opencode_zen_free', allowed_models=('deepseek-v4.1-flash-free',),
+            secret_resolver=lambda: raw_secret,
+            opencode_zen_connection_factory=lambda: _FakeHTTPSConnection([chunked_responses.pop(0)]),
+        )
+        with InferenceGateway(cfg_raw_leak) as gw:
+            assert gw.socket_path is not None
+            body = json.dumps({
+                'model': 'deepseek-v4.1-flash-free', 'stream': True,
+                'messages': [{'role': 'user', 'content': 'hi'}],
+            }).encode('utf-8')
+            req = (
+                f'POST /v1/chat/completions HTTP/1.1\r\n'
+                f'Authorization: Bearer {gw.capability_token}\r\n'
+                f'X-UDH-Purpose: inference\r\n'
+                f'Content-Length: {len(body)}\r\n\r\n'
+            ).encode('utf-8') + body
+            status, text = _raw_uds(gw.socket_path, req)
+            self.assertEqual(status, 502)
+            self.assertNotIn(raw_secret, text)
+        raw_audit = audit_raw_leak.read_text(encoding='utf-8')
+        self.assertIn('secret_in_response_blocked', raw_audit)
+        self.assertNotIn(raw_secret, raw_audit)
+
+        # 8. Timeout wall-clock (threading.Timer) aborta conexão lenta em /zen/v1/models e /zen/v1/chat/completions
+        class _HangingConn:
+            def __init__(self):
+                self.sock = None
+                self.aborted = threading.Event()
+
+            def request(self, *args, **kwargs):
+                pass
+
+            def getresponse(self):
+                self.aborted.wait(timeout=3.0)
+                raise OSError('connection aborted by wall-clock timer')
+
+            def close(self):
+                self.aborted.set()
+
+        hang_cat = _HangingConn()
+        t0 = time.monotonic()
+        with self.assertRaises(GatewayError):
+            list_opencode_zen_free_models(connection_factory=lambda: hang_cat, timeout_seconds=0.15)
+        self.assertTrue(hang_cat.aborted.is_set())
+        self.assertLess(time.monotonic() - t0, 2.0)
+
+        hang_chat = _HangingConn()
+        hang_seq = [_FakeHTTPSConnection([_FakeHTTPResponse(200, catalog)]), hang_chat]
+        audit_hang = self.root / 'zen-hang.jsonl'
+        cfg_hang = GatewayConfig(
+            run_id='zen-hang', policy_sha256=policy_v2_sha256(), audit_path=audit_hang,
+            backend='opencode_zen_free', allowed_models=('deepseek-v4.1-flash-free',),
+            secret_resolver=lambda: OPENCODE_ZEN_PUBLIC_TOKEN,
+            call_timeout_seconds=0.2,
+            opencode_zen_connection_factory=lambda: hang_seq.pop(0),
+        )
+        t1 = time.monotonic()
+        with InferenceGateway(cfg_hang) as gw:
+            assert gw.socket_path is not None
+            body = json.dumps({
+                'model': 'deepseek-v4.1-flash-free', 'stream': True,
+                'messages': [{'role': 'user', 'content': 'hi'}],
+            }).encode('utf-8')
+            req = (
+                f'POST /v1/chat/completions HTTP/1.1\r\n'
+                f'Authorization: Bearer {gw.capability_token}\r\n'
+                f'X-UDH-Purpose: inference\r\n'
+                f'Content-Length: {len(body)}\r\n\r\n'
+            ).encode('utf-8') + body
+            status, _ = _raw_uds(gw.socket_path, req)
+            self.assertEqual(status, 502)
+        self.assertTrue(hang_chat.aborted.is_set())
+        self.assertLess(time.monotonic() - t1, 2.0)
 
     def test_pi_jsonl_parser_strict_stop_reason_and_error_detection(self):
         ok_stream = (

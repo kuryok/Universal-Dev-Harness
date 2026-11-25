@@ -438,17 +438,58 @@ def _write_summary_file(target: Path, payload: dict) -> int:
     raw = (json.dumps(payload, indent=2, ensure_ascii=False) + '\n').encode('utf-8')
     if len(raw) > _SUMMARY_MAX_BYTES:
         raise DiscoveryFlowError(f'Resumo excede o teto de {_SUMMARY_MAX_BYTES} bytes.')
-    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
     try:
-        with os.fdopen(fd, 'wb') as stream:
-            stream.write(raw)
+        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    except OSError as error:
+        raise DiscoveryFlowError('Não foi possível abrir o arquivo de resumo com segurança.') from error
+    try:
+        stream = os.fdopen(fd, 'wb')
     except BaseException:
-        try:
-            os.close(fd)
-        except OSError:
-            pass
+        os.close(fd)
         raise
+    try:
+        with stream:
+            stream.write(raw)
+    except OSError as error:
+        raise DiscoveryFlowError('Falha ao gravar o arquivo de resumo.') from error
     return len(raw)
+
+
+def _print_draft_for_review(print_fn: Callable[[str], None], label: str, session: dict) -> None:
+    draft = session['draft']
+    print_fn(f'\n--- Rascunho {label} (snapshot_sha256={session["snapshot_sha256"]}) ---')
+    for field in ('proposal', 'design', 'tasks'):
+        if field in draft and draft[field]:
+            print_fn(f'[{field}.md]\n{draft[field].rstrip()}\n')
+    for cap in sorted(draft['specs'].keys()):
+        print_fn(f'[specs/{cap}/spec.md]\n{draft["specs"][cap].rstrip()}\n')
+    print_fn('--- Fim do rascunho ---')
+
+
+def _resolve_cli_and_node_dir(cli_path: Path | None, node_dir: Path | None) -> tuple[Path, Path]:
+    if cli_path is None:
+        found = shutil.which('openspec')
+        if not found:
+            raise DiscoveryFlowError('Executável openspec não encontrado no PATH.')
+        raw_cli = Path(found)
+    else:
+        raw_cli = Path(cli_path)
+    if not raw_cli.is_absolute():
+        raw_cli = raw_cli.absolute()
+    if node_dir is not None:
+        resolved_node_dir = Path(node_dir)
+        if not resolved_node_dir.is_absolute():
+            resolved_node_dir = resolved_node_dir.absolute()
+        return raw_cli, resolved_node_dir
+    # Não aplicar .resolve() ao symlink openspec ao derivar node_dir (NVM/npm expõe node ao lado do symlink).
+    candidate_dir = raw_cli.parent
+    if not (candidate_dir / 'node').exists():
+        found_node = shutil.which('node')
+        if found_node:
+            candidate_dir = Path(found_node).parent
+    if not candidate_dir.is_absolute():
+        candidate_dir = candidate_dir.absolute()
+    return raw_cli, candidate_dir
 
 
 def run_opencode_zen_trial(
@@ -458,6 +499,7 @@ def run_opencode_zen_trial(
     timeout_seconds: int = 60,
     summary_out: Path | None = None,
     cli_path: Path | None = None,
+    node_dir: Path | None = None,
     skill_path: Path | None = None,
     input_fn: Callable[[str], str] = input,
     print_fn: Callable[[str], None] = print,
@@ -470,13 +512,7 @@ def run_opencode_zen_trial(
 
     repo_root = Path(__file__).resolve().parent.parent
     resolved_skill = (skill_path or (repo_root / _DEFAULT_SKILL_REL)).resolve()
-    resolved_cli = cli_path
-    if resolved_cli is None:
-        found = shutil.which('openspec')
-        if not found:
-            raise DiscoveryFlowError('Executável openspec não encontrado no PATH.')
-        resolved_cli = Path(found).resolve()
-    resolved_cli = Path(resolved_cli).resolve()
+    resolved_cli, resolved_node_dir = _resolve_cli_and_node_dir(cli_path, node_dir)
     secret_resolver, auth_mode = _resolve_zen_secret(use_env_api_key=use_env_api_key)
     validated_out = _validate_summary_out_path(summary_out, repo_root=repo_root) if summary_out is not None else None
 
@@ -494,7 +530,7 @@ def run_opencode_zen_trial(
             model=model,
             trust_store=trust,
             cli_path=resolved_cli,
-            node_dir=resolved_cli.parent,
+            node_dir=resolved_node_dir,
             secret_resolver=secret_resolver,
             connection_factory=connection_factory,
             timeout_seconds=timeout_seconds,
@@ -518,8 +554,7 @@ def run_opencode_zen_trial(
         c1_handoff = None
         if not c1_gaps and s1['ready_for_document_review']:
             s1 = flow.draft(s1['session_id'], s1['revision'])
-            print_fn(f'Rascunho Caso 1 gerado (snapshot_sha256={s1["snapshot_sha256"]}).')
-            print_fn('Specs geradas: ' + ', '.join(sorted(s1['draft']['specs'].keys())))
+            _print_draft_for_review(print_fn, 'Caso 1', s1)
             confirm_c1 = input_fn('Aprovar rascunho do Caso 1? [s/N]: ').strip().lower()
             if confirm_c1 in ('s', 'sim', 'y', 'yes'):
                 s1 = flow.approve(s1['session_id'], s1['revision'], s1['snapshot_sha256'], 'operator-trial-c1')
@@ -564,8 +599,7 @@ def run_opencode_zen_trial(
                     s2['session_id'], s2['revision'], gap['id'], hashlib.sha256(ans.encode('utf-8')).hexdigest(),
                 )
             s2 = flow.draft(s2['session_id'], s2['revision'])
-            print_fn(f'Rascunho Caso 2 gerado (snapshot_sha256={s2["snapshot_sha256"]}).')
-            print_fn('Specs geradas: ' + ', '.join(sorted(s2['draft']['specs'].keys())))
+            _print_draft_for_review(print_fn, 'Caso 2', s2)
             confirm_c2 = input_fn('Aprovar rascunho do Caso 2? [s/N]: ').strip().lower()
             if confirm_c2 in ('s', 'sim', 'y', 'yes'):
                 s2 = flow.approve(s2['session_id'], s2['revision'], s2['snapshot_sha256'], 'operator-trial-c2')
@@ -614,9 +648,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--timeout', type=int, default=60, help='Timeout por chamada em segundos (1..90).')
     parser.add_argument('--summary-out', type=Path, default=None, help='Caminho seguro para gravar resumo JSON <= 32 KiB.')
     parser.add_argument('--openspec-cli', type=Path, default=None, help='Caminho absoluto da CLI openspec 2.1.1.')
+    parser.add_argument('--node-dir', type=Path, default=None, help='Diretório contendo o binário node aprovado.')
     args = parser.parse_args(argv)
 
     try:
+        if not 1 <= args.timeout <= 90:
+            raise DiscoveryFlowError('--timeout deve estar entre 1 e 90 segundos.')
         if args.list_free_models:
             models = list_opencode_zen_free_models(timeout_seconds=min(15.0, float(args.timeout)))
             print(json.dumps({'models': models}, indent=2, ensure_ascii=False))
@@ -629,6 +666,7 @@ def main(argv: list[str] | None = None) -> int:
             timeout_seconds=args.timeout,
             summary_out=args.summary_out,
             cli_path=args.openspec_cli,
+            node_dir=args.node_dir,
         )
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0 if summary['verdict'] == 'PASS' else 1

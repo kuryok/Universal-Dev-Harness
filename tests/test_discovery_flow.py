@@ -15,8 +15,11 @@ from unittest.mock import patch
 from udh.discovery_flow import (
     DiscoveryConfig,
     DiscoveryFlowError,
+    _resolve_cli_and_node_dir,
     _resolve_zen_secret,
     _validate_summary_out_path,
+    _write_summary_file,
+    main as discovery_flow_main,
     run_opencode_zen_trial,
 )
 from tests.test_runtime_and_gateway import _FakeHTTPResponse, _FakeHTTPSConnection
@@ -272,13 +275,42 @@ class DiscoveryFlowTests(unittest.TestCase):
             with self.subTest(bad_kwargs=bad_kwargs.get('backend')), self.assertRaises(DiscoveryFlowError):
                 DiscoveryConfig(**bad_kwargs)
 
-        # 2. --use-env-api-key falha fechado sem variáveis; --summary-out bloqueia pastas de produção/.git
+        # 2. --use-env-api-key falha fechado sem variáveis; --summary-out bloqueia pastas de produção/.git e symlinks
         with patch.dict(os.environ, {}, clear=True), self.assertRaises(DiscoveryFlowError):
             _resolve_zen_secret(use_env_api_key=True)
         repo_root = Path(__file__).resolve().parent.parent
         for forbidden in ('udh/out.json', 'runtime/out.json', 'tests/out.json', 'bootstrap/out.json', '.git/out.json'):
             with self.subTest(forbidden=forbidden), self.assertRaises(DiscoveryFlowError):
                 _validate_summary_out_path(repo_root / forbidden, repo_root=repo_root)
+        sym_dir = tempfile.TemporaryDirectory(dir='/tmp', prefix='udh-zen-sym-')
+        self.addCleanup(sym_dir.cleanup)
+        sym_root = Path(sym_dir.name)
+        real_sub = sym_root / 'real'
+        real_sub.mkdir()
+        direct_sym = sym_root / 'link.json'
+        direct_sym.symlink_to(real_sub / 'target.json')
+        parent_sym = sym_root / 'parent-link'
+        parent_sym.symlink_to(real_sub)
+        with self.assertRaises(DiscoveryFlowError):
+            _validate_summary_out_path(direct_sym, repo_root=repo_root)
+        with self.assertRaises(DiscoveryFlowError):
+            _validate_summary_out_path(parent_sym / 'out.json', repo_root=repo_root)
+        with self.assertRaises(DiscoveryFlowError):
+            _write_summary_file(real_sub, {'ok': True})
+        self.assertEqual(discovery_flow_main(['--list-free-models', '--timeout', '0']), 2)
+
+        # 2b. Symlink NVM/npm de openspec preserva node_dir ao lado do symlink (sem .resolve() no cli)
+        fake_bin = sym_root / 'nvm-bin'
+        fake_pkg = sym_root / 'lib' / 'openspec' / 'bin'
+        fake_bin.mkdir(parents=True)
+        fake_pkg.mkdir(parents=True)
+        (fake_bin / 'node').write_text('#!/bin/sh\n', encoding='utf-8')
+        (fake_pkg / 'openspec.js').write_text('#!/usr/bin/env node\n', encoding='utf-8')
+        fake_openspec_sym = fake_bin / 'openspec'
+        fake_openspec_sym.symlink_to(fake_pkg / 'openspec.js')
+        resolved_cli, resolved_node = _resolve_cli_and_node_dir(fake_openspec_sym, None)
+        self.assertEqual(resolved_cli, fake_openspec_sym)
+        self.assertEqual(resolved_node, fake_bin)
 
         # 3. Fluxo completo discovery -> draft -> approve -> handoff com backend opencode_zen_free
         catalog = json.dumps({'data': [{'id': 'deepseek-v4.1-flash-free'}]}).encode('utf-8')
@@ -328,6 +360,26 @@ class DiscoveryFlowTests(unittest.TestCase):
             (2048, 75, 'opencode_zen_free'),
             (2048, 75, 'opencode_zen_free'),
         ])
+
+        # 3b. Veredito sanitizado do gateway (ex.: provider_http_429) propagado no DiscoveryFlowError
+        err_responses = [_FakeHTTPResponse(200, catalog), _FakeHTTPResponse(429, b'{"error":"limit"}')]
+        cfg_429 = DiscoveryConfig.for_opencode_zen_free(
+            skill_path=SKILL,
+            model='deepseek-v4.1-flash-free',
+            trust_store=self.trust,
+            cli_path=cli,
+            node_dir=cli.parent,
+            connection_factory=lambda: _FakeHTTPSConnection([err_responses.pop(0)]),
+            timeout_seconds=30,
+        )
+        flow_429 = self.core.discovery_flow(cfg_429)
+        s_429 = flow_429.create('zen-429', 'Uma ideia qualquer.')
+        with patch('udh.discovery_flow.PiAdapter.run', side_effect=lambda **kw: (
+            self.pi_boundary(**kw),
+            SimpleNamespace(ok=False, reason_code='AGENT_STREAM_INTERRUPTED', assistant_text=''),
+        )[1]):
+            with self.assertRaisesRegex(DiscoveryFlowError, r'AGENT_STREAM_INTERRUPTED; gateway=provider_http_429'):
+                flow_429.discover(s_429['session_id'], s_429['revision'])
 
         # 4. PiAdapter aceita opencode_zen_free com max_output_tokens=2048 e propaga timeout <= 120000 ms
         from udh.adapters.pi import PiAdapter
@@ -405,19 +457,37 @@ class DiscoveryFlowTests(unittest.TestCase):
             return SimpleNamespace(ok=response.status == 200 and '[DONE]' in raw, assistant_text=text)
 
         answers = iter(['s', 'Restaurar a última tela ao abrir.', 's'])
-        with patch('udh.discovery_flow.PiAdapter.run', side_effect=trial_pi), patch(
-            'udh.discovery_flow.validate_spec_snapshot',
-            side_effect=lambda cid, rev, art, *, approval, **kw: SpecValidationResult(cid, rev, approval[2], 'VALIDATED', '2.1.1'),
-        ):
-            summary = run_opencode_zen_trial(
-                model='deepseek-v4.1-flash-free',
-                summary_out=summary_path,
-                cli_path=cli,
-                skill_path=SKILL,
-                input_fn=lambda _prompt: next(answers),
-                print_fn=lambda _msg: None,
-                connection_factory=lambda: _FakeHTTPSConnection([trial_responses.pop(0)]),
-            )
+        printed_lines = []
+        if os.environ.get('UDH_TEST_OPENSPEC'):
+            with patch('udh.discovery_flow.PiAdapter.run', side_effect=trial_pi):
+                summary = run_opencode_zen_trial(
+                    model='deepseek-v4.1-flash-free',
+                    summary_out=summary_path,
+                    cli_path=cli,
+                    skill_path=SKILL,
+                    input_fn=lambda _prompt: next(answers),
+                    print_fn=printed_lines.append,
+                    connection_factory=lambda: _FakeHTTPSConnection([trial_responses.pop(0)]),
+                )
+        else:
+            with patch('udh.discovery_flow.PiAdapter.run', side_effect=trial_pi), patch(
+                'udh.discovery_flow.validate_spec_snapshot',
+                side_effect=lambda cid, rev, art, *, approval, **kw: SpecValidationResult(cid, rev, approval[2], 'VALIDATED', '2.1.1'),
+            ):
+                summary = run_opencode_zen_trial(
+                    model='deepseek-v4.1-flash-free',
+                    summary_out=summary_path,
+                    cli_path=cli,
+                    skill_path=SKILL,
+                    input_fn=lambda _prompt: next(answers),
+                    print_fn=printed_lines.append,
+                    connection_factory=lambda: _FakeHTTPSConnection([trial_responses.pop(0)]),
+                )
+        printed_text = '\n'.join(printed_lines)
+        self.assertIn('[proposal.md]', printed_text)
+        self.assertIn('[tasks.md]', printed_text)
+        self.assertIn('[specs/view/spec.md]', printed_text)
+        self.assertIn('Preservar a última tela.', printed_text)
         self.assertEqual(summary['verdict'], 'PASS')
         self.assertEqual(summary['auth_mode'], 'public')
         self.assertTrue(summary['cases']['complete_idea']['ok'])
