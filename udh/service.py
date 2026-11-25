@@ -503,6 +503,10 @@ class CoreService:
             review_evidence_id=review_evidence_id, trust_store=trust_store, created_at=_utc_now(),
         )
 
+    def managed_ticket_handoff_context(self, run_id: str, *, trust_store: TrustStore) -> dict:
+        """Lê e revalida atomicamente estado persistido, contrato B4.2 e aceites/checkpoints F-03 das predecessoras."""
+        return self._tickets.managed_handoff_context(run_id, trust_store=trust_store)
+
     def block(self, run_id, expected_revision, request_id, reason, *, context):
         if not operator_context_valid(context) or 'BLOCK_PENDING' not in context['allowed_operations']:
             raise AuthorizationError('Operação exige a entrada administrativa protegida.')

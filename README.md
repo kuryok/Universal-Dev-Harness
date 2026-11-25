@@ -12,7 +12,7 @@ Projeto local-first para conduzir uma pessoa que não sabe programar de uma idei
 |---|---|
 | Painel local e preview | [`udh/web.py`](udh/web.py), [`udh/web_ui.py`](udh/web_ui.py) e [`udh/preview.py`](udh/preview.py) |
 | Estado, política e persistência | [`udh/service.py`](udh/service.py), [`udh/domain.py`](udh/domain.py), [`udh/policy.py`](udh/policy.py) e [`udh/store.py`](udh/store.py) |
-| Descoberta, especificações e tickets | [`udh/discovery.py`](udh/discovery.py), [`udh/discovery_session.py`](udh/discovery_session.py), [`udh/spec_handoff.py`](udh/spec_handoff.py), [`udh/ticket_plan.py`](udh/ticket_plan.py) e [`udh/ticket_store.py`](udh/ticket_store.py) |
+| Descoberta, especificações e tickets | [`udh/discovery.py`](udh/discovery.py), [`udh/discovery_session.py`](udh/discovery_session.py), [`udh/spec_handoff.py`](udh/spec_handoff.py), [`udh/ticket_plan.py`](udh/ticket_plan.py), [`udh/ticket_store.py`](udh/ticket_store.py) e [`udh/ticket_handoff.py`](udh/ticket_handoff.py) |
 | Agentes, contêineres e verificação | [`udh/adapters/`](udh/adapters/), [`udh/gateway.py`](udh/gateway.py), [`udh/runtime.py`](udh/runtime.py) e [`udh/executor.py`](udh/executor.py). As imagens e seus scripts ficam em [`runtime/`](runtime/). |
 | Testes e requisitos | [`tests/`](tests/) para testes complementares, [`openspec/changes/`](openspec/changes/) para requisitos e [`bootstrap/slice1/`](bootstrap/slice1/) para o recorte de aceite congelado. |
 | Histórico da Slice 0 | [`spike/`](spike/) e [`relatorio.md`](relatorio.md) |
@@ -30,6 +30,6 @@ Os testes usam Python 3 (stdlib-only), Podman rootless e as 3 imagens OCI locais
 
 `DISCOVER`/`SPEC`/`PLAN`, multi-ticket DAG (`TICKET-01/02`), perfil `provision` (`B2.4`), execução persistente (`B3.8`), exportação (`B3.9`), `DOC`/`SKILL`/`UX-04`, terceiro agente (Codex), Chromium/Chrome e WSL2 continuam pendentes (`NOT_RUN`); o projeto ainda não é um MVP liberável completo.
 
-Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), o plano persistido, o início condicionado ao aceite das predecessoras e o encaminhamento para SPEC passaram nos testes complementares. A [skill de descoberta adaptada](openspec/changes/discover-plan-tickets/skills/grill-with-docs-udh/SKILL.md) é usada pelo Pi durante o ensaio com servidor simulado. A troca de agente sobre o plano persistido ainda está pendente.
+Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), o plano persistido, o início condicionado ao aceite das predecessoras, o encaminhamento para SPEC e a troca de agente `Pi → OpenCode` sobre o plano persistido (T4) passaram nos testes complementares (221/221 PASS). A [skill de descoberta adaptada](openspec/changes/discover-plan-tickets/skills/grill-with-docs-udh/SKILL.md) é usada pelo Pi durante o ensaio com servidor simulado.
 
-O [ensaio de inferência offline real](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#retomada-na-máquina-doméstica) fica para a máquina doméstica do usuário; neste ambiente a integração foi verificada com Pi e OpenSpec reais e servidor simulado.
+Falta o ensaio de `DISC-01` com modelo real e os gates de fechamento oficial do Change 5 antes da integração em `main`.

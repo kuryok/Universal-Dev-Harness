@@ -1,8 +1,8 @@
 # Estado do projeto
 
-Atualizado: 24/11/2026. Fase: **Change 4 (`artifact-preview-and-guided-ui`) concluído, verificado (`20150ac`) e integrado em `main`** — imagem OCI dedicada `artifact-only` sem agentes (`B3.1`), transporte `/preview-ipc/preview.sock` anti-TOCTOU + `SO_PEERCRED`/netns + proxy isolado `p-<id>.localhost` + CSP (`B3.6`), smoke test oficial com persistência pós-reinício (`B3.4`) e derivação `ADR-028` (`PENDING→DELIVERED`), e interface guiada mínima local (`B1.7`, `UX-01`, `UX-03`, `ADR-025`, `python3 -m udh.web`, 100% Python stdlib).
+Atualizado: 25/11/2026. Fase: **Change 4 (`artifact-preview-and-guided-ui`) integrado em `main` (`20150ac`)** — imagem `artifact-only` (`B3.1`), preview isolado `p-<id>.localhost` sobre UDS anti-TOCTOU + CSP (`B3.6`), smoke `B3.4`/`ADR-028` e UI local (`B1.7`, `UX-01`/`03`, `ADR-025`, `python3 -m udh.web`, stdlib).
 
-Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte normativa: [baseline rastreado](Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) + ratificação em [openspec/project.md](openspec/project.md); [v2.5.1](UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md) é nota derivada.
+Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Normativo: [baseline](Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) + [openspec/project.md](openspec/project.md); [v2.5.1](UDH-v2.5-ARQUITETURA-CONSOLIDADA-v2.5.1.md) é nota derivada.
 
 ## Funciona
 
@@ -14,15 +14,15 @@ Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Fonte no
 
 ## Pendente
 
-- **Change 5 em andamento:** T2 valida contratos e dependências. T3 persiste a descoberta (SQLite v9 opt-in) e registra `SPEC_READY` após aprovação e OpenSpec 2.1.1. `TICKET-01`, `DISC-01` e `TICKET-02` aguardam aceite oficial.
+- **Change 5 em andamento:** T1–T2 validam/persistem planos e gates `B4.2`/aceite; T3 persiste descoberta (SQLite v9 opt-in) e `SPEC_READY` com OpenSpec 2.1.1; **T4 (`udh/ticket_handoff.py`)** validou handoff `Pi → OpenCode` entre tickets dependentes (`221/221` complementares PASS). Falta ensaio real de `DISC-01` e fechamento oficial (`TICKET-01`, `TICKET-02`, `DISC-01`).
 - **Restante do produto:** perfil `provision` (`B2.4`), execução protegida persistente (`B3.8`) e exportação (`B3.9`), `DOC-01/02`, `SKILL-01/02`, `UX-04`, terceiro agente (Codex), WSL2 (`B1.1b`), Chromium/Chrome, Memorix, Judge consultivo e instalador. Ainda não é MVP liberável completo.
 
 ## Próxima tarefa
 
-Na branch `feat/change5-discover-plan-tickets`, [qualificar o modelo local na máquina doméstica (RTX)](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#retomada-na-máquina-doméstica) e executar C5-T3b.2b-03. T4 aguarda detalhamento e aprovação; T3-org adiada.
+Na branch `feat/change5-discover-plan-tickets`, definir delta e validar `DISC-01` (`C5-T3b.2b-03`) com modelo real via Gateway nesta máquina (ou Ollama local), e depois executar o fechamento oficial do Change 5 (AT selados `v1–v6`, POCs, R2/F-02). T3-org segue adiada.
 
 ## Verificação
 
-- `UDH_TEST_DISCOVERY_PI=1 UDH_TEST_OPENSPEC="$(command -v openspec)" PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests` (216 PASS; Pi e CLI reais com servidor simulado. AT selados e R2/F-02 pendentes).
+- `UDH_TEST_DISCOVERY_PI=1 UDH_TEST_OPENSPEC="$(command -v openspec)" PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests` (221 PASS; inclui T4 E2E offline `Pi → OpenCode + artifact-only` e T3b.2b com Pi/OpenSpec reais e servidor simulado. AT selados e R2/F-02 pendentes).
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m udh doctor --conformance` (`READY`: `['pi', 'opencode']`), `PYTHONDONTWRITEBYTECODE=1 python3 -m udh.poc` (4/4 PASS) e `python3 -m udh.web --db <path> --store <path>`.
 - [README](README.md) para entrada. Não abrir credenciais nem limpar `spike/slice0/workspace/` sem autorização.

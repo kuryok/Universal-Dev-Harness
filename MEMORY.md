@@ -1,6 +1,6 @@
 # UDH — retomada curta
 
-Atualizado: 24/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e conferir Git. Memória não aprova requisitos nem substitui evidências.
+Atualizado: 25/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e conferir Git. Memória não aprova requisitos nem substitui evidências.
 
 ## Estado confirmado
 - **Change 4 (`artifact-preview-and-guided-ui`) concluído, verificado (`20150ac`) e integrado em `main`:** imagem OCI `artifact-only` sem agentes (`localhost/udh-runtime-artifact@sha256:0eda5898...`), ponte reversa `/preview-ipc/preview.sock` anti-TOCTOU (`O_PATH|O_NOFOLLOW` + `SO_PEERCRED`/`ns/net`), proxy isolado `p-<24hex>.localhost` (grant one-time → cookie host-only `SameSite=Lax`, CSP `style-src 'self'`, `POST /api/previews/<pid>/grant`), smoke test `B3.4` com reinício real e `ADR-028` (`PENDING→DELIVERED`), e interface guiada mínima `B1.7` (`python3 -m udh.web`, `X-UDH-Token` em `/api/*`, zero cookies, zero `innerHTML`, cartões `ADR-025`).
@@ -8,7 +8,7 @@ Atualizado: 24/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e confe
 - Governança em [openspec/project.md](openspec/project.md) (`bootstrap/slice1/` congelado, resumos `<= 32 KiB`, 1 branch por change).
 
 ## Próximo passo
-- Branch `feat/change5-discover-plan-tickets`: T3b.2b implementada (SQLite v9 opt-in, Pi/OpenSpec reais com servidor simulado; 216/216 complementares PASS). Próximo: [qualificar com Ollama local em casa](openspec/changes/discover-plan-tickets/t3-discovery-and-spec-handoff.md#retomada-na-máquina-doméstica) e registrar C5-T3b.2b-03. `DISC-01` segue `NOT_RUN`. T4 e T3-org ainda pendentes.
+- Branch `feat/change5-discover-plan-tickets`: T1–T3b.2b e **T4 (`udh/ticket_handoff.py`)** implementadas e verificadas (**221/221** complementares PASS, incluindo E2E offline `Pi → OpenCode + artifact-only`). Próximo: definir delta para ensaio real de `DISC-01` via Gateway nesta máquina (adiando Ollama local) e fechar o Change 5 (`v1–v6`, POCs, R2/F-02). `DISC-01` segue `NOT_RUN`; T3-org adiada.
 
 ## Cuidados
 - `DOC`/`SKILL`/`DISC`/`TICKET`, `B2.4`, `B3.8`/`B3.9`, `UX-04`, Codex, Chromium/Chrome e WSL2 seguem `NOT_RUN`; ainda não declarar MVP liberável completo.

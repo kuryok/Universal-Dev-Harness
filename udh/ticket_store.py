@@ -559,3 +559,76 @@ class TicketStore:
         with self._transaction() as db:
             _require_identifier(change_id, 'change_id')
             return self._head(db, change_id)
+
+    def managed_handoff_context(self, run_id, *, trust_store):
+        """Lê e revalida atomicamente estado persistido, contrato B4.2 e aceites/checkpoints das predecessoras."""
+        require_canonical_uuid(run_id, 'Identificador da execução')
+        if not isinstance(trust_store, TrustStore):
+            raise CoreError('TrustStore confiável é obrigatória.')
+        with self._transaction(minimum_version=8) as db:
+            run = self.store._load_v4(db, run_id)
+            if run.schema_version != 4 or run.state != 'IN_PROGRESS':
+                raise ConflictError('Handoff gerenciado exige execução IN_PROGRESS.')
+            if run.has_unknown_pendencies:
+                raise ConflictError('Pendência UNKNOWN ativa impede handoff gerenciado.')
+            bound = self.bound_contract(db, 8, run, require_current=True)
+            if bound is None:
+                raise ConflictError('A execução não possui vínculo gerenciado.')
+            contract = bound['contract']
+            key = tuple(contract[field] for field in _IDENTITY_FIELDS)
+            ticket = self._plan_ticket(db, key, contract['plan_sha256'], contract['ticket_id'])
+            payload = {field: value for field, value in contract.items() if field not in _BINDING_FIELDS}
+            pairs = {(item['task_id'], item['criterion_id']) for item in ticket['coverage']}
+            if normalize_contract(payload, pairs) != payload:
+                raise CoreError('Contrato de handoff diverge da cobertura aprovada.')
+            verify_contract_seal(contract, trust_store)
+            if not ticket['depends_on']:
+                raise ConflictError('Handoff entre tickets exige ao menos uma predecessora direta no plano persistido.')
+
+            predecessors = []
+            for prior in sorted(ticket['depends_on']):
+                accepted = db.execute('''SELECT a.* FROM managed_ticket_runs AS m
+                                         JOIN managed_ticket_acceptances AS a ON a.run_id = m.run_id
+                                         WHERE m.change_id = ? AND m.spec_version = ? AND m.spec_sha256 = ?
+                                         AND m.approval_revision = ? AND m.plan_sha256 = ? AND m.ticket_id = ?''',
+                                      (*key, contract['approval_revision'], contract['plan_sha256'], prior)).fetchone()
+                if accepted is None:
+                    raise ConflictError(f'Predecessora {prior} sem aceite oficial nesta geração.')
+                snapshot = self._verified_acceptance_snapshot(
+                    db, accepted['run_id'], accepted['run_revision'], accepted['at_evidence_id'],
+                    accepted['review_evidence_id'], trust_store,
+                )
+                if _encode(snapshot) != (accepted['snapshot_json'], accepted['snapshot_sha256']):
+                    raise CoreError(f'Aceite oficial da predecessora {prior} diverge das evidências verificadas.')
+                prior_run = self.store._load_v4(db, accepted['run_id'])
+                if not prior_run.checkpoints:
+                    raise ConflictError(f'Predecessora {prior} sem checkpoint F-03 registrado.')
+                latest = prior_run.checkpoints[-1]
+                if latest.run_revision != accepted['run_revision']:
+                    raise ConflictError(f'Último checkpoint F-03 da predecessora {prior} diverge da revisão aceita.')
+                if latest.has_unknown_pendencies:
+                    raise ConflictError(f'Predecessora {prior} possui pendência UNKNOWN ativa no checkpoint F-03.')
+                if not (latest.base_commit_sha and latest.head_commit_sha and latest.worktree_snapshot_sha256):
+                    raise ConflictError(f'Checkpoint F-03 da predecessora {prior} incompleto.')
+                if latest.head_commit_sha != snapshot['commit_sha']:
+                    raise ConflictError(f'Commit do checkpoint F-03 da predecessora {prior} diverge do commit aceito.')
+                if snapshot['at_evidence_sha256'] not in latest.evidence_hashes:
+                    raise ConflictError(f'Checkpoint F-03 da predecessora {prior} não referencia o AT_RESULT aceito.')
+                predecessors.append({
+                    'ticket_id': prior,
+                    'run': prior_run,
+                    'checkpoint': latest,
+                    'acceptance': {
+                        **snapshot,
+                        'request_id': accepted['request_id'],
+                        'created_at': accepted['created_at'],
+                        'snapshot_sha256': accepted['snapshot_sha256'],
+                    },
+                })
+            return {
+                'run': run,
+                'contract': contract,
+                'contract_sha256': bound['contract_sha256'],
+                'ticket': ticket,
+                'predecessors': predecessors,
+            }

@@ -1,6 +1,6 @@
 # Tarefas — Change 5 (`discover-plan-tickets`)
 
-**Branch:** `feat/change5-discover-plan-tickets`. **Retomada:** executar o [ensaio com modelo real](t3-discovery-and-spec-handoff.md#retomada-na-máquina-doméstica) na máquina doméstica e registrar `DISC-01`.
+**Branch:** `feat/change5-discover-plan-tickets`. **Retomada:** definir delta e executar o ensaio de `DISC-01` com modelo real (via Gateway nesta máquina ou local), depois fechar os gates do Change 5.
 
 - [x] **T1 — Validação determinística de propostas do PLAN.** `udh/ticket_plan.py` e `tests/test_ticket_plan.py` cobrem C5-01–04 com Python stdlib, sem persistência ou integração à execução. Em 24/11/2026: 6/6 testes focados (`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_ticket_plan.py'`) e 163/163 complementares PASS. Isso verifica T1, não o aceite oficial do change.
 - [x] **T2 — Materialização persistente e gate de dependências (`TICKET-01`).** [Delta](t2-persistence-and-start.md): T2a e T2b implementadas com verificação complementar. Aceite oficial no fechamento.
@@ -22,5 +22,5 @@
       - [x] **T3b.2b:** implementação da integração com o agente e do encaminhamento `SPEC_READY`. Seis testes focados e 216 complementares PASS; ensaio oficial com modelo real pendente.
   - [ ] **Ensaio `DISC-01` com modelo real**: C5-T3b.2b-03 na máquina doméstica.
   - [ ] **T3-org:** agrupar os módulos de descoberta e SPEC preservando imports. Adiada, sem aprovação.
-- [ ] **T4 — Troca de agente através do plano persistido (`TICKET-02`).** Antes de codificar, aprovar delta com arquivos permitidos, cenário offline, pré-condições de aceite e coleta confiável de evidências.
+- [x] **T4 — Troca de agente através do plano persistido (`TICKET-02`).** [Delta aprovado](t4-managed-handoff.md): `udh/ticket_handoff.py`, leitura transacional em `udh/ticket_store.py`/`udh/service.py` e `tests/test_managed_ticket_handoff.py`. Em 25/11/2026: 5/5 testes focados PASS (incluindo cenário E2E offline real `Pi 1.2.0 → OpenCode 1.18.35 + artifact-only F-04`) e 221/221 complementares PASS. Aceite oficial no fechamento.
 - [ ] **Fechamento** — Rodar a suíte complementar, `doctor --conformance`, as quatro POCs e a regressão dos 50 AT selados. Executar as verificações oficiais do novo recorte via executor confiável, sem criar ou editar ATs protegidos. Registrar limites e resultados em resumo compacto (`<= 32 KiB`), obter revisão independente R2/F-02 `PASS` e sincronizar os documentos ativos antes de integrar em `main`.
