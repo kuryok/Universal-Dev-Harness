@@ -451,6 +451,7 @@ def run_opencode_zen_trial(
     connection_factory: Callable[[], http.client.HTTPConnection] | None = None,
 ) -> dict:
     """Executa interativamente os casos de C5-T3b.2b-03 via opencode_zen_free em ambiente temporário isolado."""
+    from .discovery_flow import DiscoveryConfig as _CanonicalDiscoveryConfig
     from .service import CoreService
     from .store import SQLiteStore
 
@@ -475,7 +476,7 @@ def run_opencode_zen_trial(
         for ver in range(5, 10):
             core.migrate(ver)
         trust = TrustStore(root / 'trust-store')
-        config = DiscoveryConfig.for_opencode_zen_free(
+        config = _CanonicalDiscoveryConfig.for_opencode_zen_free(
             skill_path=resolved_skill,
             model=model,
             trust_store=trust,

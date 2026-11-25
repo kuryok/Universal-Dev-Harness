@@ -424,3 +424,32 @@ class DiscoveryFlowTests(unittest.TestCase):
         self.assertTrue(summary['cases']['material_gap']['ok'])
         self.assertTrue(summary['cases']['material_gap']['insufficient_answer_blocked'])
         self.assertLessEqual(summary_path.stat().st_size, 32768)
+
+        # 6. Regressão: execução via `python3 -m udh.discovery_flow` não falha por duplo-import de DiscoveryConfig
+        import runpy
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', RuntimeWarning)
+            mod_globals = runpy.run_module('udh.discovery_flow', run_name='udh_discovery_flow_alt_main')
+        trial_responses_alt = [
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, r1),
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, r2),
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, json.dumps({'choices': [{
+                'finish_reason': 'stop', 'message': {'role': 'assistant', 'content': json.dumps({'gaps': [GAP]})},
+            }]}).encode('utf-8')),
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, r2),
+        ]
+        answers_alt = iter(['s', 'Restaurar a última tela ao abrir.', 's'])
+        with patch('udh.discovery_flow.PiAdapter.run', side_effect=trial_pi), patch(
+            'udh.discovery_flow.validate_spec_snapshot',
+            side_effect=lambda cid, rev, art, *, approval, **kw: SpecValidationResult(cid, rev, approval[2], 'VALIDATED', '2.1.1'),
+        ):
+            summary_alt = mod_globals['run_opencode_zen_trial'](
+                model='deepseek-v4.1-flash-free',
+                cli_path=cli,
+                skill_path=SKILL,
+                input_fn=lambda _prompt: next(answers_alt),
+                print_fn=lambda _msg: None,
+                connection_factory=lambda: _FakeHTTPSConnection([trial_responses_alt.pop(0)]),
+            )
+        self.assertEqual(summary_alt['verdict'], 'PASS')
