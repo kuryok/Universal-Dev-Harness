@@ -8,7 +8,7 @@ Atualizado: 25/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e confe
 - Governança em [openspec/project.md](openspec/project.md) (`bootstrap/slice1/` congelado, resumos `<= 32 KiB`, 1 branch por change).
 
 ## Próximo passo
-- Branch `feat/change5-discover-plan-tickets`: T1–T3b.2c e **T4 (`udh/ticket_handoff.py`)** implementadas e verificadas (**225/225** complementares PASS, incluindo E2E offline `Pi → OpenCode + artifact-only` e `opencode_zen_free` com dublês). Próximo: rodar `python3 -m udh.discovery_flow --run-opencode-zen-trial` (`C5-T3b.2c-03`) e fechar o Change 5 (`v1–v6`, POCs, R2/F-02). `DISC-01` segue `NOT_RUN`; T3-org adiada.
+- Branch `feat/change5-discover-plan-tickets` (`089530d`): **todos os gates offline + R2/F-02 `PASS`** (`225/225` complementares, `doctor` `READY`, `4/4` POCs, `50/50` AT `v1–v6`, [resumo](openspec/changes/discover-plan-tickets/verification-summary.json)). **Bloqueio para merge:** ensaio ao vivo `DISC-01` (`deepseek-v4.1-flash-free` no OpenCode Zen retornou `HTTP 429` com `'public'` e com chave pessoal). Próximo: rodar `DISC-01` com outro modelo/API oficial ou Ollama local e então integrar em `main`. T3-org adiada.
 
 ## Cuidados
 - `DOC`/`SKILL`/`DISC`/`TICKET`, `B2.4`, `B3.8`/`B3.9`, `UX-04`, Codex, Chromium/Chrome e WSL2 seguem `NOT_RUN`; ainda não declarar MVP liberável completo.

@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "change": "discover-plan-tickets",
+  "classification": "change5-offline-gates-and-r2-pass-blocked-pending-disc01-live",
+  "branch": "feat/change5-discover-plan-tickets",
+  "candidate_ref": "089530da791840506abff3a2d64ab7cbeb99a018",
+  "sealed_at_and_poc_ref": "27b58a86f062dc9637c5f7d2f37b2de78141126e",
+  "note_between_refs": "Entre 27b58a8 e 089530d apenas udh/discovery_flow.py (runner local T3b.2c) e testes de descoberta/gateway foram alterados; udh/store.py, udh/service.py, udh/policy.py, udh/operator.py, udh/__main__.py, udh/handoff.py, udh/ticket_* e runtime/* permaneceram bit-a-bit idênticos.",
+  "merge_readiness": "BLOCKED_PENDING_DISC01_LIVE",
+  "images_oci": {
+    "pi": {
+      "repository": "localhost/udh-runtime",
+      "digest": "sha256:bed9a71a98bb1bf224bd5e64bde7276f914867330229624384ce91cd7e72b8a3",
+      "status": "unchanged-from-change2"
+    },
+    "opencode": {
+      "repository": "localhost/udh-runtime-opencode",
+      "digest": "sha256:7af7a5d4922697c3fa8fca54a40d971b2b8f6e5bf2d625b34a26f3a6a773e770",
+      "status": "unchanged-from-change3"
+    },
+    "artifact": {
+      "repository": "localhost/udh-runtime-artifact",
+      "digest": "sha256:0eda589885348c6084ba1e3d028c77f3fd0096a2476cb5a242b70d929fe5af8f",
+      "status": "unchanged-from-change4"
+    }
+  },
+  "candidate_hashes": {
+    "udh/adapters/pi.py": "73749a4ed3af903e2bc848c7c9597ea112c55b8c9979755d96d604c5666180fb",
+    "udh/discovery.py": "e0a2e1c1a630cdf6d853cf3c4f94cbdd11fb723a92d49d7f1f9b55bc046aa9ed",
+    "udh/discovery_flow.py": "15a78cd71da0560cd4707ce2befb85d3b7074c95f3af3af07a5ea692e765d1f3",
+    "udh/discovery_session.py": "88466772f04ace1df615c5e5525604a4f4ce7ef324d890248e90cc7fe83a2596",
+    "udh/executor.py": "a650dbd8d244d4ee820b581e617ac97437ee5c2ba4b48977039ab101df7749c0",
+    "udh/gateway.py": "6be69322a07fd61a710aa1fdfc22825e515861beb720f392ccf3f96b75cf1a07",
+    "udh/migrations.py": "d4fb8e2b0a5e4bc73746aedfe502777d86f5cedd8b52c8ca611ee28c2d5d67d4",
+    "udh/service.py": "5d4b1a578b0aae7266f398a3e3376544e9dde4fce7c315a731663ca3262ebd1a",
+    "udh/spec_handoff.py": "dce8e43317f7a1e13d7057fc3b7514affeb04d610b04b183900c9e626efe52e4",
+    "udh/store.py": "4577d6770cd1e2038d925cebbb0cf6d11d9d278ca92f6039b00dc8bc23c3b65d",
+    "udh/ticket_acceptance.py": "7527d56a398e81ecbeee3230338ea2190bea2455b318bfcde09f02bbb4fd3ff0",
+    "udh/ticket_contract.py": "f231d507c0998573c0f4607a0ce7debc7feb8c346519fe4bd9dc9f79f8c501e2",
+    "udh/ticket_handoff.py": "41ba300f77af32617515c4c1d6de541954447fc76154d9616abf04331d6c00a3",
+    "udh/ticket_plan.py": "0d335d818afde473085b187b6a1a811e42cd32497ebc16741b0c849c61fe9fc",
+    "udh/ticket_store.py": "fb8c62a20d2e2363c11975d02b8f22df32f7445d2b08fd6c5029adf1bef04f34",
+    "udh/trust_store.py": "bf45e0840b08a8029fa3582dcd1429c47d0c1cc00915b3ee1118a2889e116d0f",
+    "skill_grill_with_docs_udh": "0013c3849856ad8f629b9b19a9260be26583a7b715b1ba713016739fa4de7f27"
+  },
+  "complementary_tests": {
+    "ref": "089530da791840506abff3a2d64ab7cbeb99a018",
+    "status": "PASS",
+    "tests_run": 225,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "duration_seconds": 100.777,
+    "flags": {
+      "UDH_TEST_DISCOVERY_PI": "1",
+      "UDH_TEST_OPENSPEC": "/home/debian/.config/nvm/versions/node/v26.13.0/bin/openspec (2.1.1)"
+    },
+    "highlights": [
+      "T1-T2b.3b: ticket_plan, ticket_store, B4.2 contract, F-04+F-02 acceptance and transactional START_RUN gate",
+      "T3a-T3b.2c: discovery filter/session/flow, OpenSpec 2.1.1 real CLI validation, Pi 1.2.0 loopback test server, opencode_zen_free hardening with deterministic doubles",
+      "T4 (TICKET-02): managed_ticket_handoff E2E offline real Pi 1.2.0 -> OpenCode 1.18.35 + artifact-only F-04 + F-03 + F-02 + official acceptance"
+    ]
+  },
+  "doctor_conformance_live": {
+    "ref": "27b58a86f062dc9637c5f7d2f37b2de78141126e",
+    "overall_status": "READY",
+    "conformant_adapters": ["pi", "opencode"],
+    "conformance_tool_modes": {
+      "pi": "zero_tools",
+      "opencode": "zero_tools"
+    }
+  },
+  "pocs_live": {
+    "ref": "27b58a86f062dc9637c5f7d2f37b2de78141126e",
+    "overall_verdict": "PASS",
+    "elapsed_seconds": 20.991,
+    "POC-01": "PASS",
+    "POC-02": "PASS",
+    "POC-03": "PASS",
+    "POC-04": "PASS"
+  },
+  "sealed_acceptance_suites": {
+    "ref": "27b58a86f062dc9637c5f7d2f37b2de78141126e",
+    "v6_unblock": {
+      "at_version": "sha256:7196e5f4eea1fc78806efcdbd2b1e231446b2632937d5aff69c4f2f8bf0d9b37",
+      "tests_run": 16,
+      "passed": 16,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 439,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "991a70e18efa10b164a2b83a8940e49213b1be54908b8578ad3328453ebd0c72"
+    },
+    "v5_block": {
+      "at_version": "sha256:182d2ba72a7b5dfb5648e650577dcc3bbbbd67048c72a3bf959406ce7dd89ac6",
+      "tests_run": 13,
+      "passed": 13,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 171,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "ad01c1bc7a9dd3d7b3e620476e2954b7a17a0205c11148d733a1b2e1a199a1af"
+    },
+    "v2_policy": {
+      "at_version": "sha256:438ce43f70e0137115f2c30920623eabf5bfd042035958951fdaafa151e41f3f",
+      "tests_run": 11,
+      "passed": 11,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 55,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "27e1e66a8f962f3adcbb8f41bb2f6b7c9737041632507d3d1d9e7a99902bb0f5"
+    },
+    "v1_core": {
+      "at_version": "sha256:e6056d5bec095d4023b1a30286dc978d000e3d0b3e8ab19f4642da8c84bab704",
+      "tests_run": 10,
+      "passed": 10,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "audit_calls": 49,
+      "infra_issues": 0,
+      "temporary_removed": true,
+      "report_sha256": "2bb334d8559e71b18c1d60762bd2486f2327d3132955e5109002a59440704ce9"
+    }
+  },
+  "independent_review_r2": {
+    "status": "PASS",
+    "ref": "089530da791840506abff3a2d64ab7cbeb99a018",
+    "context": "separate-readonly-subagent",
+    "initial_review_conversation_id": "afe3e698-b176-4038-8637-b558d468d713",
+    "final_review_conversation_id": "4da0b77f-4f88-47ff-9ba4-b4e458af2e67",
+    "unresolved_findings": [],
+    "prior_findings_resolved": [
+      "udh/discovery_flow.py: _resolve_cli_and_node_dir preserva symlink NVM/npm de openspec ao derivar node_dir (com fallback which(node) e --node-dir), testado com CLI real OpenSpec 2.1.1 sem mock",
+      "udh/discovery_flow.py: _print_draft_for_review exibe proposal/design/tasks/specs antes do prompt de aprovacao humana nos Casos 1 e 2",
+      "tests/test_runtime_and_gateway.py e tests/test_discovery_flow.py: cobertura de timeout wall-clock threading.Timer, modelo -free ausente, HTTP 302/429, tool_calls, finish_reason=length, segredo fatiado em bytes brutos, veredito sanitizado do gateway e anti-symlink em --summary-out",
+      "udh/discovery_flow.py: _write_summary_file sem double-close e encapsulando OSError em DiscoveryFlowError; validacao 1..90s de --timeout em --list-free-models"
+    ]
+  },
+  "change5_acceptance_status": {
+    "TICKET-01_and_B4_2": "VERIFIED_COMPLEMENTARY_AND_TRUSTED_EXECUTOR_OFFLINE",
+    "TICKET-02": "VERIFIED_E2E_OFFLINE_PI_TO_OPENCODE_AND_ARTIFACT_ONLY",
+    "DISC-01": "NOT_RUN_BLOCKED_EXTERNAL_429"
+  },
+  "disc01_live_block": {
+    "date": "2026-11-25",
+    "provider": "opencode_zen_free",
+    "model": "deepseek-v4.1-flash-free",
+    "observed_verdict": "provider_http_429",
+    "tested_auth_modes": ["public", "env_api_key"],
+    "offline_local_ollama_status": "PENDING_FUTURE_ENVIRONMENT",
+    "action_required_to_merge": "Executar ensaio ao vivo C5-T3b.2c-03 (ou C5-T3b.2b-03 com Ollama local) com modelo real passando todos os casos de DISC-01 ate SPEC_READY e atualizar este resumo antes de integrar em main."
+  },
+  "not_run": [
+    "DISC-01 com modelo real (bloqueado por HTTP 429 no OpenCode Zen em deepseek-v4.1-flash-free; Ollama local pendente de ambiente)",
+    "DOC-01/02, SKILL-01/02, UX-04",
+    "Perfil provision (B2.4), execucao persistente B3.8 e exportacao B3.9",
+    "Terceiro agente (Codex), Memorix, Judge consultivo e chamada ao vivo openrouter_free",
+    "Windows 11 / WSL2 (B1.1b) e navegadores Chromium/Chrome"
+  ]
+}

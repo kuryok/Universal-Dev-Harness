@@ -14,15 +14,15 @@ Retomada: [AGENTS.md](AGENTS.md), este estado e [MEMORY.md](MEMORY.md). Normativ
 
 ## Pendente
 
-- **Change 5 em andamento:** T1–T2 validam/persistem planos e gates `B4.2`/aceite; T3 (até T3b.2c) persiste descoberta (SQLite v9), `SPEC_READY` (OpenSpec 2.1.1) e backend `opencode_zen_free`; **T4 (`udh/ticket_handoff.py`)** validou handoff `Pi → OpenCode` (`225/225` complementares PASS). Falta ensaio ao vivo `C5-T3b.2c-03` e fechamento oficial (`TICKET-01/02`, `DISC-01`).
+- **Change 5 (gates offline + R2/F-02 `PASS` em `089530d`):** T1–T4 verificados (`225/225` complementares, `doctor` `READY`, `4/4` POCs, `50/50` AT `v1–v6`, R2/F-02 `PASS`; [resumo](openspec/changes/discover-plan-tickets/verification-summary.json)). Merge em `main` aguarda ensaio ao vivo `DISC-01` (OpenCode Zen deu `HTTP 429` em `deepseek-v4.1-flash-free`; Ollama local pendente).
 - **Restante do produto:** perfil `provision` (`B2.4`), execução protegida persistente (`B3.8`) e exportação (`B3.9`), `DOC-01/02`, `SKILL-01/02`, `UX-04`, terceiro agente (Codex), WSL2 (`B1.1b`), Chromium/Chrome, Memorix, Judge consultivo e instalador. Ainda não é MVP liberável completo.
 
 ## Próxima tarefa
 
-Na branch `feat/change5-discover-plan-tickets`, executar o ensaio ao vivo `C5-T3b.2c-03` (`python3 -m udh.discovery_flow --run-opencode-zen-trial`) com modelo `-free` do OpenCode Zen e depois fechar o Change 5 (AT selados `v1–v6`, POCs, R2/F-02). T3-org adiada.
+Na branch `feat/change5-discover-plan-tickets`, destravar e executar o ensaio ao vivo de `DISC-01` (outro modelo `-free`/provedor de API no Gateway ou Ollama local) para fechar e integrar o Change 5 em `main`. T3-org adiada.
 
 ## Verificação
 
-- `UDH_TEST_DISCOVERY_PI=1 UDH_TEST_OPENSPEC="$(command -v openspec)" PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/bootstrap/slice1" python3 -m unittest discover -s tests` (225 PASS; inclui T4 E2E offline `Pi → OpenCode + artifact-only` e T3b.2b/2c com dublês e Pi/OpenSpec reais. AT selados e R2/F-02 pendentes).
+- Em `089530d`/`27b58a8`: `225/225` complementares (`UDH_TEST_DISCOVERY_PI=1` + OpenSpec 2.1.1), `doctor --conformance` (`READY`), `4/4` POCs, `50/50` AT `v1–v6` (714 chamadas, 0 infra) e R2/F-02 `PASS`. `DISC-01` ao vivo: bloqueado por `HTTP 429`.
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m udh doctor --conformance` (`READY`: `['pi', 'opencode']`), `PYTHONDONTWRITEBYTECODE=1 python3 -m udh.poc` (4/4 PASS) e `python3 -m udh.web --db <path> --store <path>`.
 - [README](README.md) para entrada. Não abrir credenciais nem limpar `spike/slice0/workspace/` sem autorização.

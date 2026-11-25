@@ -1,6 +1,6 @@
 # Change 5 — Da descoberta ao plano de tickets
 
-- **Estado:** T1, T2, T3 (até T3b.2c) e T4 implementadas e verificadas com testes complementares (**225/225 PASS**). Faltam o ensaio ao vivo `C5-T3b.2c-03` de `DISC-01` e o fechamento oficial do change.
+- **Estado:** T1–T4 e todos os gates offline verificados em 25/11/2026 (`225/225` complementares, `doctor --conformance` `READY`, `4/4` POCs, `50/50` AT selados `v1–v6` e R2/F-02 `PASS` em `089530d`; [resumo](verification-summary.json)). Merge em `main` bloqueado apenas pelo ensaio ao vivo `DISC-01` (`HTTP 429` no OpenCode Zen em `deepseek-v4.1-flash-free`; Ollama local pendente).
 - **Branch:** `feat/change5-discover-plan-tickets`, a partir de `main` em `ef9c15d`.
 - **Base normativa:** [baseline rastreado](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (DELTA-03–05, ADR-023/024/026/027, B4.2, F-03) e [governança do projeto](../../project.md).
 

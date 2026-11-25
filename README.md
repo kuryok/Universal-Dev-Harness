@@ -30,6 +30,6 @@ Os testes usam Python 3 (stdlib-only), Podman rootless e as 3 imagens OCI locais
 
 `DISCOVER`/`SPEC`/`PLAN`, multi-ticket DAG (`TICKET-01/02`), perfil `provision` (`B2.4`), execução persistente (`B3.8`), exportação (`B3.9`), `DOC`/`SKILL`/`UX-04`, terceiro agente (Codex), Chromium/Chrome e WSL2 continuam pendentes (`NOT_RUN`); o projeto ainda não é um MVP liberável completo.
 
-Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), o plano persistido, o início condicionado ao aceite das predecessoras, o encaminhamento para SPEC (incluindo backend endurecido `opencode_zen_free`) e a troca de agente `Pi → OpenCode` sobre o plano persistido (T4) passaram nos testes complementares (225/225 PASS). A [skill de descoberta adaptada](openspec/changes/discover-plan-tickets/skills/grill-with-docs-udh/SKILL.md) é usada pelo Pi durante a descoberta.
+Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), T1–T4 e todos os gates offline passaram (`089530d`: `225/225` complementares, `doctor --conformance` `READY`, `4/4` POCs, `50/50` AT selados `v1–v6` e revisão R2/F-02 `PASS`; [resumo](openspec/changes/discover-plan-tickets/verification-summary.json)). A [skill de descoberta adaptada](openspec/changes/discover-plan-tickets/skills/grill-with-docs-udh/SKILL.md) é usada pelo Pi durante a descoberta.
 
-Falta executar o ensaio ao vivo `C5-T3b.2c-03` (`python3 -m udh.discovery_flow --run-opencode-zen-trial`) e os gates de fechamento oficial do Change 5 antes da integração em `main`.
+O merge em `main` aguarda apenas concluir o ensaio ao vivo de `DISC-01` (bloqueado por `HTTP 429` do OpenCode Zen em `deepseek-v4.1-flash-free`; outro modelo/provedor de API ou Ollama local pendente).

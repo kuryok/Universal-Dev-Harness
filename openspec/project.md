@@ -15,7 +15,7 @@ O uso de OpenSpec neste repositório é **documental adaptado**: requisitos e pl
 
 Antes de implementar: confirmar escopo/arquivos/critério de pronto no change, registrar aprovação humana e verificar o incremento. Mudança de requisito exige delta explícito. Não duplicar requisitos em README, STATE, MEMORY ou diagnósticos externos.
 
-O [Change 5](changes/discover-plan-tickets/tasks.md) segue em branch dedicada. T1–T3b.2c (`opencode_zen_free` no Gateway + Pi + OpenSpec 2.1.1 com dublês) e T4 (`udh/ticket_handoff.py`, troca `Pi → OpenCode` sobre o plano persistido) passaram nos testes complementares (225/225 PASS). O ensaio ao vivo `C5-T3b.2c-03` de `DISC-01`, o aceite oficial do change e a integração em `main` continuam pendentes.
+O [Change 5](changes/discover-plan-tickets/tasks.md) segue em branch dedicada com todos os gates offline e revisão independente R2/F-02 `PASS` em `089530d` (`225/225` complementares, `doctor --conformance` `READY`, `4/4` POCs, `50/50` AT selados `v1–v6`; [resumo](changes/discover-plan-tickets/verification-summary.json)). A integração em `main` permanece bloqueada apenas pelo ensaio ao vivo de `DISC-01` (`HTTP 429` observado no OpenCode Zen em `deepseek-v4.1-flash-free`; pendente de outro provedor/modelo ou Ollama local).
 
 ## Engenharia, bootstrap e política de evidências
 
