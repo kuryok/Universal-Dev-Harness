@@ -23,7 +23,12 @@ from udh.ticket_handoff import (
     verify_managed_handoff_packet,
 )
 from udh.transitions import ConflictError
-from udh.trust_store import TrustStore
+from udh.trust_store import TrustStore, _canonical_json_bytes
+
+
+def _reseal(packet: dict) -> dict:
+    body = {k: v for k, v in packet.items() if k != 'packet_sha256'}
+    return {**body, 'packet_sha256': hashlib.sha256(_canonical_json_bytes(body)).hexdigest()}
 
 
 def _approved_two_ticket_spec(*, spec_version='1', spec_sha256='1' * 64):
@@ -451,6 +456,55 @@ class ManagedTicketHandoffUnitTests(unittest.TestCase):
             ev_file.write_bytes(orig)
             os.chmod(ev_file, 0o444)
 
+        # 5b. Evidência F-02 (REVIEW_REPORT) adulterada fisicamente na TrustStore
+        rev_file = self.store.root / t1['review']['summary_ref']
+        rev_orig = rev_file.read_bytes()
+        try:
+            os.chmod(rev_file, 0o644)
+            rev_file.write_bytes(b'{"tampered_review":true}\n')
+            with self.assertRaises(HandoffError) as rev_err:
+                build_managed_handoff_packet(
+                    core_service=self.core, trust_store=self.store, run_id=self.run2.run_id,
+                    git_dir=self.git_dir, workspace=self.ws, from_adapter='pi', to_adapter='opencode',
+                    allowed_tools=('read',), context_refs=self.ctx_refs,
+                    conformant_adapters=('pi', 'opencode'),
+                )
+            self.assertEqual(rev_err.exception.reason_code, 'HANDOFF_EVIDENCE_MISMATCH')
+        finally:
+            os.chmod(rev_file, 0o644)
+            rev_file.write_bytes(rev_orig)
+            os.chmod(rev_file, 0o444)
+
+        # 5c. Checkpoint F-03 cujo head_commit_sha diverge do commit aceito
+        self.core.record_checkpoint(
+            self.run1.run_id, expected_revision=2, request_id='req-ckpt-t1-wrong-head',
+            last_confirmed_step='t1_wrong_head',
+            base_commit_sha=self.base_git['base_commit_sha'],
+            head_commit_sha=self.base_git['base_commit_sha'],
+            worktree_snapshot_sha256=t1['snap']['worktree_snapshot_sha256'],
+            evidence_hashes=(t1['at']['evidence']['evidence_sha256'],),
+            unknown_pendencies=(),
+        )
+        with self.assertRaises(HandoffError) as head_div_err:
+            build_managed_handoff_packet(
+                core_service=self.core, trust_store=self.store, run_id=self.run2.run_id,
+                git_dir=self.git_dir, workspace=self.ws, from_adapter='pi', to_adapter='opencode',
+                allowed_tools=('read',), context_refs=self.ctx_refs,
+                conformant_adapters=('pi', 'opencode'),
+            )
+        self.assertEqual(head_div_err.exception.reason_code, 'HANDOFF_INTEGRITY_VIOLATION')
+
+        # Restaurar checkpoint válido antes de testar troca de geração
+        self.core.record_checkpoint(
+            self.run1.run_id, expected_revision=2, request_id='req-ckpt-t1-restored',
+            last_confirmed_step='t1_restored',
+            base_commit_sha=self.base_git['base_commit_sha'],
+            head_commit_sha=t1['snap']['head_commit_sha'],
+            worktree_snapshot_sha256=t1['snap']['worktree_snapshot_sha256'],
+            evidence_hashes=(t1['at']['evidence']['evidence_sha256'],),
+            unknown_pendencies=(),
+        )
+
         # 6. Troca de geração aprovada torna o plano atual obsoleto
         new_spec = _approved_two_ticket_spec(spec_version='2', spec_sha256='2' * 64)
         self.core.approve_ticket_input(new_spec, expected=(self.ref, 1))
@@ -462,6 +516,322 @@ class ManagedTicketHandoffUnitTests(unittest.TestCase):
                 conformant_adapters=('pi', 'opencode'),
             )
         self.assertEqual(stale_err.exception.reason_code, 'HANDOFF_PRECONDITION_FAILED')
+
+    def test_packet_schema_hardening_and_structured_error_codes(self):
+        self._finish_t1(accept=True)
+        self.core.start(self.run2.run_id, 0, 'req-start-t2', trust_store=self.store)
+
+        # Argumento trust_store inválido -> HANDOFF_INTEGRITY_VIOLATION (não HANDOFF_EVIDENCE_MISMATCH)
+        with self.assertRaises(HandoffError) as bad_store:
+            build_managed_handoff_packet(
+                core_service=self.core, trust_store=None, run_id=self.run2.run_id,  # type: ignore[arg-type]
+                git_dir=self.git_dir, workspace=self.ws, from_adapter='pi', to_adapter='opencode',
+                allowed_tools=('read',), context_refs=self.ctx_refs,
+                conformant_adapters=('pi', 'opencode'),
+            )
+        self.assertEqual(bad_store.exception.reason_code, 'HANDOFF_INTEGRITY_VIOLATION')
+
+        # allowed_tools string, duplicado ou espaços em adaptador rejeitados
+        for kwargs, code in (
+            ({'allowed_tools': 'read'}, 'HANDOFF_INTEGRITY_VIOLATION'),
+            ({'allowed_tools': ('read', 'read')}, 'HANDOFF_INTEGRITY_VIOLATION'),
+            ({'from_adapter': 'pi '}, 'HANDOFF_UNAUTHORIZED'),
+            ({'to_adapter': ' opencode'}, 'HANDOFF_UNAUTHORIZED'),
+        ):
+            base_kw = dict(
+                core_service=self.core, trust_store=self.store, run_id=self.run2.run_id,
+                git_dir=self.git_dir, workspace=self.ws, from_adapter='pi', to_adapter='opencode',
+                allowed_tools=('read',), context_refs=self.ctx_refs,
+                conformant_adapters=('pi', 'opencode'),
+            )
+            base_kw.update(kwargs)
+            with self.subTest(kwargs=kwargs), self.assertRaises(HandoffError) as err:
+                build_managed_handoff_packet(**base_kw)
+            self.assertEqual(err.exception.reason_code, code)
+
+        valid = build_managed_handoff_packet(
+            core_service=self.core, trust_store=self.store, run_id=self.run2.run_id,
+            git_dir=self.git_dir, workspace=self.ws, from_adapter='pi', to_adapter='opencode',
+            allowed_tools=('read',), context_refs=self.ctx_refs,
+            conformant_adapters=('pi', 'opencode'),
+        )
+
+        # 1. verified_evidence malformado (mesmo com packet_sha256 recalculado)
+        bad_ev = copy.deepcopy(valid)
+        bad_ev['predecessors'][0]['verified_evidence'] = [123]
+        with self.assertRaises(HandoffError) as e1:
+            verify_managed_handoff_packet(_reseal(bad_ev))
+        self.assertEqual(e1.exception.reason_code, 'HANDOFF_INTEGRITY_VIOLATION')
+
+        # 2. verified_evidence sem o AT_RESULT aceito (ex.: só REVIEW_REPORT)
+        missing_at = copy.deepcopy(valid)
+        missing_at['predecessors'][0]['verified_evidence'][0]['kind'] = 'REVIEW_REPORT'
+        with self.assertRaises(HandoffError) as e2:
+            verify_managed_handoff_packet(_reseal(missing_at))
+        self.assertEqual(e2.exception.reason_code, 'HANDOFF_INTEGRITY_VIOLATION')
+
+        # 3. Duplicatas em context_ids / allowed_context_ids
+        dup_ctx = copy.deepcopy(valid)
+        dup_ctx['authorized_context']['context_ids'] = ['ctx-spec-calc', 'ctx-spec-calc']
+        dup_ctx['authorized_context']['items'] = [
+            dup_ctx['authorized_context']['items'][0],
+            copy.deepcopy(dup_ctx['authorized_context']['items'][0]),
+        ]
+        with self.assertRaises(HandoffError) as e3:
+            verify_managed_handoff_packet(_reseal(dup_ctx))
+        self.assertEqual(e3.exception.reason_code, 'HANDOFF_CONTEXT_DENIED')
+
+        # 4. Surrogate UTF-16 em summary não vaza UnicodeEncodeError
+        surr_ctx = copy.deepcopy(valid)
+        surr_ctx['authorized_context']['items'][0]['summary'] = 'bad-\ud800'
+        with self.assertRaises(HandoffError) as e4:
+            verify_managed_handoff_packet(surr_ctx)
+        self.assertEqual(e4.exception.reason_code, 'HANDOFF_CONTEXT_DENIED')
+
+        # 5. git.head_commit_sha divergente de todas as predecessoras
+        bad_git = copy.deepcopy(valid)
+        bad_git['git']['head_commit_sha'] = '0' * 40
+        with self.assertRaises(HandoffError) as e5:
+            verify_managed_handoff_packet(_reseal(bad_git))
+        self.assertEqual(e5.exception.reason_code, 'HANDOFF_INTEGRITY_VIOLATION')
+
+        # 6. run_revision == 0 recusado
+        bad_rev = copy.deepcopy(valid)
+        bad_rev['run_revision'] = 0
+        with self.assertRaises(HandoffError) as e6:
+            verify_managed_handoff_packet(_reseal(bad_rev))
+        self.assertEqual(e6.exception.reason_code, 'HANDOFF_INTEGRITY_VIOLATION')
+
+    def test_multi_predecessor_ancestry_empty_context_and_unknown_ticket_id(self):
+        # Novo banco com DAG de 2 predecessoras diretas: T-UNKNOWN-1 e T2 -> T3 (com context_ids=[])
+        db_path = self.root / 'multi.db'
+        store = TrustStore(self.root / 'multi-store')
+        ws = self.root / 'multi-ws'
+        ws.mkdir()
+        git_dir = self.root / 'multi-git'
+
+        core = CoreService(SQLiteStore(db_path))
+        core.initialize(schema_version=4)
+        for ver in (5, 6, 7, 8, 9):
+            core.migrate(ver)
+
+        spec = {
+            'change_id': 'change-5-multi',
+            'spec_version': '1',
+            'spec_sha256': '3' * 64,
+            'tasks': {
+                'T-UNKNOWN-1': ['C1'],
+                'T2': ['C2'],
+                'T3': ['C3'],
+            },
+            'task_details': {
+                'T-UNKNOWN-1': {'mode': 'direct', 'depends_on': [], 'objective': 'Parte 1', 'checks': ['p1 ok']},
+                'T2': {'mode': 'direct', 'depends_on': [], 'objective': 'Parte 2', 'checks': ['p2 ok']},
+                'T3': {'mode': 'direct', 'depends_on': ['T-UNKNOWN-1', 'T2'], 'objective': 'Combinar', 'checks': ['p3 ok']},
+            },
+        }
+        ref = _ref(spec)
+        core.approve_ticket_input(spec)
+        plan = core.materialize_ticket_plan(ref, expected_revision=1)
+        plan_sha = plan['plan_sha256']
+        core.reconcile_ticket_plan(ref, expected_revision=1, plan_sha256=plan_sha)
+
+        at_suite, at_msha = _seal_suite(
+            store, self.root, 'multi_ok',
+            'import unittest\n'
+            'class TestMulti(unittest.TestCase):\n'
+            '    def test_ok(self): self.assertTrue(True)\n',
+        )
+        (ws / 'base.txt').write_text('base\n', encoding='utf-8')
+        base_git = init_core_worktree(git_dir, ws, initial_message='udh: multi base')
+
+        def _register(tid, req):
+            run = core.create_managed_ticket_run(
+                ref, approval_revision=1, plan_sha256=plan_sha, ticket_id=tid, request_id=req, mode='STANDARD',
+            )
+            crit = spec['tasks'][tid][0]
+            core.register_managed_ticket_contract(
+                run.run_id, expected_revision=0, trust_store=store,
+                contract={
+                    'approval_ref': f'app-{tid}',
+                    'at_version': at_suite['at_version'],
+                    'at_manifest_sha256': at_msha,
+                    'coverage': [{'task_id': tid, 'criterion_id': crit, 'test_ids': ['test_multi_ok.TestMulti.test_ok']}],
+                    'context_ids': [],
+                    'allowed_context_ids': [],
+                    'unresolved_gaps': [],
+                },
+            )
+            return run
+
+        r1 = _register('T-UNKNOWN-1', 'req-m-1')
+        r2 = _register('T2', 'req-m-2')
+        r3 = _register('T3', 'req-m-3')
+
+        def _stub_pass(kwargs):
+            nonce = json.loads(kwargs['stdin_bytes'].decode('utf-8'))['nonce']
+            tests = ['test_multi_ok.TestMulti.test_ok']
+            payload = {
+                'udhf04': 1, 'nonce': nonce, 'ok': True, 'tampering_ok': True, 'tampering_reason': None,
+                'tests_run': 1, 'failures': 0, 'errors': 0, 'skipped': 0,
+                'expected_tests': tests, 'passed_tests': tests,
+            }
+            return ContainerResult(
+                container_name='stub-multi', profile='artifact', image_ref=kwargs['image_ref'],
+                returncode=0, stdout=json.dumps(payload) + '\n', stderr='', outcome=None,
+                elapsed_seconds=0.01, inspection={}, cleanup_verified=True,
+            )
+
+        executor = TrustedExecutor(core_service=core, trust_store=store, runtime_manager=_StubRuntimeManager(_stub_pass))
+
+        def _complete_accept(run, filename, req_prefix, *, base_sha, include_review_in_ckpt=False, record_ckpt=True):
+            core.start(run.run_id, 0, f'{req_prefix}-start', trust_store=store)
+            (ws / filename).write_text(f'{filename}\n', encoding='utf-8')
+            snap = commit_handoff_snapshot(git_dir, ws, message=f'udh: {req_prefix}')
+            art = store.promote_artifact(ws, commit_sha=snap['head_commit_sha'])
+            ev = executor.verify_run(
+                run.run_id, request_id=f'{req_prefix}-verify',
+                artifact_digest=art['artifact_digest'], at_version=at_suite['at_version'],
+                commit_sha=snap['head_commit_sha'],
+            )
+            executor.complete_verified_run(
+                run.run_id, expected_revision=1, request_id=f'{req_prefix}-complete',
+                evidence_id=ev['evidence']['evidence_id'],
+                artifact_digest=art['artifact_digest'], at_version=at_suite['at_version'],
+            )
+            rev = core.record_managed_ticket_review(
+                run.run_id, expected_revision=2, request_id=f'{req_prefix}-review',
+                at_evidence_id=ev['evidence']['evidence_id'],
+                independent_context=True, review_context_ref=f'rev-{req_prefix}',
+                confirmation_ref=f'ok-{req_prefix}', findings=[], trust_store=store,
+            )
+            ev_hashes = (ev['evidence']['evidence_sha256'], rev['evidence_sha256']) if include_review_in_ckpt else (ev['evidence']['evidence_sha256'],)
+            if record_ckpt:
+                core.record_checkpoint(
+                    run.run_id, expected_revision=2, request_id=f'{req_prefix}-ckpt',
+                    last_confirmed_step=f'{req_prefix}_done',
+                    base_commit_sha=base_sha,
+                    head_commit_sha=snap['head_commit_sha'],
+                    worktree_snapshot_sha256=snap['worktree_snapshot_sha256'],
+                    evidence_hashes=ev_hashes,
+                    unknown_pendencies=(),
+                )
+            core.accept_managed_ticket(
+                run.run_id, expected_revision=2, request_id=f'{req_prefix}-accept',
+                at_evidence_id=ev['evidence']['evidence_id'],
+                review_evidence_id=rev['evidence_id'], trust_store=store,
+            )
+            return {'snap': snap, 'ev_hashes': ev_hashes}
+
+        # 1. Caminho negativo: T-UNKNOWN-1 em branch divergente (não ancestral de T2)
+        s1 = _complete_accept(r1, 'part1.py', 'm1', base_sha=base_git['base_commit_sha'], include_review_in_ckpt=True)
+        # Volta worktree para base_sha (criando commit irmão para T2 -> s1 não é ancestral de s2!)
+        subprocess.run(
+            ['git', '-c', 'core.hooksPath=/dev/null', '--git-dir', str(git_dir), '--work-tree', str(ws),
+             'reset', '--hard', base_git['base_commit_sha']],
+            capture_output=True, text=True, check=True, timeout=15,
+        )
+        s2_sibling = _complete_accept(r2, 'part2.py', 'm2', base_sha=base_git['base_commit_sha'])
+        core.start(r3.run_id, 0, 'req-m3-start', trust_store=store)
+        with self.assertRaises(HandoffError) as non_anc:
+            build_managed_handoff_packet(
+                core_service=core, trust_store=store, run_id=r3.run_id,
+                git_dir=git_dir, workspace=ws, from_adapter='pi', to_adapter='opencode',
+                allowed_tools=('read',), conformant_adapters=('pi', 'opencode'),
+            )
+        self.assertEqual(non_anc.exception.reason_code, 'HANDOFF_INTEGRITY_VIOLATION')
+
+        # 2. Novo ciclo linear (A -> B em cadeia de ancestrais): T-UNKNOWN-1 ancestral de T2 -> T3 OK!
+        spec2 = {**spec, 'spec_version': '2', 'spec_sha256': '4' * 64}
+        ref2 = _ref(spec2)
+        core.approve_ticket_input(spec2, expected=(ref, 1))
+        plan2 = core.materialize_ticket_plan(ref2, expected_revision=2)
+        plan2_sha = plan2['plan_sha256']
+        core.reconcile_ticket_plan(ref2, expected_revision=2, plan_sha256=plan2_sha)
+
+        def _register2(tid, req):
+            run = core.create_managed_ticket_run(
+                ref2, approval_revision=2, plan_sha256=plan2_sha, ticket_id=tid, request_id=req, mode='STANDARD',
+            )
+            crit = spec2['tasks'][tid][0]
+            core.register_managed_ticket_contract(
+                run.run_id, expected_revision=0, trust_store=store,
+                contract={
+                    'approval_ref': f'app2-{tid}',
+                    'at_version': at_suite['at_version'],
+                    'at_manifest_sha256': at_msha,
+                    'coverage': [{'task_id': tid, 'criterion_id': crit, 'test_ids': ['test_multi_ok.TestMulti.test_ok']}],
+                    'context_ids': [],
+                    'allowed_context_ids': [],
+                    'unresolved_gaps': [],
+                },
+            )
+            return run
+
+        r1b = _register2('T-UNKNOWN-1', 'req-m2-1')
+        r2b = _register2('T2', 'req-m2-2')
+        r3b = _register2('T3', 'req-m2-3')
+
+        # Antes de T-UNKNOWN-1 ser aceito: se T3 tentasse handoff (forçando checagem via T3 PENDING),
+        # o erro para ticket com "UNKNOWN" no nome NÃO pode virar UNKNOWN_PENDENCY_ACTIVE!
+        with self.assertRaises(HandoffError) as not_unk:
+            build_managed_handoff_packet(
+                core_service=core, trust_store=store, run_id=r3b.run_id,
+                git_dir=git_dir, workspace=ws, from_adapter='pi', to_adapter='opencode',
+                allowed_tools=('read',), conformant_adapters=('pi', 'opencode'),
+            )
+        self.assertEqual(not_unk.exception.reason_code, 'HANDOFF_PRECONDITION_FAILED')
+
+        # Agora executa T-UNKNOWN-1 (inicialmente sem checkpoint F-03) e T2 sobre T-UNKNOWN-1
+        s1b_res = _complete_accept(
+            r1b, 'lin1.py', 'lin1', base_sha=s2_sibling['snap']['head_commit_sha'],
+            include_review_in_ckpt=True, record_ckpt=False,
+        )
+        s1b = s1b_res['snap']
+        _complete_accept(r2b, 'lin2.py', 'lin2', base_sha=s1b['head_commit_sha'])
+        core.start(r3b.run_id, 0, 'req-lin3-start', trust_store=store)
+
+        # Mensagem contém 'T-UNKNOWN-1' (sem pendência UNKNOWN) -> DEVE retornar HANDOFF_PRECONDITION_FAILED
+        with self.assertRaises(HandoffError) as unk_name_err:
+            build_managed_handoff_packet(
+                core_service=core, trust_store=store, run_id=r3b.run_id,
+                git_dir=git_dir, workspace=ws, from_adapter='pi', to_adapter='opencode',
+                allowed_tools=('read',), conformant_adapters=('pi', 'opencode'),
+            )
+        self.assertEqual(unk_name_err.exception.reason_code, 'HANDOFF_PRECONDITION_FAILED')
+
+        # Registra checkpoint F-03 limpo de T-UNKNOWN-1 (incluindo AT_RESULT + REVIEW_REPORT)
+        core.record_checkpoint(
+            r1b.run_id, expected_revision=2, request_id='lin1-ckpt-now',
+            last_confirmed_step='lin1_done',
+            base_commit_sha=s2_sibling['snap']['head_commit_sha'],
+            head_commit_sha=s1b['head_commit_sha'],
+            worktree_snapshot_sha256=s1b['worktree_snapshot_sha256'],
+            evidence_hashes=s1b_res['ev_hashes'],
+            unknown_pendencies=(),
+        )
+
+        # context_ids == [] rejeita context_refs não vazio
+        with self.assertRaises(HandoffError) as non_empty_ctx:
+            build_managed_handoff_packet(
+                core_service=core, trust_store=store, run_id=r3b.run_id,
+                git_dir=git_dir, workspace=ws, from_adapter='pi', to_adapter='opencode',
+                allowed_tools=('read',), context_refs={'extra': {'kind': 'k', 'ref_sha256': 'a' * 64, 'summary': 's'}},
+                conformant_adapters=('pi', 'opencode'),
+            )
+        self.assertEqual(non_empty_ctx.exception.reason_code, 'HANDOFF_CONTEXT_DENIED')
+
+        packet = build_managed_handoff_packet(
+            core_service=core, trust_store=store, run_id=r3b.run_id,
+            git_dir=git_dir, workspace=ws, from_adapter='pi', to_adapter='opencode',
+            allowed_tools=('read', 'write'), conformant_adapters=('pi', 'opencode'),
+        )
+        self.assertEqual(verify_managed_handoff_packet(packet), packet)
+        self.assertEqual([p['ticket_id'] for p in packet['predecessors']], ['T-UNKNOWN-1', 'T2'])
+        self.assertIn('lin1.py', packet['git']['changed_files'])
+        self.assertIn('lin2.py', packet['git']['changed_files'])
+        # Predecessora T-UNKNOWN-1 teve REVIEW_REPORT + AT_RESULT verificados no checkpoint F-03
+        self.assertEqual(len(packet['predecessors'][0]['verified_evidence']), 2)
 
 
 class ManagedTicketHandoffE2ETests(unittest.TestCase):

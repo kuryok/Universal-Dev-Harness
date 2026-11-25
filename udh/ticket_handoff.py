@@ -7,23 +7,26 @@ import re
 
 from .domain import (
     CoreError,
+    Run,
+    VALID_EVIDENCE_KINDS,
+    VALID_EVIDENCE_VERDICTS,
     require_canonical_uuid,
     require_sha1,
     require_sha256,
     require_text,
+    strict_json_loads,
 )
 from .handoff import (
     HandoffError,
     _assert_no_conversational_keys,
     _changed_files_between,
     _run_git_core,
-    _verify_evidence_in_trust_store,
     select_adapter,
     verify_worktree_clean,
 )
 from .service import CoreService
 from .transitions import ConflictError
-from .trust_store import TrustStore, TrustStoreError, _canonical_json_bytes
+from .trust_store import TrustStore, TrustStoreError, _canonical_json_bytes, _read_regular_nofollow
 
 MANAGED_HANDOFF_SCHEMA_VERSION = 1
 MANAGED_HANDOFF_PACKET_KIND = 'managed_ticket_handoff'
@@ -71,6 +74,15 @@ _PREDECESSOR_KEYS = frozenset({
     'worktree_snapshot_sha256',
     'verified_evidence',
 })
+_VERIFIED_EVIDENCE_KEYS = frozenset({
+    'evidence_id',
+    'kind',
+    'verdict',
+    'evidence_sha256',
+    'artifact_digest',
+    'at_version',
+    'summary_ref',
+})
 _GIT_KEYS = frozenset({'base_commit_sha', 'head_commit_sha', 'worktree_snapshot_sha256', 'changed_files'})
 
 
@@ -80,10 +92,78 @@ def _require_identifier(value, label: str, *, reason_code: str = 'HANDOFF_INTEGR
     return value
 
 
+def _require_clean_text(value, label: str, *, reason_code: str = 'HANDOFF_INTEGRITY_VIOLATION') -> str:
+    if type(value) is not str or not value or value.strip() != value:
+        raise HandoffError(f'{reason_code}: {label} inválido.', reason_code=reason_code)
+    return value
+
+
 def _require_non_negative_int(value, label: str, *, minimum: int = 0) -> int:
     if type(value) is not int or value < minimum:
         raise HandoffError(f'HANDOFF_INTEGRITY_VIOLATION: {label} inválido.')
     return value
+
+
+def _verify_predecessor_checkpoint_evidence(
+    trust_store: TrustStore,
+    run: Run,
+    evidence_hashes: Sequence[str],
+) -> list[dict]:
+    """Revalida fisicamente na TrustStore todas as evidências oficiais do checkpoint F-03 da predecessora."""
+    by_hash = {
+        ev.evidence_sha256: ev
+        for ev in run.evidence_refs
+        if ev.collector_route == 'TRUSTED_EXECUTOR'
+        or (ev.kind == 'REVIEW_REPORT' and ev.collector_route == 'OPERATOR_LOCAL')
+    }
+    run_ev_root = (trust_store.root / 'evidence' / run.run_id).resolve()
+    verified: list[dict] = []
+
+    for ev_hash in evidence_hashes:
+        ev = by_hash.get(ev_hash)
+        if ev is None:
+            raise HandoffError(
+                f'HANDOFF_EVIDENCE_MISMATCH: hash de evidência {ev_hash} ausente ou sem rota autorizada.',
+                reason_code='HANDOFF_EVIDENCE_MISMATCH',
+            )
+        raw_ref = Path(ev.summary_ref)
+        ref_path = raw_ref if raw_ref.is_absolute() else (trust_store.root / raw_ref)
+        try:
+            resolved_ref = ref_path.resolve(strict=True)
+        except OSError as error:
+            raise HandoffError(
+                f'HANDOFF_EVIDENCE_MISMATCH: arquivo oficial de evidência ausente em {ev.summary_ref}.',
+                reason_code='HANDOFF_EVIDENCE_MISMATCH',
+            ) from error
+        if not resolved_ref.is_relative_to(run_ev_root):
+            raise HandoffError(
+                'HANDOFF_EVIDENCE_MISMATCH: referência de evidência fora do domínio oficial da TrustStore.',
+                reason_code='HANDOFF_EVIDENCE_MISMATCH',
+            )
+        try:
+            raw = _read_regular_nofollow(ref_path)
+            actual_hash = hashlib.sha256(raw).hexdigest()
+            parsed = strict_json_loads(raw.decode('utf-8'), 'Relatório oficial de evidência')
+        except (CoreError, OSError, UnicodeDecodeError) as error:
+            raise HandoffError(
+                f'HANDOFF_EVIDENCE_MISMATCH: falha ao verificar evidência oficial na TrustStore: {error}',
+                reason_code='HANDOFF_EVIDENCE_MISMATCH',
+            ) from error
+        if actual_hash != ev.evidence_sha256 or not isinstance(parsed, dict):
+            raise HandoffError(
+                'HANDOFF_EVIDENCE_MISMATCH: SHA-256 do arquivo na TrustStore diverge da evidência registrada.',
+                reason_code='HANDOFF_EVIDENCE_MISMATCH',
+            )
+        verified.append({
+            'evidence_id': ev.evidence_id,
+            'kind': ev.kind,
+            'verdict': ev.verdict,
+            'evidence_sha256': ev.evidence_sha256,
+            'artifact_digest': ev.artifact_digest,
+            'at_version': ev.at_version,
+            'summary_ref': ev.summary_ref,
+        })
+    return verified
 
 
 def _validate_context_refs(contract: dict, context_refs: dict | None) -> list[dict]:
@@ -175,6 +255,7 @@ def _verify_predecessors_worktree(git_dir: Path, workspace: Path, clean: dict, p
             'HANDOFF_INTEGRITY_VIOLATION: HEAD ou snapshot físico do worktree diverge do checkpoint F-03 aceito da predecessora.',
             reason_code='HANDOFF_INTEGRITY_VIOLATION',
         )
+    changed_union: set[str] = set()
     for item in predecessors:
         commit_sha = item['acceptance']['commit_sha']
         if commit_sha != clean['head_commit_sha']:
@@ -186,25 +267,53 @@ def _verify_predecessors_worktree(git_dir: Path, workspace: Path, clean: dict, p
                     f"HANDOFF_INTEGRITY_VIOLATION: commit aceito da predecessora {item['ticket_id']} não é ancestral de HEAD.",
                     reason_code='HANDOFF_INTEGRITY_VIOLATION',
                 )
+        changed_union.update(
+            _changed_files_between(git_dir, workspace, item['checkpoint'].base_commit_sha, clean['head_commit_sha'])
+        )
     base_sha = matched_head[0]['checkpoint'].base_commit_sha
-    changed_files = _changed_files_between(git_dir, workspace, base_sha, clean['head_commit_sha'])
     return {
         'base_commit_sha': base_sha,
         'head_commit_sha': clean['head_commit_sha'],
         'worktree_snapshot_sha256': clean['worktree_snapshot_sha256'],
-        'changed_files': changed_files,
+        'changed_files': sorted(changed_union),
     }
 
 
 def _map_context_error(error: Exception) -> HandoffError:
-    message = str(error)
-    if 'UNKNOWN' in message:
-        return HandoffError(f'UNKNOWN_PENDENCY_ACTIVE: {message}', reason_code='UNKNOWN_PENDENCY_ACTIVE')
-    if isinstance(error, TrustStoreError) or 'TrustStore' in message or 'evidênci' in message.lower() or 'relatório' in message.lower():
-        return HandoffError(f'HANDOFF_EVIDENCE_MISMATCH: {message}', reason_code='HANDOFF_EVIDENCE_MISMATCH')
+    explicit_code = getattr(error, 'handoff_reason_code', None)
+    if isinstance(explicit_code, str) and explicit_code:
+        return HandoffError(f'{explicit_code}: {error}', reason_code=explicit_code)
+    if isinstance(error, TrustStoreError):
+        return HandoffError(f'HANDOFF_EVIDENCE_MISMATCH: {error}', reason_code='HANDOFF_EVIDENCE_MISMATCH')
     if isinstance(error, ConflictError):
-        return HandoffError(f'HANDOFF_PRECONDITION_FAILED: {message}', reason_code='HANDOFF_PRECONDITION_FAILED')
-    return HandoffError(f'HANDOFF_INTEGRITY_VIOLATION: {message}', reason_code='HANDOFF_INTEGRITY_VIOLATION')
+        return HandoffError(f'HANDOFF_PRECONDITION_FAILED: {error}', reason_code='HANDOFF_PRECONDITION_FAILED')
+    return HandoffError(f'HANDOFF_INTEGRITY_VIOLATION: {error}', reason_code='HANDOFF_INTEGRITY_VIOLATION')
+
+
+def _validate_verified_evidence_list(entries, *, expected_at_id: str, expected_at_sha: str) -> None:
+    if type(entries) is not list or not entries:
+        raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: predecessor.verified_evidence obrigatório.')
+    found_accepted_at = False
+    for entry in entries:
+        if type(entry) is not dict or set(entry.keys()) != _VERIFIED_EVIDENCE_KEYS:
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: item de verified_evidence fora do esquema.')
+        ev_id = require_canonical_uuid(entry['evidence_id'], 'verified_evidence.evidence_id')
+        kind = entry['kind']
+        verdict = entry['verdict']
+        if type(kind) is not str or kind not in VALID_EVIDENCE_KINDS:
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: verified_evidence.kind inválido.')
+        if type(verdict) is not str or verdict not in VALID_EVIDENCE_VERDICTS:
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: verified_evidence.verdict inválido.')
+        ev_sha = require_sha256(entry['evidence_sha256'], 'verified_evidence.evidence_sha256')
+        require_sha256(entry['artifact_digest'], 'verified_evidence.artifact_digest')
+        at_ver = entry['at_version']
+        if at_ver is not None and (type(at_ver) is not str or not _AT_VERSION_RE.fullmatch(at_ver)):
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: verified_evidence.at_version inválido.')
+        require_text(entry['summary_ref'], 'verified_evidence.summary_ref')
+        if ev_id == expected_at_id and ev_sha == expected_at_sha and kind == 'AT_RESULT' and verdict == 'PASS':
+            found_accepted_at = True
+    if not found_accepted_at:
+        raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: verified_evidence não contém o AT_RESULT PASS aceito.')
 
 
 def verify_managed_handoff_packet(packet: dict) -> dict:
@@ -230,16 +339,19 @@ def verify_managed_handoff_packet(packet: dict) -> dict:
         require_sha256(plan_id['plan_sha256'], 'plan_identity.plan_sha256')
 
         require_canonical_uuid(packet['run_id'], 'run_id')
-        _require_non_negative_int(packet['run_revision'], 'run_revision', minimum=0)
+        _require_non_negative_int(packet['run_revision'], 'run_revision', minimum=1)
         _require_identifier(packet['ticket_id'], 'ticket_id')
         require_sha256(packet['contract_sha256'], 'contract_sha256')
         if type(packet['at_version']) is not str or not _AT_VERSION_RE.fullmatch(packet['at_version']):
             raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: at_version inválido.')
 
-        from_adapter = require_text(packet['from_adapter'], 'from_adapter')
-        to_adapter = require_text(packet['to_adapter'], 'to_adapter')
+        from_adapter = _require_clean_text(packet['from_adapter'], 'from_adapter', reason_code='HANDOFF_UNAUTHORIZED')
+        to_adapter = _require_clean_text(packet['to_adapter'], 'to_adapter', reason_code='HANDOFF_UNAUTHORIZED')
         if from_adapter == to_adapter:
-            raise HandoffError('HANDOFF_UNAUTHORIZED: from_adapter e to_adapter devem ser distintos.', reason_code='HANDOFF_UNAUTHORIZED')
+            raise HandoffError(
+                'HANDOFF_UNAUTHORIZED: from_adapter e to_adapter devem ser distintos.',
+                reason_code='HANDOFF_UNAUTHORIZED',
+            )
 
         task_contract = packet['task_contract']
         if type(task_contract) is not dict or set(task_contract.keys()) != _TASK_CONTRACT_KEYS:
@@ -257,8 +369,12 @@ def verify_managed_handoff_packet(packet: dict) -> dict:
         if type(checks) is not list or not checks or any(type(c) is not str or not c.strip() for c in checks):
             raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: task_contract.checks inválido.')
         allowed_tools = task_contract['allowed_tools']
-        if type(allowed_tools) is not list or any(type(t) is not str or not t.strip() for t in allowed_tools):
+        if type(allowed_tools) is not list:
             raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: task_contract.allowed_tools inválido.')
+        for tool in allowed_tools:
+            _require_clean_text(tool, 'task_contract.allowed_tools')
+        if len(set(allowed_tools)) != len(allowed_tools):
+            raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: task_contract.allowed_tools contém duplicatas.')
 
         auth_ctx = packet['authorized_context']
         if type(auth_ctx) is not dict or set(auth_ctx.keys()) != _AUTHORIZED_CONTEXT_KEYS:
@@ -269,13 +385,24 @@ def verify_managed_handoff_packet(packet: dict) -> dict:
         if type(allowed_ctx_ids) is not list or type(ctx_ids) is not list or type(ctx_items) is not list:
             raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: listas de authorized_context inválidas.')
         for cid in allowed_ctx_ids:
-            _require_identifier(cid, 'allowed_context_ids')
+            _require_identifier(cid, 'allowed_context_ids', reason_code='HANDOFF_CONTEXT_DENIED')
         for cid in ctx_ids:
-            _require_identifier(cid, 'context_ids')
+            _require_identifier(cid, 'context_ids', reason_code='HANDOFF_CONTEXT_DENIED')
+        if allowed_ctx_ids != sorted(set(allowed_ctx_ids)) or ctx_ids != sorted(set(ctx_ids)):
+            raise HandoffError(
+                'HANDOFF_CONTEXT_DENIED: IDs de contexto devem ser únicos e ordenados.',
+                reason_code='HANDOFF_CONTEXT_DENIED',
+            )
         if not set(ctx_ids).issubset(set(allowed_ctx_ids)):
-            raise HandoffError('HANDOFF_CONTEXT_DENIED: context_ids fora de allowed_context_ids.', reason_code='HANDOFF_CONTEXT_DENIED')
+            raise HandoffError(
+                'HANDOFF_CONTEXT_DENIED: context_ids fora de allowed_context_ids.',
+                reason_code='HANDOFF_CONTEXT_DENIED',
+            )
         if len(ctx_items) != len(ctx_ids):
-            raise HandoffError('HANDOFF_CONTEXT_DENIED: itens de contexto divergem de context_ids.', reason_code='HANDOFF_CONTEXT_DENIED')
+            raise HandoffError(
+                'HANDOFF_CONTEXT_DENIED: itens de contexto divergem de context_ids.',
+                reason_code='HANDOFF_CONTEXT_DENIED',
+            )
         seen_item_ids: list[str] = []
         total_bytes = 0
         for item in ctx_items:
@@ -286,11 +413,24 @@ def verify_managed_handoff_packet(packet: dict) -> dict:
             require_sha256(item['ref_sha256'], 'context item ref_sha256')
             if type(item['summary']) is not str or not item['summary'] or item['summary'].strip() != item['summary']:
                 raise HandoffError('HANDOFF_CONTEXT_DENIED: summary de contexto inválido.', reason_code='HANDOFF_CONTEXT_DENIED')
-            if len(item['summary'].encode('utf-8')) > MAX_CONTEXT_ITEM_BYTES:
-                raise HandoffError('HANDOFF_CONTEXT_DENIED: summary de contexto excede limite.', reason_code='HANDOFF_CONTEXT_DENIED')
+            try:
+                summary_bytes = len(item['summary'].encode('utf-8'))
+            except UnicodeError as error:
+                raise HandoffError(
+                    'HANDOFF_CONTEXT_DENIED: summary de contexto não UTF-8.',
+                    reason_code='HANDOFF_CONTEXT_DENIED',
+                ) from error
+            if summary_bytes > MAX_CONTEXT_ITEM_BYTES:
+                raise HandoffError(
+                    'HANDOFF_CONTEXT_DENIED: summary de contexto excede limite.',
+                    reason_code='HANDOFF_CONTEXT_DENIED',
+                )
             total_bytes += len(_canonical_json_bytes(item))
-        if seen_item_ids != sorted(ctx_ids) or total_bytes > MAX_CONTEXT_TOTAL_BYTES:
-            raise HandoffError('HANDOFF_CONTEXT_DENIED: conjunto ou tamanho de contexto inválido.', reason_code='HANDOFF_CONTEXT_DENIED')
+        if seen_item_ids != ctx_ids or total_bytes > MAX_CONTEXT_TOTAL_BYTES:
+            raise HandoffError(
+                'HANDOFF_CONTEXT_DENIED: conjunto ou tamanho de contexto inválido.',
+                reason_code='HANDOFF_CONTEXT_DENIED',
+            )
 
         predecessors = packet['predecessors']
         if type(predecessors) is not list or not predecessors:
@@ -305,15 +445,16 @@ def verify_managed_handoff_packet(packet: dict) -> dict:
             require_canonical_uuid(pred['checkpoint_id'], 'predecessor.checkpoint_id')
             require_text(pred['last_confirmed_step'], 'predecessor.last_confirmed_step')
             require_sha256(pred['acceptance_snapshot_sha256'], 'predecessor.acceptance_snapshot_sha256')
-            require_canonical_uuid(pred['at_evidence_id'], 'predecessor.at_evidence_id')
-            require_sha256(pred['at_evidence_sha256'], 'predecessor.at_evidence_sha256')
+            at_ev_id = require_canonical_uuid(pred['at_evidence_id'], 'predecessor.at_evidence_id')
+            at_ev_sha = require_sha256(pred['at_evidence_sha256'], 'predecessor.at_evidence_sha256')
             require_canonical_uuid(pred['review_evidence_id'], 'predecessor.review_evidence_id')
             require_sha256(pred['review_evidence_sha256'], 'predecessor.review_evidence_sha256')
             require_sha1(pred['commit_sha'], 'predecessor.commit_sha')
             require_sha256(pred['artifact_digest'], 'predecessor.artifact_digest')
             require_sha256(pred['worktree_snapshot_sha256'], 'predecessor.worktree_snapshot_sha256')
-            if type(pred['verified_evidence']) is not list or not pred['verified_evidence']:
-                raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: predecessor.verified_evidence obrigatório.')
+            _validate_verified_evidence_list(
+                pred['verified_evidence'], expected_at_id=at_ev_id, expected_at_sha=at_ev_sha,
+            )
         if seen_preds != sorted(set(seen_preds)):
             raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: predecessors fora de ordem ou duplicados.')
 
@@ -321,10 +462,17 @@ def verify_managed_handoff_packet(packet: dict) -> dict:
         if type(git_info) is not dict or set(git_info.keys()) != _GIT_KEYS:
             raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: bloco git inválido.')
         require_sha1(git_info['base_commit_sha'], 'git.base_commit_sha')
-        require_sha1(git_info['head_commit_sha'], 'git.head_commit_sha')
-        require_sha256(git_info['worktree_snapshot_sha256'], 'git.worktree_snapshot_sha256')
+        head_sha = require_sha1(git_info['head_commit_sha'], 'git.head_commit_sha')
+        snap_sha = require_sha256(git_info['worktree_snapshot_sha256'], 'git.worktree_snapshot_sha256')
         if type(git_info['changed_files']) is not list or any(type(p) is not str for p in git_info['changed_files']):
             raise HandoffError('HANDOFF_INTEGRITY_VIOLATION: git.changed_files inválido.')
+        if not any(
+            pred['commit_sha'] == head_sha and pred['worktree_snapshot_sha256'] == snap_sha
+            for pred in predecessors
+        ):
+            raise HandoffError(
+                'HANDOFF_INTEGRITY_VIOLATION: git.head_commit_sha/worktree_snapshot_sha256 não corresponde a nenhuma predecessora aceita.'
+            )
 
         expected_sha = require_sha256(packet['packet_sha256'], 'packet_sha256')
     except HandoffError:
@@ -369,11 +517,8 @@ def build_managed_handoff_packet(
     ticket = ctx['ticket']
     predecessors = ctx['predecessors']
 
-    try:
-        from_name = require_text(from_adapter, 'Adaptador de origem')
-        to_name = require_text(to_adapter, 'Adaptador de destino')
-    except CoreError as error:
-        raise HandoffError(f'HANDOFF_UNAUTHORIZED: {error}', reason_code='HANDOFF_UNAUTHORIZED') from error
+    from_name = _require_clean_text(from_adapter, 'Adaptador de origem', reason_code='HANDOFF_UNAUTHORIZED')
+    to_name = _require_clean_text(to_adapter, 'Adaptador de destino', reason_code='HANDOFF_UNAUTHORIZED')
     if from_name == to_name:
         raise HandoffError(
             'HANDOFF_UNAUTHORIZED: troca de agente exige adaptador de destino distinto do de origem.',
@@ -387,7 +532,7 @@ def build_managed_handoff_packet(
     for item in predecessors:
         ckpt = item['checkpoint']
         acc = item['acceptance']
-        verified_ev = _verify_evidence_in_trust_store(trust_store, item['run'], ckpt.evidence_hashes)
+        verified_ev = _verify_predecessor_checkpoint_evidence(trust_store, item['run'], ckpt.evidence_hashes)
         verified_predecessors.append({
             'ticket_id': item['ticket_id'],
             'run_id': acc['run_id'],
@@ -417,21 +562,26 @@ def build_managed_handoff_packet(
             adapter=to_name,
         )
     else:
-        core_service.select_conformant_adapter(
+        report = core_service.doctor(
             store_dir=trust_store.root,
-            requested=to_name,
-            exclude=(from_name,),
             env_probes=env_probes,
             manifest_path=manifest_path,
             opencode_manifest_path=opencode_manifest_path,
         )
-        auth = core_service.authorize_agent_execution(
+        if report['overall_status'] == 'NOT_READY':
+            raise HandoffError(
+                'Preflight retornou NOT_READY; seleção de adaptador bloqueada (fail-closed).',
+                reason_code='NO_CONFORMANT_ADAPTER',
+            )
+        rt_check = next((c for c in report['checks'] if c['id'] == 'runtime_components'), {})
+        conformant = tuple(rt_check.get('details', {}).get('conformant_adapters', ()))
+        select_adapter(conformant, requested=to_name, exclude=(from_name,))
+        auth = core_service.policy(
             run.run_id,
-            store_dir=trust_store.root,
+            'EXECUTE_AGENT',
+            preflight_status=report['overall_status'],
+            conformant_adapters=conformant,
             adapter=to_name,
-            env_probes=env_probes,
-            manifest_path=manifest_path,
-            opencode_manifest_path=opencode_manifest_path,
         )
     if auth.get('decision') != 'ALLOW':
         raise HandoffError(
@@ -439,10 +589,17 @@ def build_managed_handoff_packet(
             reason_code='HANDOFF_UNAUTHORIZED',
         )
 
-    try:
-        tools_list = [require_text(item, 'Ferramenta autorizada') for item in allowed_tools]
-    except CoreError as error:
-        raise HandoffError(f'HANDOFF_INTEGRITY_VIOLATION: {error}', reason_code='HANDOFF_INTEGRITY_VIOLATION') from error
+    if isinstance(allowed_tools, (str, bytes)) or not isinstance(allowed_tools, Sequence):
+        raise HandoffError(
+            'HANDOFF_INTEGRITY_VIOLATION: allowed_tools deve ser uma sequência de nomes de ferramentas.',
+            reason_code='HANDOFF_INTEGRITY_VIOLATION',
+        )
+    tools_list = [_require_clean_text(item, 'Ferramenta autorizada') for item in allowed_tools]
+    if len(set(tools_list)) != len(tools_list):
+        raise HandoffError(
+            'HANDOFF_INTEGRITY_VIOLATION: allowed_tools não pode conter duplicatas.',
+            reason_code='HANDOFF_INTEGRITY_VIOLATION',
+        )
 
     body = {
         'schema_version': MANAGED_HANDOFF_SCHEMA_VERSION,

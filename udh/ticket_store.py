@@ -562,28 +562,40 @@ class TicketStore:
 
     def managed_handoff_context(self, run_id, *, trust_store):
         """Lê e revalida atomicamente estado persistido, contrato B4.2 e aceites/checkpoints das predecessoras."""
-        require_canonical_uuid(run_id, 'Identificador da execução')
+        def _tagged(exc_cls, message, reason_code):
+            err = exc_cls(message)
+            err.handoff_reason_code = reason_code
+            return err
+
+        try:
+            require_canonical_uuid(run_id, 'Identificador da execução')
+        except CoreError as error:
+            raise _tagged(CoreError, str(error), 'HANDOFF_INTEGRITY_VIOLATION') from error
         if not isinstance(trust_store, TrustStore):
-            raise CoreError('TrustStore confiável é obrigatória.')
+            raise _tagged(CoreError, 'TrustStore confiável é obrigatória.', 'HANDOFF_INTEGRITY_VIOLATION')
         with self._transaction(minimum_version=8) as db:
             run = self.store._load_v4(db, run_id)
             if run.schema_version != 4 or run.state != 'IN_PROGRESS':
-                raise ConflictError('Handoff gerenciado exige execução IN_PROGRESS.')
+                raise _tagged(ConflictError, 'Handoff gerenciado exige execução IN_PROGRESS.', 'HANDOFF_PRECONDITION_FAILED')
             if run.has_unknown_pendencies:
-                raise ConflictError('Pendência UNKNOWN ativa impede handoff gerenciado.')
+                raise _tagged(ConflictError, 'Pendência UNKNOWN ativa impede handoff gerenciado.', 'UNKNOWN_PENDENCY_ACTIVE')
             bound = self.bound_contract(db, 8, run, require_current=True)
             if bound is None:
-                raise ConflictError('A execução não possui vínculo gerenciado.')
+                raise _tagged(ConflictError, 'A execução não possui vínculo gerenciado.', 'HANDOFF_PRECONDITION_FAILED')
             contract = bound['contract']
             key = tuple(contract[field] for field in _IDENTITY_FIELDS)
             ticket = self._plan_ticket(db, key, contract['plan_sha256'], contract['ticket_id'])
             payload = {field: value for field, value in contract.items() if field not in _BINDING_FIELDS}
             pairs = {(item['task_id'], item['criterion_id']) for item in ticket['coverage']}
             if normalize_contract(payload, pairs) != payload:
-                raise CoreError('Contrato de handoff diverge da cobertura aprovada.')
+                raise _tagged(CoreError, 'Contrato de handoff diverge da cobertura aprovada.', 'HANDOFF_INTEGRITY_VIOLATION')
             verify_contract_seal(contract, trust_store)
             if not ticket['depends_on']:
-                raise ConflictError('Handoff entre tickets exige ao menos uma predecessora direta no plano persistido.')
+                raise _tagged(
+                    ConflictError,
+                    'Handoff entre tickets exige ao menos uma predecessora direta no plano persistido.',
+                    'HANDOFF_PRECONDITION_FAILED',
+                )
 
             predecessors = []
             for prior in sorted(ticket['depends_on']):
@@ -593,27 +605,74 @@ class TicketStore:
                                          AND m.approval_revision = ? AND m.plan_sha256 = ? AND m.ticket_id = ?''',
                                       (*key, contract['approval_revision'], contract['plan_sha256'], prior)).fetchone()
                 if accepted is None:
-                    raise ConflictError(f'Predecessora {prior} sem aceite oficial nesta geração.')
-                snapshot = self._verified_acceptance_snapshot(
-                    db, accepted['run_id'], accepted['run_revision'], accepted['at_evidence_id'],
-                    accepted['review_evidence_id'], trust_store,
-                )
-                if _encode(snapshot) != (accepted['snapshot_json'], accepted['snapshot_sha256']):
-                    raise CoreError(f'Aceite oficial da predecessora {prior} diverge das evidências verificadas.')
+                    raise _tagged(
+                        ConflictError,
+                        f'Predecessora {prior} sem aceite oficial nesta geração.',
+                        'HANDOFF_PRECONDITION_FAILED',
+                    )
                 prior_run = self.store._load_v4(db, accepted['run_id'])
+                if prior_run.has_unknown_pendencies:
+                    raise _tagged(
+                        ConflictError,
+                        f'Predecessora {prior} possui pendência UNKNOWN ativa.',
+                        'UNKNOWN_PENDENCY_ACTIVE',
+                    )
+                if prior_run.state != 'DONE':
+                    raise _tagged(
+                        ConflictError,
+                        f'Predecessora {prior} não está em estado DONE.',
+                        'HANDOFF_PRECONDITION_FAILED',
+                    )
+                try:
+                    snapshot = self._verified_acceptance_snapshot(
+                        db, accepted['run_id'], accepted['run_revision'], accepted['at_evidence_id'],
+                        accepted['review_evidence_id'], trust_store,
+                    )
+                except (CoreError, ConflictError) as error:
+                    raise _tagged(ConflictError, str(error), 'HANDOFF_EVIDENCE_MISMATCH') from error
+                if _encode(snapshot) != (accepted['snapshot_json'], accepted['snapshot_sha256']):
+                    raise _tagged(
+                        CoreError,
+                        f'Aceite oficial da predecessora {prior} diverge das evidências verificadas.',
+                        'HANDOFF_EVIDENCE_MISMATCH',
+                    )
                 if not prior_run.checkpoints:
-                    raise ConflictError(f'Predecessora {prior} sem checkpoint F-03 registrado.')
+                    raise _tagged(
+                        ConflictError,
+                        f'Predecessora {prior} sem checkpoint F-03 registrado.',
+                        'HANDOFF_PRECONDITION_FAILED',
+                    )
                 latest = prior_run.checkpoints[-1]
                 if latest.run_revision != accepted['run_revision']:
-                    raise ConflictError(f'Último checkpoint F-03 da predecessora {prior} diverge da revisão aceita.')
+                    raise _tagged(
+                        ConflictError,
+                        f'Último checkpoint F-03 da predecessora {prior} diverge da revisão aceita.',
+                        'HANDOFF_PRECONDITION_FAILED',
+                    )
                 if latest.has_unknown_pendencies:
-                    raise ConflictError(f'Predecessora {prior} possui pendência UNKNOWN ativa no checkpoint F-03.')
+                    raise _tagged(
+                        ConflictError,
+                        f'Predecessora {prior} possui pendência UNKNOWN ativa no checkpoint F-03.',
+                        'UNKNOWN_PENDENCY_ACTIVE',
+                    )
                 if not (latest.base_commit_sha and latest.head_commit_sha and latest.worktree_snapshot_sha256):
-                    raise ConflictError(f'Checkpoint F-03 da predecessora {prior} incompleto.')
+                    raise _tagged(
+                        ConflictError,
+                        f'Checkpoint F-03 da predecessora {prior} incompleto.',
+                        'HANDOFF_PRECONDITION_FAILED',
+                    )
                 if latest.head_commit_sha != snapshot['commit_sha']:
-                    raise ConflictError(f'Commit do checkpoint F-03 da predecessora {prior} diverge do commit aceito.')
+                    raise _tagged(
+                        ConflictError,
+                        f'Commit do checkpoint F-03 da predecessora {prior} diverge do commit aceito.',
+                        'HANDOFF_INTEGRITY_VIOLATION',
+                    )
                 if snapshot['at_evidence_sha256'] not in latest.evidence_hashes:
-                    raise ConflictError(f'Checkpoint F-03 da predecessora {prior} não referencia o AT_RESULT aceito.')
+                    raise _tagged(
+                        ConflictError,
+                        f'Checkpoint F-03 da predecessora {prior} não referencia o AT_RESULT aceito.',
+                        'HANDOFF_PRECONDITION_FAILED',
+                    )
                 predecessors.append({
                     'ticket_id': prior,
                     'run': prior_run,

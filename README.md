@@ -30,6 +30,6 @@ Os testes usam Python 3 (stdlib-only), Podman rootless e as 3 imagens OCI locais
 
 `DISCOVER`/`SPEC`/`PLAN`, multi-ticket DAG (`TICKET-01/02`), perfil `provision` (`B2.4`), execução persistente (`B3.8`), exportação (`B3.9`), `DOC`/`SKILL`/`UX-04`, terceiro agente (Codex), Chromium/Chrome e WSL2 continuam pendentes (`NOT_RUN`); o projeto ainda não é um MVP liberável completo.
 
-Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), o plano persistido, o início condicionado ao aceite das predecessoras, o encaminhamento para SPEC e a troca de agente `Pi → OpenCode` sobre o plano persistido (T4) passaram nos testes complementares (221/221 PASS). A [skill de descoberta adaptada](openspec/changes/discover-plan-tickets/skills/grill-with-docs-udh/SKILL.md) é usada pelo Pi durante o ensaio com servidor simulado.
+Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), o plano persistido, o início condicionado ao aceite das predecessoras, o encaminhamento para SPEC e a troca de agente `Pi → OpenCode` sobre o plano persistido (T4) passaram nos testes complementares (223/223 PASS). A [skill de descoberta adaptada](openspec/changes/discover-plan-tickets/skills/grill-with-docs-udh/SKILL.md) é usada pelo Pi durante o ensaio com servidor simulado.
 
 Falta o ensaio de `DISC-01` com modelo real e os gates de fechamento oficial do Change 5 antes da integração em `main`.

@@ -1,6 +1,6 @@
 # T4 — Troca de agente através do plano persistido (`TICKET-02`)
 
-- **Estado:** aprovado pelo usuário e implementado em 25/11/2026. Verificado com 5/5 testes focados (`test_managed_ticket_handoff.py`, incluindo cenário E2E offline real `Pi 1.2.0 → OpenCode 1.18.35 + artifact-only F-04`) e 221/221 complementares `PASS` (98,9 s, incluindo `UDH_TEST_DISCOVERY_PI=1` e `OpenSpec 2.1.1`). Aceite oficial do change fica no fechamento.
+- **Estado:** aprovado pelo usuário, implementado e endurecido após revisão independente em 25/11/2026. Verificado com 7/7 testes focados (`test_managed_ticket_handoff.py`, incluindo cenário E2E offline real `Pi 1.2.0 → OpenCode 1.18.35 + artifact-only F-04`, adulteração `F-02` e múltiplas predecessoras) e 223/223 complementares `PASS` (98,7 s, incluindo `UDH_TEST_DISCOVERY_PI=1` e `OpenSpec 2.1.1`). Aceite oficial do change fica no fechamento.
 - **Base:** [proposta do Change 5](proposal.md#condições-para-fechar-o-change), [T2](t2-persistence-and-start.md), [T2b](t2b-managed-ticket-start.md) e [baseline](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (DELTA-05, ADR-011/026/027, B4.2, F-02, F-03 e F-04).
 
 ## Objetivo e recorte

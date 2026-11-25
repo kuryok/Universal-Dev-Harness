@@ -15,7 +15,7 @@ O uso de OpenSpec neste repositório é **documental adaptado**: requisitos e pl
 
 Antes de implementar: confirmar escopo/arquivos/critério de pronto no change, registrar aprovação humana e verificar o incremento. Mudança de requisito exige delta explícito. Não duplicar requisitos em README, STATE, MEMORY ou diagnósticos externos.
 
-O [Change 5](changes/discover-plan-tickets/tasks.md) segue em branch dedicada. T3b.2b (com Pi e OpenSpec reais e servidor simulado) e T4 (`udh/ticket_handoff.py`, troca `Pi → OpenCode` sobre o plano persistido) passaram nos testes complementares (221/221 PASS). O ensaio de `DISC-01` com modelo real, o aceite oficial do change e a integração em `main` continuam pendentes.
+O [Change 5](changes/discover-plan-tickets/tasks.md) segue em branch dedicada. T3b.2b (com Pi e OpenSpec reais e servidor simulado) e T4 (`udh/ticket_handoff.py`, troca `Pi → OpenCode` sobre o plano persistido) passaram nos testes complementares (223/223 PASS). O ensaio de `DISC-01` com modelo real, o aceite oficial do change e a integração em `main` continuam pendentes.
 
 ## Engenharia, bootstrap e política de evidências
 

@@ -8,7 +8,7 @@ Atualizado: 25/11/2026. Ler [AGENTS.md](AGENTS.md), [STATE.md](STATE.md) e confe
 - Governança em [openspec/project.md](openspec/project.md) (`bootstrap/slice1/` congelado, resumos `<= 32 KiB`, 1 branch por change).
 
 ## Próximo passo
-- Branch `feat/change5-discover-plan-tickets`: T1–T3b.2b e **T4 (`udh/ticket_handoff.py`)** implementadas e verificadas (**221/221** complementares PASS, incluindo E2E offline `Pi → OpenCode + artifact-only`). Próximo: definir delta para ensaio real de `DISC-01` via Gateway nesta máquina (adiando Ollama local) e fechar o Change 5 (`v1–v6`, POCs, R2/F-02). `DISC-01` segue `NOT_RUN`; T3-org adiada.
+- Branch `feat/change5-discover-plan-tickets`: T1–T3b.2b e **T4 (`udh/ticket_handoff.py`)** implementadas e verificadas (**223/223** complementares PASS, incluindo E2E offline `Pi → OpenCode + artifact-only`). Próximo: aprovar e implementar delta `T3b.2c` (`opencode_zen_free`) para `DISC-01` nesta máquina e fechar o Change 5 (`v1–v6`, POCs, R2/F-02). `DISC-01` segue `NOT_RUN`; T3-org adiada.
 
 ## Cuidados
 - `DOC`/`SKILL`/`DISC`/`TICKET`, `B2.4`, `B3.8`/`B3.9`, `UX-04`, Codex, Chromium/Chrome e WSL2 seguem `NOT_RUN`; ainda não declarar MVP liberável completo.
