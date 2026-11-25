@@ -33,6 +33,10 @@ DEFAULT_STUB_MODEL = 'udh-stub-v1'
 OPENROUTER_HOST = 'openrouter.ai'
 OPENROUTER_MODELS_PATH = '/api/v1/models'
 OPENROUTER_CHAT_PATH = '/api/v1/chat/completions'
+OPENCODE_ZEN_HOST = 'opencode.ai'
+OPENCODE_ZEN_MODELS_PATH = '/zen/v1/models'
+OPENCODE_ZEN_CHAT_PATH = '/zen/v1/chat/completions'
+OPENCODE_ZEN_PUBLIC_TOKEN = 'public'
 MAX_UNIX_SOCKET_BYTES = 100
 
 
@@ -70,6 +74,103 @@ def _is_zero_decimal(raw_value) -> bool:
     except (InvalidOperation, ValueError):
         return False
     return dec.is_finite() and dec == Decimal(0)
+
+
+def _abort_http_connection(conn: http.client.HTTPConnection) -> None:
+    sock = getattr(conn, 'sock', None)
+    if sock is not None:
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+    try:
+        conn.close()
+    except OSError:
+        pass
+
+
+def list_opencode_zen_free_models(
+    *,
+    connection_factory: Callable[[], http.client.HTTPConnection] | None = None,
+    timeout_seconds: float = 15.0,
+) -> list[str]:
+    """Consulta https://opencode.ai/zen/v1/models (status 200 estrito) e retorna modelos -free verificados."""
+    started = time.monotonic()
+    conn = (
+        connection_factory()
+        if connection_factory is not None
+        else http.client.HTTPSConnection(
+            OPENCODE_ZEN_HOST, timeout=timeout_seconds, context=ssl.create_default_context(),
+        )
+    )
+    timer = threading.Timer(timeout_seconds, _abort_http_connection, args=(conn,))
+    timer.daemon = True
+    timer.start()
+    try:
+        conn.request(
+            'GET',
+            OPENCODE_ZEN_MODELS_PATH,
+            headers={
+                'Accept': 'application/json',
+                'Accept-Encoding': 'identity',
+                'Connection': 'close',
+            },
+        )
+        resp = conn.getresponse()
+        if resp.status != 200:
+            raise GatewayError(f'Catálogo OpenCode Zen retornou HTTP {resp.status}.')
+        data = bytearray()
+        deadline = started + timeout_seconds
+        while len(data) <= 4194304:
+            if time.monotonic() >= deadline:
+                raise GatewayError('Timeout ao ler catálogo OpenCode Zen.')
+            chunk = resp.read1(min(65536, 4194305 - len(data))) if hasattr(resp, 'read1') else resp.read(4194305 - len(data))
+            if not chunk:
+                break
+            data.extend(chunk)
+        if len(data) > 4194304:
+            raise GatewayError('Catálogo OpenCode Zen excedeu 4 MiB.')
+        payload = strict_json_loads(data.decode('utf-8'), 'Catálogo OpenCode Zen')
+        if not isinstance(payload, dict) or not isinstance(payload.get('data'), list):
+            raise GatewayError('Formato inesperado no catálogo OpenCode Zen.')
+        free_models: set[str] = set()
+        for entry in payload['data']:
+            if not isinstance(entry, dict):
+                continue
+            mid = entry.get('id')
+            if not isinstance(mid, str) or not mid.endswith('-free'):
+                continue
+            if 'pricing' in entry and entry['pricing'] is not None:
+                pricing = entry['pricing']
+                if not isinstance(pricing, dict) or not all(_is_zero_decimal(v) for v in pricing.values()):
+                    continue
+            free_models.add(mid)
+        return sorted(free_models)
+    except GatewayError:
+        raise
+    except (OSError, ValueError, UnicodeError, CoreError, http.client.HTTPException) as error:
+        raise GatewayError('Falha ao consultar catálogo gratuito do OpenCode Zen.') from error
+    finally:
+        timer.cancel()
+        conn.close()
+
+
+def verify_opencode_zen_free_model(
+    model_id: str,
+    *,
+    connection_factory: Callable[[], http.client.HTTPConnection] | None = None,
+    timeout_seconds: float = 15.0,
+) -> bool:
+    """Confirma sufixo -free e presença no catálogo OpenCode Zen sem cobrança declarada."""
+    if not isinstance(model_id, str) or not model_id.endswith('-free'):
+        return False
+    try:
+        return model_id in list_opencode_zen_free_models(
+            connection_factory=connection_factory,
+            timeout_seconds=timeout_seconds,
+        )
+    except GatewayError:
+        return False
 
 
 def verify_openrouter_free_model(
@@ -217,6 +318,7 @@ class GatewayConfig:
     cut_after_first_chunk: bool = False
     secret_resolver: Callable[[], str | None] | None = None
     openrouter_connection_factory: Callable[[], http.client.HTTPConnection] | None = None
+    opencode_zen_connection_factory: Callable[[], http.client.HTTPConnection] | None = None
     ipc_base_dir: Path | None = None
     local_discovery_port: int | None = None
     local_discovery_max_tokens: int = 2048
@@ -409,13 +511,18 @@ class InferenceGateway:
     """Gateway de inferência UDS (função do Core, sem microserviço permanente)."""
 
     def __init__(self, config: GatewayConfig):
-        if config.backend not in ('stub', 'openrouter_free', 'local_discovery'):
+        if config.backend not in ('stub', 'openrouter_free', 'local_discovery', 'opencode_zen_free'):
             raise GatewayError(f'Backend de gateway inválido: {config.backend}.')
         if config.backend == 'local_discovery' and (
                 type(config.local_discovery_port) is not int or not 1 <= config.local_discovery_port <= 65535
                 or type(config.local_discovery_max_tokens) is not int or not 1 <= config.local_discovery_max_tokens <= 2048
                 or config.allow_tools or config.allowed_tool_names or len(config.allowed_models) != 1):
             raise GatewayError('Inferência local exige porta válida, um modelo e nenhuma ferramenta.')
+        if config.backend == 'opencode_zen_free' and (
+                type(config.local_discovery_max_tokens) is not int or not 1 <= config.local_discovery_max_tokens <= 2048
+                or config.allow_tools or config.allowed_tool_names or len(config.allowed_models) != 1
+                or not isinstance(config.allowed_models[0], str) or not config.allowed_models[0].endswith('-free')):
+            raise GatewayError('Backend opencode_zen_free exige um único modelo -free e nenhuma ferramenta.')
         if not config.allowed_models:
             raise GatewayError('Allowlist de modelos não pode ser vazia.')
         for tool_name in config.allowed_tool_names:
@@ -473,6 +580,24 @@ class InferenceGateway:
                     model, connection_factory=self.config.openrouter_connection_factory
                 ):
                     raise GatewayError(f'Modelo {model} não comprovado como gratuito (:free, preço zero).')
+            self._secret = secret
+        elif self.config.backend == 'opencode_zen_free':
+            if self.config.secret_resolver is None:
+                raise GatewayError('Backend opencode_zen_free exige resolvedor explícito de credencial.')
+            secret = self.config.secret_resolver()
+            if not isinstance(secret, str) or (
+                secret != OPENCODE_ZEN_PUBLIC_TOKEN
+                and not re.fullmatch(r'[A-Za-z0-9._~+/-]{8,1024}=*', secret)
+            ):
+                raise GatewayError('Credencial OpenCode Zen ausente ou inválida.')
+            cat_timeout = min(15.0, float(self.config.call_timeout_seconds))
+            for model in self.config.allowed_models:
+                if not verify_opencode_zen_free_model(
+                    model,
+                    connection_factory=self.config.opencode_zen_connection_factory,
+                    timeout_seconds=cat_timeout,
+                ):
+                    raise GatewayError(f'Modelo {model} não comprovado como gratuito (-free) no catálogo OpenCode Zen.')
             self._secret = secret
 
         self.ipc_dir = self._choose_ipc_dir()
@@ -633,11 +758,171 @@ class InferenceGateway:
         elif self.config.backend == 'local_discovery':
             self._serve_local_discovery(conn, body=body, peer_uid=peer_uid, model=model,
                                         req_bytes=req_bytes, started=started)
+        elif self.config.backend == 'opencode_zen_free':
+            self._serve_opencode_zen_free(conn, body=body, peer_uid=peer_uid, model=model,
+                                          req_bytes=req_bytes, started=started)
         else:
             self._serve_openrouter_free(
                 conn, body=body, peer_uid=peer_uid, model=model,
                 has_tools=has_tools, tool_names=tool_names, req_bytes=req_bytes, started=started,
             )
+
+    @staticmethod
+    def _sanitize_discovery_messages(body: dict) -> list[dict] | None:
+        messages: list[dict] = []
+        for item in body['messages']:
+            if (type(item) is not dict or item.get('role') not in ('system', 'user', 'assistant')
+                    or 'tool_calls' in item or 'function_call' in item):
+                return None
+            text = item.get('content')
+            if type(text) is list and text and all(
+                type(part) is dict and set(part) == {'type', 'text'}
+                and part['type'] == 'text' and type(part['text']) is str
+                for part in text
+            ):
+                text = ''.join(part['text'] for part in text)
+            if type(text) is not str:
+                return None
+            messages.append({'role': item['role'], 'content': text})
+        return messages if messages and len(messages) == len(body['messages']) else None
+
+    def _serve_opencode_zen_free(self, conn, *, body, peer_uid, model, req_bytes, started):
+        assert self._secret is not None
+        status, verdict, resp_bytes, usage = 400, 'zen_messages_denied', 0, {}
+        messages = self._sanitize_discovery_messages(body)
+        cap = self.config.local_discovery_max_tokens
+        requested = body.get('max_completion_tokens', body.get('max_tokens', cap))
+        if messages is None or type(requested) is not int or requested < 1:
+            _send_json_response(conn, 400, 'Bad Request', {'error': verdict})
+            self._audit(status=status, verdict=verdict, peer_uid=peer_uid, model=model,
+                        request_bytes=req_bytes, elapsed_seconds=time.monotonic() - started)
+            return
+
+        payload = json.dumps(
+            {'model': model, 'stream': False, 'max_tokens': min(requested, cap), 'messages': messages},
+            separators=(',', ':'), ensure_ascii=False,
+        ).encode('utf-8')
+        upstream = (
+            self.config.opencode_zen_connection_factory()
+            if self.config.opencode_zen_connection_factory is not None
+            else http.client.HTTPSConnection(
+                OPENCODE_ZEN_HOST, timeout=self.config.call_timeout_seconds,
+                context=ssl.create_default_context(),
+            )
+        )
+        scan_secret = self._secret != OPENCODE_ZEN_PUBLIC_TOKEN
+        raw_scanner = SecretWindowScanner(self._secret) if scan_secret else None
+        timer = threading.Timer(self.config.call_timeout_seconds, _abort_http_connection, args=(upstream,))
+        timer.daemon = True
+        timer.start()
+        status, verdict = 502, 'zen_inference_failed'
+        try:
+            try:
+                upstream.request(
+                    'POST',
+                    OPENCODE_ZEN_CHAT_PATH,
+                    body=payload,
+                    headers={
+                        'Authorization': 'Bearer ' + self._secret,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Accept-Encoding': 'identity',
+                        'Connection': 'close',
+                    },
+                )
+                response = upstream.getresponse()
+                if response.status != 200:
+                    verdict = f'provider_http_{response.status}'
+                    _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                    return
+                deadline = started + self.config.call_timeout_seconds
+                data = bytearray()
+                while len(data) <= self.config.max_response_bytes:
+                    if time.monotonic() >= deadline:
+                        verdict = 'response_budget_exceeded'
+                        _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                        return
+                    chunk_lim = min(8192, self.config.max_response_bytes - len(data) + 1)
+                    chunk = response.read1(chunk_lim) if hasattr(response, 'read1') else response.read(chunk_lim)
+                    if not chunk:
+                        break
+                    if raw_scanner is not None and raw_scanner.contains_secret(chunk):
+                        verdict = 'secret_in_response_blocked'
+                        _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                        return
+                    data.extend(chunk)
+                if len(data) > self.config.max_response_bytes:
+                    verdict = 'response_budget_exceeded'
+                    _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                    return
+                parsed = strict_json_loads(data.decode('utf-8'), 'Resposta OpenCode Zen')
+                if not isinstance(parsed, dict):
+                    verdict = 'zen_invalid_response'
+                    _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                    return
+                if scan_secret:
+                    parsed_scanner = SecretWindowScanner(self._secret)
+                    if parsed_scanner.contains_secret(json.dumps(parsed, ensure_ascii=False).encode('utf-8')):
+                        verdict = 'secret_in_response_blocked'
+                        _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                        return
+                cand_usage = parsed.get('usage')
+                if isinstance(cand_usage, dict):
+                    if 'cost' in cand_usage and cand_usage['cost'] is not None:
+                        if not _is_zero_decimal(cand_usage['cost']):
+                            verdict = 'nonzero_cost_blocked'
+                            _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                            return
+                    usage = {
+                        k: cand_usage[k]
+                        for k in ('prompt_tokens', 'completion_tokens', 'total_tokens', 'cost')
+                        if isinstance(cand_usage.get(k), (int, float)) and not isinstance(cand_usage.get(k), bool)
+                    }
+                choices = parsed.get('choices')
+                if type(choices) is not list or len(choices) != 1 or type(choices[0]) is not dict:
+                    verdict = 'zen_invalid_response'
+                    _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                    return
+                choice = choices[0]
+                message = choice.get('message')
+                if (choice.get('finish_reason') != 'stop' or type(message) is not dict
+                        or message.get('role') != 'assistant'
+                        or type(message.get('content')) is not str or not message['content'].strip()
+                        or message.get('function_call') is not None
+                        or message.get('tool_calls') not in (None, [])):
+                    verdict = 'zen_incomplete_or_tools'
+                    _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                    return
+            except (OSError, http.client.HTTPException, ValueError, UnicodeError, CoreError, RecursionError):
+                _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                return
+            finally:
+                timer.cancel()
+                upstream.close()
+
+            # Encaminha exclusivamente message['content'] em SSE UTF-8 (nunca reasoning/reasoning_content).
+            frames = []
+            for delta, stop in (({'role': 'assistant', 'content': message['content']}, None), ({}, 'stop')):
+                chunk_obj = {'id': 'udh-zen-chatcmpl', 'object': 'chat.completion.chunk', 'created': 1, 'model': model,
+                             'choices': [{'index': 0, 'delta': delta, 'finish_reason': stop}]}
+                frames.append(('data: ' + json.dumps(chunk_obj, separators=(',', ':'), ensure_ascii=False) + '\n\n').encode('utf-8'))
+            frames.append(b'data: [DONE]\n\n')
+            if sum(map(len, frames)) > self.config.max_response_bytes:
+                verdict = 'response_budget_exceeded'
+                _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                return
+            conn.sendall(b'HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\n'
+                         b'Connection: close\r\n\r\n')
+            for frame in frames:
+                resp_bytes += self._write_chunk(conn, frame)
+            conn.sendall(b'0\r\n\r\n')
+            status, verdict = 200, 'zen_stream_complete'
+        except OSError:
+            status, verdict = 499, 'client_disconnected'
+        finally:
+            self._audit(status=status, verdict=verdict, peer_uid=peer_uid, model=model,
+                        request_bytes=req_bytes, response_bytes=resp_bytes, usage=usage,
+                        elapsed_seconds=time.monotonic() - started)
 
     def _serve_local_discovery(self, conn, *, body, peer_uid, model, req_bytes, started):
         status, verdict, resp_bytes = 400, 'local_messages_denied', 0

@@ -1,6 +1,6 @@
 # Change 5 — Da descoberta ao plano de tickets
 
-- **Estado:** T1, T2, T3 (até T3b.2b) e T4 implementadas e verificadas com testes complementares (223/223 PASS). O ensaio de `DISC-01` com modelo real e o aceite oficial do change seguem pendentes.
+- **Estado:** T1, T2, T3 (até T3b.2c) e T4 implementadas e verificadas com testes complementares (**225/225 PASS**). Faltam o ensaio ao vivo `C5-T3b.2c-03` de `DISC-01` e o fechamento oficial do change.
 - **Branch:** `feat/change5-discover-plan-tickets`, a partir de `main` em `ef9c15d`.
 - **Base normativa:** [baseline rastreado](../../../Universal-Dev-Harness-v2_5-BASELINE-NORMATIVO-CONSOLIDADO-FINAL.md) (DELTA-03–05, ADR-023/024/026/027, B4.2, F-03) e [governança do projeto](../../project.md).
 
@@ -8,7 +8,7 @@
 
 Ao final do change, uma ideia deve virar um OpenSpec aprovado e um conjunto de tickets verificáveis, com dependências explícitas. O Core autoriza a progressão; propostas de agente são dados não confiáveis. O primeiro incremento (T1) valida a proposta de tickets em memória. Persistência, descoberta real e troca de agentes precisam de deltas de escopo aprovados antes de implementação; os critérios de fechamento abaixo não aprovam essas tarefas.
 
-Fora de escopo: `B2.4`, `B3.8/09`, `DOC-01/02`, `SKILL-01/02`, Codex, Memorix, Judge, instalador, rede externa e ampliação da UI. Preservar selos `v1–v6`, `bootstrap/slice1/`, operadores/políticas e imagens OCI existentes. Nenhuma dependência nova em T1.
+Fora de escopo: `B2.4`, `B3.8/09`, `DOC-01/02`, `SKILL-01/02`, Codex, Memorix, Judge, instalador, ampliação da UI e acessos externos fora do backend endurecido `opencode_zen_free` do Gateway autorizado no delta aprovado [T3b.2c](t3-discovery-and-spec-handoff.md#t3b2c--ensaio-real-de-disc-01-via-gateway-endurecido-opencode_zen_free) (mantendo o contêiner do agente em `network=none`, ADR-018 A). Preservar selos `v1–v6`, `bootstrap/slice1/`, operadores/políticas e imagens OCI existentes. Nenhuma dependência nova em T1–T4.
 
 ## Contrato e critérios verificáveis de T1
 
@@ -31,7 +31,7 @@ O validador recebe duas estruturas Python já decodificadas: `approved_spec`, do
 
 ## Condições para fechar o change
 
-- **DISC-01:** em uma jornada offline, uma ideia sem lacuna material não gera perguntas; uma ideia com lacuna que afeta o comportamento gera pergunta sobre essa lacuna, sem perguntas cosméticas. Descoberta não escreve código de produção nem cria plano paralelo. O handoff exige aprovação humana e validação real dos artefatos OpenSpec. Confirmar suporte via `openspec --help`; se a CLI ou `validate <change> --strict` não estiver disponível, bloquear o handoff e registrar o motivo. A [sondagem do host](t3-discovery-and-spec-handoff.md#t3b--skill-autorizada-e-handoff-real) confirma disponibilidade do comando, não o caminho positivo. A integração no executor requer aprovação própria.
+- **DISC-01:** em uma jornada mediada pelo Core (`network=none` no contêiner do agente, com inferência local ou via backend endurecido `opencode_zen_free` do Gateway conforme delta aprovado [T3b.2c](t3-discovery-and-spec-handoff.md#t3b2c--ensaio-real-de-disc-01-via-gateway-endurecido-opencode_zen_free)), uma ideia sem lacuna material não gera perguntas; uma ideia com lacuna que afeta o comportamento gera pergunta sobre essa lacuna, sem perguntas cosméticas. Descoberta não escreve código de produção nem cria plano paralelo. O handoff exige aprovação humana e validação real dos artefatos OpenSpec (`openspec validate <change> --strict`). O fechamento do Change 5 admite a validação de `DISC-01` no perfil API gratuita mediada (`opencode_zen_free`), mantendo a qualificação offline local (Ollama) explicitamente registrada como pendência de ambiente futuro.
 - **TICKET-01:** o Core materializa tarefas pequenas aprovadas diretamente; decomposição, quando necessária, entra como proposta e passa pelos mesmos gates. Repetir a materialização, inclusive após reabrir o SQLite, conserva IDs e não duplica registros. Um ticket com predecessora ainda não aceita não pode iniciar. Troca de versão ou hash torna o plano anterior obsoleto para novos inícios até reconciliação explícita, preservando histórico e evidências.
 - **Gate B4.2 (T2):** na mesma operação de autorização de início, o Core verifica o vínculo de cada cenário aprovado com seu AT protegido. Mesmo com todas as predecessoras aceitas, um critério sem AT impede início, salvo exceção explícita para protótipo ou spike rotulado. As verificações propostas por um agente não suprem esse gate.
 - **TICKET-02:** em um cenário offline com duas tarefas dependentes, o segundo ticket começa somente após evidência confiável e aceite do primeiro; a troca `Pi → OpenCode` recupera o contexto autorizado a partir do estado persistido, do checkpoint F-03 e das referências verificadas, sem transcrição da sessão. A POC-03 existente é regressão, não evidência do novo cenário.

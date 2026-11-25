@@ -1,20 +1,32 @@
-"""Orquestra descoberta e encaminhamento local de um snapshot para SPEC."""
+"""Orquestra descoberta e encaminhamento de um snapshot para SPEC (local ou OpenCode Zen gratuito)."""
 
+import argparse
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
 import re
+import resource
+import shutil
 import stat
+import sys
 import tempfile
+import time
 from uuid import uuid4
 
 from .adapters.pi import PiAdapter
 from .discovery_session import DiscoveryGap, DiscoverySession
 from .domain import CoreError, require_canonical_uuid, require_text, strict_json_loads
-from .gateway import GatewayConfig, InferenceGateway
+from .gateway import (
+    GatewayConfig,
+    InferenceGateway,
+    OPENCODE_ZEN_PUBLIC_TOKEN,
+    list_opencode_zen_free_models,
+)
 from .policy import policy_v2_sha256
 from .runtime import ResourceLimits
 from .spec_handoff import snapshot_digest, validate_spec_snapshot
@@ -24,8 +36,12 @@ from .trust_store import TrustStore
 
 _SKILL_SHA256 = '0013c3849856ad8f629b9b19a9260be26583a7b715b1ba713016739fa4de7f27'
 _CHANGE_ID = re.compile(r'[a-z0-9]+(?:-[a-z0-9]+)*')
+_REASON_CODE_RE = re.compile(r'^[A-Z][A-Z0-9_]{1,63}$')
 _CONTEXT_LIMIT = 8192
 _SKILL_LIMIT = 65536
+_SUMMARY_MAX_BYTES = 32768
+_FORBIDDEN_SUMMARY_DIRS = ('udh', 'runtime', 'tests', 'bootstrap', '.git')
+_DEFAULT_SKILL_REL = Path('openspec/changes/discover-plan-tickets/skills/grill-with-docs-udh/SKILL.md')
 
 
 class DiscoveryFlowError(CoreError):
@@ -35,22 +51,67 @@ class DiscoveryFlowError(CoreError):
 @dataclass(frozen=True)
 class DiscoveryConfig:
     skill_path: Path
-    port: int
+    port: int | None
     model: str
     trust_store: TrustStore
     cli_path: Path
     node_dir: Path
+    backend: str = 'local_discovery'
+    secret_resolver: Callable[[], str | None] | None = None
+    connection_factory: Callable[[], http.client.HTTPConnection] | None = None
+    timeout_seconds: int = 30
 
     def __post_init__(self):
-        if (type(self.port) is not int or not 1 <= self.port <= 65535 or type(self.model) is not str
+        if (self.backend not in ('local_discovery', 'opencode_zen_free')
+                or type(self.model) is not str
                 or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}', self.model)
-                or not isinstance(self.trust_store, TrustStore)):
-            raise DiscoveryFlowError('Configuração local de descoberta inválida.')
+                or not isinstance(self.trust_store, TrustStore)
+                or type(self.timeout_seconds) is not int):
+            raise DiscoveryFlowError('Configuração de descoberta inválida.')
+        if self.backend == 'local_discovery':
+            if (type(self.port) is not int or not 1 <= self.port <= 65535
+                    or self.secret_resolver is not None or self.connection_factory is not None
+                    or not 1 <= self.timeout_seconds <= 60):
+                raise DiscoveryFlowError('Configuração local de descoberta inválida.')
+        else:
+            if (self.port is not None or not self.model.endswith('-free')
+                    or not callable(self.secret_resolver)
+                    or (self.connection_factory is not None and not callable(self.connection_factory))
+                    or not 1 <= self.timeout_seconds <= 90):
+                raise DiscoveryFlowError('Configuração opencode_zen_free de descoberta inválida.')
         for name in ('skill_path', 'cli_path', 'node_dir'):
             path = Path(getattr(self, name))
             if not path.is_absolute():
                 raise DiscoveryFlowError('Os caminhos confiáveis da descoberta devem ser absolutos.')
             object.__setattr__(self, name, path)
+
+    @classmethod
+    def for_opencode_zen_free(
+        cls,
+        *,
+        skill_path: Path,
+        model: str,
+        trust_store: TrustStore,
+        cli_path: Path,
+        node_dir: Path,
+        secret_resolver: Callable[[], str | None] | None = None,
+        connection_factory: Callable[[], http.client.HTTPConnection] | None = None,
+        timeout_seconds: int = 60,
+    ) -> 'DiscoveryConfig':
+        """Construtor explícito para o backend endurecido opencode_zen_free (padrão: token 'public')."""
+        resolver = secret_resolver if secret_resolver is not None else (lambda: OPENCODE_ZEN_PUBLIC_TOKEN)
+        return cls(
+            skill_path=skill_path,
+            port=None,
+            model=model,
+            trust_store=trust_store,
+            cli_path=cli_path,
+            node_dir=node_dir,
+            backend='opencode_zen_free',
+            secret_resolver=resolver,
+            connection_factory=connection_factory,
+            timeout_seconds=timeout_seconds,
+        )
 
 
 def _skill(path):
@@ -216,25 +277,34 @@ class DiscoveryFlow:
     def _invoke(self, sid, key, phase, prompt, skill):
         config = self._config
         invocation_id = f'discovery-{sid}-{key}'
+        is_zen = config.backend == 'opencode_zen_free'
+        max_tokens = 2048 if (is_zen or phase == 'draft') else 512
+        call_timeout = config.timeout_seconds if is_zen else max(1, config.timeout_seconds - 1)
+        container_timeout = (config.timeout_seconds + 15) if is_zen else config.timeout_seconds
         gateway_config = GatewayConfig(
             run_id=invocation_id, policy_sha256=policy_v2_sha256(),
-            audit_path=config.trust_store.audit_path_for(invocation_id), backend='local_discovery',
+            audit_path=config.trust_store.audit_path_for(invocation_id), backend=config.backend,
             allowed_models=(config.model,), local_discovery_port=config.port, max_calls=1, max_concurrency=1,
-            call_timeout_seconds=29, max_response_bytes=262144,
-            local_discovery_max_tokens=2048 if phase == 'draft' else 512,
+            call_timeout_seconds=call_timeout, max_response_bytes=262144,
+            local_discovery_max_tokens=max_tokens,
+            secret_resolver=config.secret_resolver,
+            opencode_zen_connection_factory=config.connection_factory,
         )
         try:
             with tempfile.TemporaryDirectory(prefix='udh-discovery-') as workspace, InferenceGateway(gateway_config) as gw:
                 response = PiAdapter().run(
                     workspace=Path(workspace), gateway=gw, prompt=prompt, system_prompt=skill,
-                    model=config.model, allowed_tools=(), max_output_tokens=2048 if phase == 'draft' else 512,
-                    limits=ResourceLimits(memory_mb=512, pids_limit=96, cpus=1, timeout_seconds=30),
+                    model=config.model, allowed_tools=(), max_output_tokens=max_tokens,
+                    limits=ResourceLimits(memory_mb=512, pids_limit=96, cpus=1, timeout_seconds=container_timeout),
                     forbidden_rw_roots=(config.trust_store.root,),
                 )
-        except (CoreError, OSError):
-            raise DiscoveryFlowError('Não foi possível executar o agente de descoberta.') from None
+        except (CoreError, OSError) as error:
+            tag = type(error).__name__
+            raise DiscoveryFlowError(f'Não foi possível executar o agente de descoberta ({tag}).') from None
         if not response.ok:
-            raise DiscoveryFlowError('Execução do agente de descoberta incompleta.')
+            code = getattr(response, 'reason_code', None)
+            safe_code = code if isinstance(code, str) and _REASON_CODE_RE.fullmatch(code) else 'AGENT_INCOMPLETE'
+            raise DiscoveryFlowError(f'Execução do agente de descoberta incompleta ({safe_code}).')
         return _proposal(response.assistant_text)
 
     def _generate(self, sid, revision, phase):
@@ -319,3 +389,239 @@ class DiscoveryFlow:
             data['handoff'] = dict(request_id=request_id, requested_revision=revision,
                                    snapshot_sha256=result.snapshot_sha256, cli_version=result.cli_version)
             return self._save(db, row, data)
+
+
+def _resolve_zen_secret(*, use_env_api_key: bool) -> tuple[Callable[[], str | None], str]:
+    if not use_env_api_key:
+        return (lambda: OPENCODE_ZEN_PUBLIC_TOKEN), 'public'
+    token = os.environ.get('UDH_OPENCODE_ZEN_API_KEY') or os.environ.get('OPENCODE_API_KEY')
+    if not isinstance(token, str) or not token:
+        raise DiscoveryFlowError(
+            'Variável de ambiente UDH_OPENCODE_ZEN_API_KEY ou OPENCODE_API_KEY ausente para --use-env-api-key.'
+        )
+    return (lambda: token), 'env_api_key'
+
+
+def _validate_summary_out_path(raw_path: Path, *, repo_root: Path) -> Path:
+    candidate = Path(raw_path)
+    if candidate.is_symlink():
+        raise DiscoveryFlowError('Caminho de --summary-out não pode ser symlink.')
+    parent = candidate.parent
+    for ancestor in (parent, *parent.parents):
+        if ancestor.is_symlink():
+            raise DiscoveryFlowError('Diretório pai de --summary-out não pode conter symlink.')
+    if not parent.exists() or not parent.is_dir():
+        raise DiscoveryFlowError('Diretório pai de --summary-out deve existir.')
+    resolved_target = parent.resolve(strict=True) / candidate.name
+    root_resolved = repo_root.resolve(strict=True)
+    for forbidden in _FORBIDDEN_SUMMARY_DIRS:
+        blocked = (root_resolved / forbidden).resolve()
+        if resolved_target == blocked or resolved_target.is_relative_to(blocked):
+            raise DiscoveryFlowError(f'Caminho de --summary-out proibido sob {forbidden}/.')
+    return resolved_target
+
+
+def _write_summary_file(target: Path, payload: dict) -> int:
+    raw = (json.dumps(payload, indent=2, ensure_ascii=False) + '\n').encode('utf-8')
+    if len(raw) > _SUMMARY_MAX_BYTES:
+        raise DiscoveryFlowError(f'Resumo excede o teto de {_SUMMARY_MAX_BYTES} bytes.')
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(raw)
+    except BaseException:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        raise
+    return len(raw)
+
+
+def run_opencode_zen_trial(
+    *,
+    model: str,
+    use_env_api_key: bool = False,
+    timeout_seconds: int = 60,
+    summary_out: Path | None = None,
+    cli_path: Path | None = None,
+    skill_path: Path | None = None,
+    input_fn: Callable[[str], str] = input,
+    print_fn: Callable[[str], None] = print,
+    connection_factory: Callable[[], http.client.HTTPConnection] | None = None,
+) -> dict:
+    """Executa interativamente os casos de C5-T3b.2b-03 via opencode_zen_free em ambiente temporário isolado."""
+    from .service import CoreService
+    from .store import SQLiteStore
+
+    repo_root = Path(__file__).resolve().parent.parent
+    resolved_skill = (skill_path or (repo_root / _DEFAULT_SKILL_REL)).resolve()
+    resolved_cli = cli_path
+    if resolved_cli is None:
+        found = shutil.which('openspec')
+        if not found:
+            raise DiscoveryFlowError('Executável openspec não encontrado no PATH.')
+        resolved_cli = Path(found).resolve()
+    resolved_cli = Path(resolved_cli).resolve()
+    secret_resolver, auth_mode = _resolve_zen_secret(use_env_api_key=use_env_api_key)
+    validated_out = _validate_summary_out_path(summary_out, repo_root=repo_root) if summary_out is not None else None
+
+    started = time.monotonic()
+    cases: dict[str, dict] = {}
+    with tempfile.TemporaryDirectory(prefix='udh-zen-trial-') as tmp:
+        root = Path(tmp)
+        core = CoreService(SQLiteStore(root / 'trial.db'))
+        core.initialize(schema_version=4)
+        for ver in range(5, 10):
+            core.migrate(ver)
+        trust = TrustStore(root / 'trust-store')
+        config = DiscoveryConfig.for_opencode_zen_free(
+            skill_path=resolved_skill,
+            model=model,
+            trust_store=trust,
+            cli_path=resolved_cli,
+            node_dir=resolved_cli.parent,
+            secret_resolver=secret_resolver,
+            connection_factory=connection_factory,
+            timeout_seconds=timeout_seconds,
+        )
+        flow = core.discovery_flow(config)
+
+        # Caso 1: pedido completo sem lacuna material esperada
+        c1_idea = (
+            'Criar um comando local em Python stdlib chamado tempconv que converte temperatura '
+            'de Celsius para Fahrenheit recebendo um único número decimal como argumento posicional '
+            '(ex.: tempconv 25), imprime o resultado com 2 casas decimais em stdout e termina com '
+            'código 0; para entrada ausente ou não numérica, imprime mensagem de erro em stderr e '
+            'termina com código 2, sem persistência, sem rede e sem arquivo de configuração.'
+        )
+        print_fn('\n=== Caso 1 (ideia completa) ===')
+        s1 = flow.create('trial-complete-idea', c1_idea)
+        s1 = flow.discover(s1['session_id'], s1['revision'])
+        c1_gaps = s1['open_gaps']
+        print_fn(f'Lacunas abertas no Caso 1: {len(c1_gaps)}')
+        c1_ok = False
+        c1_handoff = None
+        if not c1_gaps and s1['ready_for_document_review']:
+            s1 = flow.draft(s1['session_id'], s1['revision'])
+            print_fn(f'Rascunho Caso 1 gerado (snapshot_sha256={s1["snapshot_sha256"]}).')
+            print_fn('Specs geradas: ' + ', '.join(sorted(s1['draft']['specs'].keys())))
+            confirm_c1 = input_fn('Aprovar rascunho do Caso 1? [s/N]: ').strip().lower()
+            if confirm_c1 in ('s', 'sim', 'y', 'yes'):
+                s1 = flow.approve(s1['session_id'], s1['revision'], s1['snapshot_sha256'], 'operator-trial-c1')
+                s1 = flow.handoff(s1['session_id'], s1['revision'], 'req-trial-c1-handoff')
+                c1_handoff = s1['handoff']
+                c1_ok = s1['status'] == 'SPEC_READY'
+        cases['complete_idea'] = {
+            'ok': c1_ok,
+            'open_gaps_count': len(c1_gaps),
+            'status': s1['status'],
+            'handoff': c1_handoff,
+        }
+
+        # Caso 2: ideia com lacuna material -> pergunta -> bloqueio sem confirmação -> resposta suficiente -> SPEC_READY
+        c2_idea = (
+            'Criar uma lista local de tarefas em linha de comando (Python stdlib) que salva e lista '
+            'tarefas no computador, mas ainda não foi definido se o usuário pode apagar tarefas '
+            'concluídas nem o que deve acontecer quando o arquivo de dados estiver corrompido.'
+        )
+        print_fn('\n=== Caso 2 (ideia com lacuna material) ===')
+        s2 = flow.create('trial-material-gap', c2_idea)
+        s2 = flow.discover(s2['session_id'], s2['revision'])
+        c2_gaps = s2['open_gaps']
+        print_fn(f'Lacunas abertas no Caso 2: {len(c2_gaps)}')
+        insufficient_blocked = False
+        c2_handoff = None
+        c2_ok = False
+        if c2_gaps:
+            for gap in c2_gaps:
+                print_fn(f"  - [{gap['id']}] ({gap['impact']}): {gap['question']} (motivo: {gap['reason']})")
+            # Exercita bloqueio com resposta registrada mas não confirmada
+            first_gap_id = c2_gaps[0]['id']
+            s2 = flow.answer(s2['session_id'], s2['revision'], first_gap_id, 'Resposta provisória insuficiente.')
+            try:
+                flow.draft(s2['session_id'], s2['revision'])
+            except ConflictError:
+                insufficient_blocked = True
+            for gap in c2_gaps:
+                ans = input_fn(f"Resposta suficiente para [{gap['id']}]: ").strip()
+                s2 = flow.answer(s2['session_id'], s2['revision'], gap['id'], ans)
+                s2 = flow.confirm(
+                    s2['session_id'], s2['revision'], gap['id'], hashlib.sha256(ans.encode('utf-8')).hexdigest(),
+                )
+            s2 = flow.draft(s2['session_id'], s2['revision'])
+            print_fn(f'Rascunho Caso 2 gerado (snapshot_sha256={s2["snapshot_sha256"]}).')
+            print_fn('Specs geradas: ' + ', '.join(sorted(s2['draft']['specs'].keys())))
+            confirm_c2 = input_fn('Aprovar rascunho do Caso 2? [s/N]: ').strip().lower()
+            if confirm_c2 in ('s', 'sim', 'y', 'yes'):
+                s2 = flow.approve(s2['session_id'], s2['revision'], s2['snapshot_sha256'], 'operator-trial-c2')
+                s2 = flow.handoff(s2['session_id'], s2['revision'], 'req-trial-c2-handoff')
+                c2_handoff = s2['handoff']
+                c2_ok = insufficient_blocked and s2['status'] == 'SPEC_READY'
+        cases['material_gap'] = {
+            'ok': c2_ok,
+            'open_gaps_count': len(c2_gaps),
+            'gap_ids': [g['id'] for g in c2_gaps],
+            'insufficient_answer_blocked': insufficient_blocked,
+            'status': s2['status'],
+            'handoff': c2_handoff,
+        }
+
+    usage_self = resource.getrusage(resource.RUSAGE_SELF)
+    summary = {
+        'schema_version': 1,
+        'profile': 'opencode_zen_free_gateway_mediated',
+        'offline_local_ollama_status': 'PENDING_FUTURE_ENVIRONMENT',
+        'backend': 'opencode_zen_free',
+        'auth_mode': auth_mode,
+        'model': model,
+        'skill_sha256': _SKILL_SHA256,
+        'elapsed_seconds': round(time.monotonic() - started, 3),
+        'peak_rss_kib': usage_self.ru_maxrss,
+        'cases': cases,
+        'verdict': 'PASS' if all(item['ok'] for item in cases.values()) else 'FAIL',
+    }
+    if validated_out is not None:
+        _write_summary_file(validated_out, summary)
+    return summary
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog='python3 -m udh.discovery_flow',
+        description='Ferramenta local do operador para ensaio real de DISC-01 via opencode_zen_free.',
+    )
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--list-free-models', action='store_true', help='Lista modelos -free em opencode.ai/zen/v1/models.')
+    group.add_argument('--run-opencode-zen-trial', action='store_true', help='Executa ensaio interativo C5-T3b.2b-03.')
+    parser.add_argument('--model', type=str, default=None, help='ID exato do modelo -free do catálogo OpenCode Zen.')
+    parser.add_argument('--use-env-api-key', action='store_true',
+                        help='Usa UDH_OPENCODE_ZEN_API_KEY ou OPENCODE_API_KEY (falha fechado se ausente; padrão: public).')
+    parser.add_argument('--timeout', type=int, default=60, help='Timeout por chamada em segundos (1..90).')
+    parser.add_argument('--summary-out', type=Path, default=None, help='Caminho seguro para gravar resumo JSON <= 32 KiB.')
+    parser.add_argument('--openspec-cli', type=Path, default=None, help='Caminho absoluto da CLI openspec 2.1.1.')
+    args = parser.parse_args(argv)
+
+    try:
+        if args.list_free_models:
+            models = list_opencode_zen_free_models(timeout_seconds=min(15.0, float(args.timeout)))
+            print(json.dumps({'models': models}, indent=2, ensure_ascii=False))
+            return 0
+        if not args.model:
+            raise DiscoveryFlowError('--model <id-free> é obrigatório para --run-opencode-zen-trial.')
+        summary = run_opencode_zen_trial(
+            model=args.model,
+            use_env_api_key=args.use_env_api_key,
+            timeout_seconds=args.timeout,
+            summary_out=args.summary_out,
+            cli_path=args.openspec_cli,
+        )
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0 if summary['verdict'] == 'PASS' else 1
+    except CoreError as error:
+        print(f'ERRO: {error}', file=sys.stderr)
+        return 2
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

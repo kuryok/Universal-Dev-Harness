@@ -1,6 +1,6 @@
 # Tarefas — Change 5 (`discover-plan-tickets`)
 
-**Branch:** `feat/change5-discover-plan-tickets`. **Retomada:** definir delta e executar o ensaio de `DISC-01` com modelo real (via Gateway nesta máquina ou local), depois fechar os gates do Change 5.
+**Branch:** `feat/change5-discover-plan-tickets`. **Retomada:** executar o ensaio ao vivo `C5-T3b.2c-03` (`python3 -m udh.discovery_flow --run-opencode-zen-trial`) com modelo `-free` do OpenCode Zen e depois rodar os gates de fechamento do Change 5.
 
 - [x] **T1 — Validação determinística de propostas do PLAN.** `udh/ticket_plan.py` e `tests/test_ticket_plan.py` cobrem C5-01–04 com Python stdlib, sem persistência ou integração à execução. Em 24/11/2026: 6/6 testes focados (`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_ticket_plan.py'`) e 163/163 complementares PASS. Isso verifica T1, não o aceite oficial do change.
 - [x] **T2 — Materialização persistente e gate de dependências (`TICKET-01`).** [Delta](t2-persistence-and-start.md): T2a e T2b implementadas com verificação complementar. Aceite oficial no fechamento.
@@ -20,7 +20,7 @@
     - [ ] **T3b.2:** conectar as rodadas de descoberta ao encaminhamento para SPEC.
       - [x] **T3b.2a:** acompanhar lacunas, respostas e confirmações no Core. 4 testes novos; 210 complementares PASS em 24/11/2026.
       - [x] **T3b.2b:** implementação da integração com o agente e do encaminhamento `SPEC_READY`. Seis testes focados e 216 complementares PASS; ensaio oficial com modelo real pendente.
-  - [ ] **T3b.2c / Ensaio `DISC-01` com modelo real**: [delta proposto](t3-discovery-and-spec-handoff.md#t3b2c--ensaio-real-de-disc-01-via-gateway-endurecido-opencode_zen_free-proposta) para executar `C5-T3b.2b-03` nesta máquina via Gateway endurecido (`opencode_zen_free`, ex.: `deepseek-v4*-free`), mantendo o ensaio offline local (Ollama) registrado como pendência futura.
+  - [ ] **T3b.2c / Ensaio `DISC-01` com modelo real**: [delta aprovado](t3-discovery-and-spec-handoff.md#t3b2c--ensaio-real-de-disc-01-via-gateway-endurecido-opencode_zen_free). Código e testes com dublês (`C5-T3b.2c-01`/`02`) implementados e verificados (**225/225** PASS em 25/11/2026); falta executar o ensaio ao vivo `C5-T3b.2c-03` com modelo `-free` do OpenCode Zen (mantendo Ollama local como pendência futura).
   - [ ] **T3-org:** agrupar os módulos de descoberta e SPEC preservando imports. Adiada, sem aprovação.
 - [x] **T4 — Troca de agente através do plano persistido (`TICKET-02`).** [Delta aprovado](t4-managed-handoff.md): `udh/ticket_handoff.py`, leitura transacional em `udh/ticket_store.py`/`udh/service.py` e `tests/test_managed_ticket_handoff.py`. Em 25/11/2026: 7/7 testes focados PASS (incluindo cenário E2E offline real `Pi 1.2.0 → OpenCode 1.18.35 + artifact-only F-04`, adulteração `F-02` e múltiplas predecessoras) e 223/223 complementares PASS. Aceite oficial no fechamento.
 - [ ] **Fechamento** — Rodar a suíte complementar, `doctor --conformance`, as quatro POCs e a regressão dos 50 AT selados. Executar as verificações oficiais do novo recorte via executor confiável, sem criar ou editar ATs protegidos. Registrar limites e resultados em resumo compacto (`<= 32 KiB`), obter revisão independente R2/F-02 `PASS` e sincronizar os documentos ativos antes de integrar em `main`.

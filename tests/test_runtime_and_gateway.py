@@ -16,8 +16,11 @@ from udh.gateway import (
     GatewayConfig,
     GatewayError,
     InferenceGateway,
+    OPENCODE_ZEN_PUBLIC_TOKEN,
     SecretWindowScanner,
     build_openrouter_payload,
+    list_opencode_zen_free_models,
+    verify_opencode_zen_free_model,
     verify_openrouter_free_model,
 )
 from udh.policy import policy_v2_sha256
@@ -285,6 +288,170 @@ class RuntimeAndGatewayTests(unittest.TestCase):
         audit_text = audit.read_text(encoding='utf-8')
         self.assertIn('secret_in_response_blocked', audit_text)
         self.assertNotIn(secret, audit_text)
+
+    def test_opencode_zen_free_catalog_and_hardening(self):
+        catalog = json.dumps({
+            'data': [
+                {'id': 'deepseek-v4.1-flash-free'},
+                {'id': 'paid-model'},
+                {'id': 'hidden-fee-free', 'pricing': {'prompt': '0', 'completion': '0.01'}},
+                {'id': 'zero-priced-free', 'pricing': {'prompt': '0', 'completion': '0'}},
+            ]
+        }).encode('utf-8')
+
+        # 1. Catálogo aceita somente -free sem cobrança e recusa 3xx
+        self.assertEqual(
+            list_opencode_zen_free_models(
+                connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(200, catalog)]),
+            ),
+            ['deepseek-v4.1-flash-free', 'zero-priced-free'],
+        )
+        self.assertTrue(verify_opencode_zen_free_model(
+            'deepseek-v4.1-flash-free',
+            connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(200, catalog)]),
+        ))
+        self.assertFalse(verify_opencode_zen_free_model(
+            'paid-model',
+            connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(200, catalog)]),
+        ))
+        self.assertFalse(verify_opencode_zen_free_model(
+            'hidden-fee-free',
+            connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(200, catalog)]),
+        ))
+        self.assertFalse(verify_opencode_zen_free_model(
+            'deepseek-v4.1-flash-free',
+            connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(302, b'')]),
+        ))
+
+        # 2. Config fail-closed: recusa tools, modelo não -free e credencial com CR/LF ou curta
+        with self.assertRaises(GatewayError):
+            InferenceGateway(GatewayConfig(
+                run_id='zen-bad-model', policy_sha256=policy_v2_sha256(),
+                audit_path=self.root / 'z1.jsonl', backend='opencode_zen_free',
+                allowed_models=('paid-model',), secret_resolver=lambda: OPENCODE_ZEN_PUBLIC_TOKEN,
+            ))
+        with self.assertRaises(GatewayError):
+            InferenceGateway(GatewayConfig(
+                run_id='zen-bad-tools', policy_sha256=policy_v2_sha256(),
+                audit_path=self.root / 'z2.jsonl', backend='opencode_zen_free',
+                allowed_models=('deepseek-v4.1-flash-free',), allow_tools=True,
+                secret_resolver=lambda: OPENCODE_ZEN_PUBLIC_TOKEN,
+            ))
+        for bad_secret in ('short', 'validkey\r\nX-Evil: 1', 'has space key'):
+            with self.subTest(bad_secret=bad_secret), self.assertRaises(GatewayError):
+                with InferenceGateway(GatewayConfig(
+                    run_id='zen-bad-secret', policy_sha256=policy_v2_sha256(),
+                    audit_path=self.root / 'z3.jsonl', backend='opencode_zen_free',
+                    allowed_models=('deepseek-v4.1-flash-free',),
+                    secret_resolver=lambda s=bad_secret: s,
+                    opencode_zen_connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(200, catalog)]),
+                )):
+                    pass
+
+        # 3. Operação com 'public': aceita function_call=None, omite reasoning_content e entrega SSE UTF-8
+        zen_ok = json.dumps({
+            'choices': [{
+                'finish_reason': 'stop',
+                'message': {
+                    'role': 'assistant',
+                    'content': '{"gaps":[],"note":"public api ação"}',
+                    'reasoning_content': 'INTERNAL_REASONING_NEVER_FORWARD',
+                    'function_call': None,
+                    'tool_calls': None,
+                },
+            }],
+            'usage': {'prompt_tokens': 10, 'completion_tokens': 5, 'total_tokens': 15, 'cost': 0},
+        }, ensure_ascii=False).encode('utf-8')
+        ok_responses = [_FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, zen_ok)]
+        audit_ok = self.root / 'zen-ok.jsonl'
+        cfg_ok = GatewayConfig(
+            run_id='zen-ok', policy_sha256=policy_v2_sha256(), audit_path=audit_ok,
+            backend='opencode_zen_free', allowed_models=('deepseek-v4.1-flash-free',),
+            secret_resolver=lambda: OPENCODE_ZEN_PUBLIC_TOKEN,
+            opencode_zen_connection_factory=lambda: _FakeHTTPSConnection([ok_responses.pop(0)]),
+        )
+        with InferenceGateway(cfg_ok) as gw:
+            assert gw.socket_path is not None
+            body = json.dumps({
+                'model': 'deepseek-v4.1-flash-free', 'stream': True,
+                'messages': [{'role': 'user', 'content': 'oi'}],
+            }).encode('utf-8')
+            req = (
+                f'POST /v1/chat/completions HTTP/1.1\r\n'
+                f'Authorization: Bearer {gw.capability_token}\r\n'
+                f'X-UDH-Purpose: inference\r\n'
+                f'Content-Length: {len(body)}\r\n\r\n'
+            ).encode('utf-8') + body
+            status, text = _raw_uds(gw.socket_path, req)
+            self.assertEqual(status, 200)
+            self.assertIn('public api ação', text)
+            self.assertNotIn('INTERNAL_REASONING_NEVER_FORWARD', text)
+            self.assertIn('[DONE]', text)
+        self.assertIn('zen_stream_complete', audit_ok.read_text(encoding='utf-8'))
+
+        # 4. Chave pessoal vazada em reasoning_content (inclusive via escape \u) ou custo > 0 -> bloqueados
+        personal_secret = 'ZEN_PERSONAL_SECRET_8888'
+        escaped_secret = personal_secret[:-1] + '\\u0038'
+        leak_body = (
+            '{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"ok",'
+            f'"reasoning_content":"leak {escaped_secret}"'
+            '}}]}'
+        ).encode('utf-8')
+        leak_responses = [_FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, leak_body)]
+        audit_leak = self.root / 'zen-leak.jsonl'
+        cfg_leak = GatewayConfig(
+            run_id='zen-leak', policy_sha256=policy_v2_sha256(), audit_path=audit_leak,
+            backend='opencode_zen_free', allowed_models=('deepseek-v4.1-flash-free',),
+            secret_resolver=lambda: personal_secret,
+            opencode_zen_connection_factory=lambda: _FakeHTTPSConnection([leak_responses.pop(0)]),
+        )
+        with InferenceGateway(cfg_leak) as gw:
+            assert gw.socket_path is not None
+            body = json.dumps({
+                'model': 'deepseek-v4.1-flash-free', 'stream': True,
+                'messages': [{'role': 'user', 'content': 'hi'}],
+            }).encode('utf-8')
+            req = (
+                f'POST /v1/chat/completions HTTP/1.1\r\n'
+                f'Authorization: Bearer {gw.capability_token}\r\n'
+                f'X-UDH-Purpose: inference\r\n'
+                f'Content-Length: {len(body)}\r\n\r\n'
+            ).encode('utf-8') + body
+            status, text = _raw_uds(gw.socket_path, req)
+            self.assertEqual(status, 502)
+            self.assertNotIn(personal_secret, text)
+        leak_audit_text = audit_leak.read_text(encoding='utf-8')
+        self.assertIn('secret_in_response_blocked', leak_audit_text)
+        self.assertNotIn(personal_secret, leak_audit_text)
+
+        # 5. usage.cost > 0 bloqueado
+        paid_body = json.dumps({
+            'choices': [{'finish_reason': 'stop', 'message': {'role': 'assistant', 'content': '{}'}}],
+            'usage': {'cost': 0.002},
+        }).encode('utf-8')
+        paid_responses = [_FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, paid_body)]
+        audit_paid = self.root / 'zen-paid.jsonl'
+        cfg_paid = GatewayConfig(
+            run_id='zen-paid', policy_sha256=policy_v2_sha256(), audit_path=audit_paid,
+            backend='opencode_zen_free', allowed_models=('deepseek-v4.1-flash-free',),
+            secret_resolver=lambda: OPENCODE_ZEN_PUBLIC_TOKEN,
+            opencode_zen_connection_factory=lambda: _FakeHTTPSConnection([paid_responses.pop(0)]),
+        )
+        with InferenceGateway(cfg_paid) as gw:
+            assert gw.socket_path is not None
+            body = json.dumps({
+                'model': 'deepseek-v4.1-flash-free', 'stream': True,
+                'messages': [{'role': 'user', 'content': 'hi'}],
+            }).encode('utf-8')
+            req = (
+                f'POST /v1/chat/completions HTTP/1.1\r\n'
+                f'Authorization: Bearer {gw.capability_token}\r\n'
+                f'X-UDH-Purpose: inference\r\n'
+                f'Content-Length: {len(body)}\r\n\r\n'
+            ).encode('utf-8') + body
+            status, _ = _raw_uds(gw.socket_path, req)
+            self.assertEqual(status, 502)
+        self.assertIn('nonzero_cost_blocked', audit_paid.read_text(encoding='utf-8'))
 
     def test_pi_jsonl_parser_strict_stop_reason_and_error_detection(self):
         ok_stream = (

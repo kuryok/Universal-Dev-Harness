@@ -12,7 +12,14 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from udh.discovery_flow import DiscoveryConfig, DiscoveryFlowError
+from udh.discovery_flow import (
+    DiscoveryConfig,
+    DiscoveryFlowError,
+    _resolve_zen_secret,
+    _validate_summary_out_path,
+    run_opencode_zen_trial,
+)
+from tests.test_runtime_and_gateway import _FakeHTTPResponse, _FakeHTTPSConnection
 from udh.domain import CoreError
 from udh.gateway import GatewayConfig, InferenceGateway
 from udh.service import CoreService
@@ -240,3 +247,180 @@ class DiscoveryFlowTests(unittest.TestCase):
             self.assertEqual(body['model'], 'test-model')
             self.assertIsNone(auth)
             self.assertNotIn('tools', body)
+
+    def test_discovery_flow_opencode_zen_free_backend(self):
+        self.core.migrate(9)
+        cli = Path(os.environ.get('UDH_TEST_OPENSPEC', '/missing/openspec'))
+
+        # 1. Retrocompatibilidade posicional preservada + rejeições fail-closed de DiscoveryConfig
+        pos_cfg = DiscoveryConfig(SKILL, 11434, 'local-model', self.trust, cli, cli.parent)
+        self.assertEqual(pos_cfg.backend, 'local_discovery')
+        for bad_kwargs in (
+            dict(skill_path=SKILL, port=11434, model='deepseek-v4.1-flash-free', trust_store=self.trust,
+                 cli_path=cli, node_dir=cli.parent, backend='opencode_zen_free', secret_resolver=lambda: 'public'),
+            dict(skill_path=SKILL, port=None, model='paid-model', trust_store=self.trust,
+                 cli_path=cli, node_dir=cli.parent, backend='opencode_zen_free', secret_resolver=lambda: 'public'),
+            dict(skill_path=SKILL, port=None, model='deepseek-v4.1-flash-free', trust_store=self.trust,
+                 cli_path=cli, node_dir=cli.parent, backend='opencode_zen_free', secret_resolver=None),
+            dict(skill_path=SKILL, port=11434, model='local-model', trust_store=self.trust,
+                 cli_path=cli, node_dir=cli.parent, backend='local_discovery', timeout_seconds=True),
+            dict(skill_path=SKILL, port=11434, model='local-model', trust_store=self.trust,
+                 cli_path=cli, node_dir=cli.parent, backend='unknown'),
+            dict(skill_path=SKILL, port=11434, model='local-model', trust_store=self.trust,
+                 cli_path=cli, node_dir=cli.parent, backend='local_discovery', connection_factory=lambda: None),
+        ):
+            with self.subTest(bad_kwargs=bad_kwargs.get('backend')), self.assertRaises(DiscoveryFlowError):
+                DiscoveryConfig(**bad_kwargs)
+
+        # 2. --use-env-api-key falha fechado sem variáveis; --summary-out bloqueia pastas de produção/.git
+        with patch.dict(os.environ, {}, clear=True), self.assertRaises(DiscoveryFlowError):
+            _resolve_zen_secret(use_env_api_key=True)
+        repo_root = Path(__file__).resolve().parent.parent
+        for forbidden in ('udh/out.json', 'runtime/out.json', 'tests/out.json', 'bootstrap/out.json', '.git/out.json'):
+            with self.subTest(forbidden=forbidden), self.assertRaises(DiscoveryFlowError):
+                _validate_summary_out_path(repo_root / forbidden, repo_root=repo_root)
+
+        # 3. Fluxo completo discovery -> draft -> approve -> handoff com backend opencode_zen_free
+        catalog = json.dumps({'data': [{'id': 'deepseek-v4.1-flash-free'}]}).encode('utf-8')
+        r1 = json.dumps({'choices': [{'finish_reason': 'stop', 'message': {
+            'role': 'assistant', 'content': json.dumps({'gaps': []}), 'function_call': None,
+        }}]}).encode('utf-8')
+        r2 = json.dumps({'choices': [{'finish_reason': 'stop', 'message': {
+            'role': 'assistant', 'content': json.dumps(DRAFT), 'function_call': None,
+        }}]}).encode('utf-8')
+        responses = [
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, r1),
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, r2),
+        ]
+        seen_pi = []
+
+        def fake_pi(**kwargs):
+            seen_pi.append((kwargs['max_output_tokens'], kwargs['limits'].timeout_seconds, kwargs['gateway'].config.backend))
+            return self.pi_boundary(**kwargs)
+
+        cfg = DiscoveryConfig.for_opencode_zen_free(
+            skill_path=SKILL,
+            model='deepseek-v4.1-flash-free',
+            trust_store=self.trust,
+            cli_path=cli,
+            node_dir=cli.parent,
+            connection_factory=lambda: _FakeHTTPSConnection([responses.pop(0)]),
+            timeout_seconds=60,
+        )
+        flow = self.core.discovery_flow(cfg)
+        with patch('udh.discovery_flow.PiAdapter.run', side_effect=fake_pi):
+            s = flow.create('zen-sample', 'Restaurar a última tela ao reiniciar o app.')
+            s = flow.discover(s['session_id'], s['revision'])
+            self.assertTrue(s['ready_for_document_review'])
+            s = flow.draft(s['session_id'], s['revision'])
+            s = flow.approve(s['session_id'], s['revision'], s['snapshot_sha256'], 'human-zen')
+            if os.environ.get('UDH_TEST_OPENSPEC'):
+                ready = flow.handoff(s['session_id'], s['revision'], 'req-zen-ready')
+                self.assertEqual(ready['status'], 'SPEC_READY')
+            else:
+                with patch('udh.discovery_flow.validate_spec_snapshot', return_value=SpecValidationResult(
+                    'zen-sample', s['approval']['revision'], s['snapshot_sha256'], 'VALIDATED', '2.1.1',
+                )):
+                    ready = flow.handoff(s['session_id'], s['revision'], 'req-zen-ready')
+                    self.assertEqual(ready['status'], 'SPEC_READY')
+        # Ambas as fases usam max_output_tokens=2048 e timeout de contêiner = 60 + 15 = 75 s
+        self.assertEqual(seen_pi, [
+            (2048, 75, 'opencode_zen_free'),
+            (2048, 75, 'opencode_zen_free'),
+        ])
+
+        # 4. PiAdapter aceita opencode_zen_free com max_output_tokens=2048 e propaga timeout <= 120000 ms
+        from udh.adapters.pi import PiAdapter
+        from udh.runtime import ContainerResult
+
+        captured_pi = {}
+
+        class _CaptureRuntime:
+            def load_manifest(self):
+                return SimpleNamespace(
+                    node_bin='/opt/udh/bin/node', pi_entrypoint='/opt/pi/cli.js',
+                    bridge_path='/opt/udh/bridge.mjs', image_ref='localhost/udh-runtime@sha256:' + 'e' * 64,
+                )
+
+            def run_developer(self, *, mounts, env, **kwargs):
+                settings_mount = next(m for m in mounts if m.destination == '/udh/agent-config/settings.json')
+                captured_pi['settings'] = json.loads(Path(settings_mount.source).read_text(encoding='utf-8'))
+                captured_pi['env'] = dict(env)
+                return ContainerResult(
+                    container_name='cap', profile='developer', image_ref=kwargs['image_ref'], returncode=0,
+                    stdout=(
+                        '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"{\\"gaps\\":[]}"}],"stopReason":"stop"}}\n'
+                        '{"type":"agent_end","messages":[{"role":"assistant","stopReason":"stop"}]}\n'
+                    ),
+                    stderr='', outcome=None, elapsed_seconds=0.01, inspection={}, cleanup_verified=True,
+                )
+
+        pi_gw_cfg = GatewayConfig(
+            run_id='zen-pi-check', policy_sha256='0' * 64, audit_path=self.root / 'pi-zen.jsonl',
+            backend='opencode_zen_free', allowed_models=('deepseek-v4.1-flash-free',),
+            secret_resolver=lambda: 'public', call_timeout_seconds=60,
+            opencode_zen_connection_factory=lambda: _FakeHTTPSConnection([_FakeHTTPResponse(200, catalog)]),
+        )
+        ws_pi = self.root / 'ws-pi'
+        ws_pi.mkdir()
+        with InferenceGateway(pi_gw_cfg) as pi_gw:
+            pi_res = PiAdapter(runtime_manager=_CaptureRuntime()).run(
+                workspace=ws_pi, gateway=pi_gw, prompt='hi', model='deepseek-v4.1-flash-free',
+                allowed_tools=(), max_output_tokens=2048,
+            )
+        self.assertTrue(pi_res.ok)
+        self.assertEqual(captured_pi['settings']['httpIdleTimeoutMs'], 70000)
+        self.assertEqual(captured_pi['settings']['retry']['provider']['timeoutMs'], 70000)
+        self.assertEqual(captured_pi['env']['UDH_GATEWAY_TIMEOUT_MS'], '70000')
+
+        # 5. Runner interativo run_opencode_zen_trial gera resumo compacto <= 32 KiB fora de pastas protegidas
+        out_dir = tempfile.TemporaryDirectory(dir='/tmp', prefix='udh-zen-out-')
+        self.addCleanup(out_dir.cleanup)
+        summary_path = Path(out_dir.name) / 'zen-trial-summary.json'
+        trial_responses = [
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, r1),
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, r2),
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, json.dumps({'choices': [{
+                'finish_reason': 'stop', 'message': {'role': 'assistant', 'content': json.dumps({'gaps': [GAP]})},
+            }]}).encode('utf-8')),
+            _FakeHTTPResponse(200, catalog), _FakeHTTPResponse(200, r2),
+        ]
+        def trial_pi(**kwargs):
+            self.assertEqual(kwargs['allowed_tools'], ())
+            self.assertEqual(len(kwargs['forbidden_rw_roots']), 1)
+            self.assertEqual(kwargs['forbidden_rw_roots'][0].name, 'trust-store')
+            client = _UDSConnection(kwargs['gateway'].socket_path)
+            try:
+                body = {'model': kwargs['model'], 'stream': True, 'messages': [
+                    {'role': 'system', 'content': kwargs['system_prompt']}, {'role': 'user', 'content': kwargs['prompt']}]}
+                client.request('POST', '/v1/chat/completions', json.dumps(body).encode(),
+                               {'Authorization': 'Bearer ' + kwargs['gateway'].capability_token,
+                                'Content-Type': 'application/json', 'X-UDH-Purpose': 'inference'})
+                response = client.getresponse()
+                raw = response.read().decode()
+            finally:
+                client.close()
+            text = ''.join(json.loads(line[6:])['choices'][0]['delta'].get('content', '')
+                           for line in raw.splitlines() if line.startswith('data: {'))
+            return SimpleNamespace(ok=response.status == 200 and '[DONE]' in raw, assistant_text=text)
+
+        answers = iter(['s', 'Restaurar a última tela ao abrir.', 's'])
+        with patch('udh.discovery_flow.PiAdapter.run', side_effect=trial_pi), patch(
+            'udh.discovery_flow.validate_spec_snapshot',
+            side_effect=lambda cid, rev, art, *, approval, **kw: SpecValidationResult(cid, rev, approval[2], 'VALIDATED', '2.1.1'),
+        ):
+            summary = run_opencode_zen_trial(
+                model='deepseek-v4.1-flash-free',
+                summary_out=summary_path,
+                cli_path=cli,
+                skill_path=SKILL,
+                input_fn=lambda _prompt: next(answers),
+                print_fn=lambda _msg: None,
+                connection_factory=lambda: _FakeHTTPSConnection([trial_responses.pop(0)]),
+            )
+        self.assertEqual(summary['verdict'], 'PASS')
+        self.assertEqual(summary['auth_mode'], 'public')
+        self.assertTrue(summary['cases']['complete_idea']['ok'])
+        self.assertTrue(summary['cases']['material_gap']['ok'])
+        self.assertTrue(summary['cases']['material_gap']['insufficient_answer_blocked'])
+        self.assertLessEqual(summary_path.stat().st_size, 32768)
