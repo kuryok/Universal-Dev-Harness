@@ -885,12 +885,22 @@ class InferenceGateway:
                     return
                 choice = choices[0]
                 message = choice.get('message')
-                if (choice.get('finish_reason') != 'stop' or type(message) is not dict
-                        or message.get('role') != 'assistant'
-                        or type(message.get('content')) is not str or not message['content'].strip()
-                        or message.get('function_call') is not None
-                        or message.get('tool_calls') not in (None, [])):
-                    verdict = 'zen_incomplete_or_tools'
+                if type(message) is not dict or message.get('role') != 'assistant':
+                    verdict = 'zen_invalid_message'
+                    _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                    return
+                if message.get('function_call') is not None or message.get('tool_calls') not in (None, []):
+                    verdict = 'zen_tools_present'
+                    _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                    return
+                if choice.get('finish_reason') != 'stop':
+                    fr = choice.get('finish_reason')
+                    safe_fr = fr if isinstance(fr, str) and re.fullmatch(r'[a-z0-9_]{1,24}', fr) else 'other'
+                    verdict = f'zen_finish_{safe_fr}'
+                    _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
+                    return
+                if type(message.get('content')) is not str or not message['content'].strip():
+                    verdict = 'zen_empty_content'
                     _send_json_response(conn, 502, 'Bad Gateway', {'error': verdict})
                     return
             except (OSError, http.client.HTTPException, ValueError, UnicodeError, CoreError, RecursionError):

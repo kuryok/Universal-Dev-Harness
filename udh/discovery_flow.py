@@ -37,6 +37,7 @@ from .trust_store import TrustStore
 _SKILL_SHA256 = '0013c3849856ad8f629b9b19a9260be26583a7b715b1ba713016739fa4de7f27'
 _CHANGE_ID = re.compile(r'[a-z0-9]+(?:-[a-z0-9]+)*')
 _REASON_CODE_RE = re.compile(r'^[A-Z][A-Z0-9_]{1,63}$')
+_GATEWAY_VERDICT_RE = re.compile(r'^[a-z0-9_]{1,64}$')
 _CONTEXT_LIMIT = 8192
 _SKILL_LIMIT = 65536
 _SUMMARY_MAX_BYTES = 32768
@@ -304,7 +305,19 @@ class DiscoveryFlow:
         if not response.ok:
             code = getattr(response, 'reason_code', None)
             safe_code = code if isinstance(code, str) and _REASON_CODE_RE.fullmatch(code) else 'AGENT_INCOMPLETE'
-            raise DiscoveryFlowError(f'Execução do agente de descoberta incompleta ({safe_code}).')
+            gw_verdict = None
+            try:
+                lines = [ln for ln in gateway_config.audit_path.read_text(encoding='utf-8').splitlines() if ln.strip()]
+                if lines:
+                    last = strict_json_loads(lines[-1], 'Auditoria do gateway')
+                    if isinstance(last, dict):
+                        v = last.get('verdict')
+                        if isinstance(v, str) and _GATEWAY_VERDICT_RE.fullmatch(v):
+                            gw_verdict = v
+            except (OSError, CoreError, UnicodeError):
+                gw_verdict = None
+            detail = f'{safe_code}; gateway={gw_verdict}' if gw_verdict else safe_code
+            raise DiscoveryFlowError(f'Execução do agente de descoberta incompleta ({detail}).')
         return _proposal(response.assistant_text)
 
     def _generate(self, sid, revision, phase):
