@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "date": "2026-11-25",
+  "date": "2026-11-28",
   "change": "discover-plan-tickets",
-  "classification": "change5-offline-gates-and-r2-pass-blocked-pending-disc01-live",
+  "classification": "change5-offline-gates-r2-and-disc01-live-pass",
   "branch": "feat/change5-discover-plan-tickets",
   "candidate_ref": "089530da791840506abff3a2d64ab7cbeb99a018",
   "sealed_at_and_poc_ref": "27b58a86f062dc9637c5f7d2f37b2de78141126e",
   "note_between_refs": "Entre 27b58a8 e 089530d apenas udh/discovery_flow.py (runner local T3b.2c) e testes de descoberta/gateway foram alterados; udh/store.py, udh/service.py, udh/policy.py, udh/operator.py, udh/__main__.py, udh/handoff.py, udh/ticket_* e runtime/* permaneceram bit-a-bit idênticos.",
-  "merge_readiness": "BLOCKED_PENDING_DISC01_LIVE",
+  "merge_readiness": "READY_FOR_MERGE",
   "images_oci": {
     "pi": {
       "repository": "localhost/udh-runtime",
@@ -148,19 +148,23 @@
   "change5_acceptance_status": {
     "TICKET-01_and_B4_2": "VERIFIED_COMPLEMENTARY_AND_TRUSTED_EXECUTOR_OFFLINE",
     "TICKET-02": "VERIFIED_E2E_OFFLINE_PI_TO_OPENCODE_AND_ARTIFACT_ONLY",
-    "DISC-01": "NOT_RUN_BLOCKED_EXTERNAL_429"
+    "DISC-01": "VERIFIED_LIVE_OLLAMA_LOCAL_SPEC_READY"
   },
-  "disc01_live_block": {
-    "date": "2026-11-25",
-    "provider": "opencode_zen_free",
-    "model": "deepseek-v4.1-flash-free",
-    "observed_verdict": "provider_http_429",
-    "tested_auth_modes": ["public", "env_api_key"],
-    "offline_local_ollama_status": "PENDING_FUTURE_ENVIRONMENT",
-    "action_required_to_merge": "Executar ensaio ao vivo C5-T3b.2c-03 (ou C5-T3b.2b-03 com Ollama local) com modelo real passando todos os casos de DISC-01 ate SPEC_READY e atualizar este resumo antes de integrar em main."
+  "disc01_live_verification": {
+    "date": "2026-11-28",
+    "profile": "ollama_local_discovery",
+    "backend": "local_discovery",
+    "model": "qwen2.5:7b-instruct-q4_K_M",
+    "skill_sha256": "0013c3849856ad8f629b9b19a9260be26583a7b715b1ba713016739fa4de7f27",
+    "cli_version": "2.1.1",
+    "verdict": "PASS",
+    "elapsed_seconds": 23.718,
+    "complete_idea_status": "SPEC_READY",
+    "material_gap_status": "SPEC_READY",
+    "insufficient_answer_blocked": true,
+    "note": "Executado via Pi 1.2.0 em contêiner Podman rootless (network=none) + Gateway local loopback -> Ollama qwen2.5:7b-instruct-q4_K_M com validação estrita OpenSpec 2.1.1 (C5-T3b.2b-03)."
   },
   "not_run": [
-    "DISC-01 com modelo real (bloqueado por HTTP 429 no OpenCode Zen em deepseek-v4.1-flash-free; Ollama local pendente de ambiente)",
     "DOC-01/02, SKILL-01/02, UX-04",
     "Perfil provision (B2.4), execucao persistente B3.8 e exportacao B3.9",
     "Terceiro agente (Codex), Memorix, Judge consultivo e chamada ao vivo openrouter_free",

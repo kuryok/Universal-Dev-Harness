@@ -32,4 +32,4 @@ Os testes usam Python 3 (stdlib-only), Podman rootless e as 3 imagens OCI locais
 
 Na branch do [Change 5](openspec/changes/discover-plan-tickets/tasks.md), T1–T4 e todos os gates offline passaram (`089530d`: `225/225` complementares, `doctor --conformance` `READY`, `4/4` POCs, `50/50` AT selados `v1–v6` e revisão R2/F-02 `PASS`; [resumo](openspec/changes/discover-plan-tickets/verification-summary.json)). A [skill de descoberta adaptada](openspec/changes/discover-plan-tickets/skills/grill-with-docs-udh/SKILL.md) é usada pelo Pi durante a descoberta.
 
-O merge em `main` aguarda apenas concluir o ensaio ao vivo de `DISC-01` (bloqueado por `HTTP 429` do OpenCode Zen em `deepseek-v4.1-flash-free`; outro modelo/provedor de API ou Ollama local pendente).
+O ensaio ao vivo de `DISC-01` (`C5-T3b.2b-03`) foi concluído com `PASS` via Ollama local (`qwen2.5:7b-instruct-q4_K_M` + OpenSpec 2.1.1 estrita), com a branch pronta para merge em `main`.

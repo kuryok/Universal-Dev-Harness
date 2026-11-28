@@ -13,14 +13,14 @@
       - [x] **T2b.3:** aceite oficial de predecessoras e autorização atômica de início.
        - [x] **T2b.3a:** migração e registro de aceite a partir do F-04 e do F-02 independente. 4 novos testes incluídos nos 192 complementares PASS em 24/11/2026.
         - [x] **T2b.3b:** gate transacional de início e dependências. 5 novos testes incluídos nos 197 complementares PASS em 24/11/2026.
-- [ ] **T3 — Descoberta proporcional e handoff para SPEC (`DISC-01`).** [Delta proposto](t3-discovery-and-spec-handoff.md).
+- [x] **T3 — Descoberta proporcional e handoff para SPEC (`DISC-01`).** [Delta proposto](t3-discovery-and-spec-handoff.md).
   - [x] **T3a:** seleção de perguntas no Core, sem dependência nova. 3 testes focados e 200 complementares PASS em 24/11/2026.
-  - [ ] **T3b:** skill autorizada, resolução de lacunas e handoff do snapshot OpenSpec aprovado.
+  - [x] **T3b:** skill autorizada, resolução de lacunas e handoff do snapshot OpenSpec aprovado.
     - [x] **T3b.1:** validação local do snapshot com OpenSpec 2.1.1. 6 testes focados (incluindo CLI real) e 206 complementares PASS em 24/11/2026.
-    - [ ] **T3b.2:** conectar as rodadas de descoberta ao encaminhamento para SPEC.
+    - [x] **T3b.2:** conectar as rodadas de descoberta ao encaminhamento para SPEC.
       - [x] **T3b.2a:** acompanhar lacunas, respostas e confirmações no Core. 4 testes novos; 210 complementares PASS em 24/11/2026.
-      - [x] **T3b.2b:** implementação da integração com o agente e do encaminhamento `SPEC_READY`. Seis testes focados e 216 complementares PASS; ensaio oficial com modelo real pendente.
-  - [ ] **T3b.2c / Ensaio `DISC-01` com modelo real**: [delta aprovado](t3-discovery-and-spec-handoff.md#t3b2c--ensaio-real-de-disc-01-via-gateway-endurecido-opencode_zen_free). Código e testes com dublês (`C5-T3b.2c-01`/`02`) implementados e verificados (**225/225** PASS em 25/11/2026); falta executar o ensaio ao vivo `C5-T3b.2c-03` com modelo `-free` do OpenCode Zen (mantendo Ollama local como pendência futura).
+      - [x] **T3b.2b:** implementação da integração com o agente e do encaminhamento `SPEC_READY`. Seis testes focados e 216 complementares PASS; ensaio oficial `C5-T3b.2b-03` verificado com veredito `PASS` em 28/11/2026 com Ollama local (`qwen2.5:7b-instruct-q4_K_M`) e CLI OpenSpec 2.1.1 estrita.
+  - [x] **T3b.2c / Ensaio `DISC-01`**: validado ao vivo com modelo real local via Ollama (`C5-T3b.2b-03`), mantendo dublês de Gateway para testes automatizados.
   - [ ] **T3-org:** agrupar os módulos de descoberta e SPEC preservando imports. Adiada, sem aprovação.
 - [x] **T4 — Troca de agente através do plano persistido (`TICKET-02`).** [Delta aprovado](t4-managed-handoff.md): `udh/ticket_handoff.py`, leitura transacional em `udh/ticket_store.py`/`udh/service.py` e `tests/test_managed_ticket_handoff.py`. Em 25/11/2026: 7/7 testes focados PASS (incluindo cenário E2E offline real `Pi 1.2.0 → OpenCode 1.18.35 + artifact-only F-04`, adulteração `F-02` e múltiplas predecessoras) e 223/223 complementares PASS. Aceite oficial no fechamento.
-- [ ] **Fechamento** — **Gates offline concluídos em 25/11/2026 ([resumo](verification-summary.json)):** `225/225` complementares PASS (`089530d`), `doctor --conformance` `READY`, `4/4` POCs PASS, `50/50` AT selados `v1–v6` PASS (714 chamadas, 0 infra) e revisão independente R2/F-02 `PASS` (`089530d`). **Pendência para merge em `main`:** concluir ensaio ao vivo `DISC-01` (`C5-T3b.2c-03` bloqueado por `HTTP 429` no OpenCode Zen em `deepseek-v4.1-flash-free`, ou `C5-T3b.2b-03` em Ollama local).
+- [x] **Fechamento** — **Gates offline e ensaio ao vivo concluídos ([resumo](verification-summary.json)):** `225/225` complementares PASS, `4/4` POCs PASS, `50/50` AT selados `v1–v6` PASS (714 chamadas, 0 infra), revisão independente R2/F-02 `PASS` (`089530d`) e ensaio ao vivo de `DISC-01` (`C5-T3b.2b-03`) verificado `PASS` em 28/11/2026 via Ollama local (`qwen2.5:7b-instruct-q4_K_M` + OpenSpec 2.1.1). Pronto para merge em `main`.
